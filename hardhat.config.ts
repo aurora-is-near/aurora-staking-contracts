@@ -1,43 +1,59 @@
-import * as dotenv from "dotenv";
-
-import { HardhatUserConfig, task } from "hardhat/config";
-// import "@nomiclabs/hardhat-etherscan";
-import "@nomiclabs/hardhat-waffle";
-// import "@typechain/hardhat";
-// import "hardhat-gas-reporter";
-// import "solidity-coverage";
+import * as dotenv from 'dotenv'
 
 dotenv.config();
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
+import "@nomiclabs/hardhat-truffle5";
+import "@nomiclabs/hardhat-etherscan";
+import "@nomiclabs/hardhat-ethers";
 
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
+require("@nomiclabs/hardhat-web3");
 
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
+/**
+ * @type import('hardhat/config').HardhatUserConfig
+ */
 
-const config: HardhatUserConfig = {
-  solidity: "0.8.4",
+const {
+  INFURA_KEY,
+  MNEMONIC,
+  ETHERSCAN_API_KEY,
+  PRIVATE_KEY,
+  PRIVATE_KEY_TESTNET
+} = process.env;
+
+const accountsTestnet = PRIVATE_KEY_TESTNET
+  ? [PRIVATE_KEY_TESTNET]
+  : {mnemonic: MNEMONIC};
+
+const accountsMainnet = PRIVATE_KEY
+  ? [PRIVATE_KEY]
+  : {mnemonic: MNEMONIC};
+
+module.exports = {
+  solidity: "0.8.10",
+
   networks: {
-    // ropsten: {
-    //   url: process.env.ROPSTEN_URL || "",
-    //   accounts:
-    //     process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    // },
+    hardhat: {
+      forking: {
+        url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
+        accounts: accountsTestnet
+      }
+    },
+    mainnet: {
+        url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
+       // accounts: accountsMainnet,
+    },
+    rinkeby: {
+        url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+        accounts: accountsTestnet,
+    },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
+      accounts: accountsTestnet,
+    }
   },
-  // gasReporter: {
-  //   enabled: process.env.REPORT_GAS !== undefined,
-  //   currency: "USD",
-  // },
-  // etherscan: {
-  //   apiKey: process.env.ETHERSCAN_API_KEY,
-  // },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: ETHERSCAN_API_KEY
+  }
 };
-
-export default config;
