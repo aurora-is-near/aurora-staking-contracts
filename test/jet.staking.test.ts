@@ -1284,35 +1284,6 @@ describe("JetStaking", function () {
         // accelerate the season
         await network.provider.send("evm_increaseTime", [550 * decayGracePeriod]) // increase time for 20 days
         await network.provider.send("evm_mine")
-        await jet.connect(user1).claimVote(2)
-        await sampleTokenContract.transferFromVoteTokens(
-            jet.address,
-            await user1.getAddress(),
-            await user2.getAddress(),
-            ethers.utils.parseUnits("1", 18)
-        )
-        expect(
-            await jet.balanceOfWithoutDecay(await user2.getAddress())
-        ).to.be.eq(ethers.utils.parseUnits("1", 18))
-    })
-
-    it("should allow whitelisted contract to call transferFrom if block.timestamp <= season.decayStart", async () => {
-        await jet.connect(owner).whitelistContract(
-            sampleTokenContract.address,
-            true
-        )
-        expect(
-            await jet.whitelistedContracts(sampleTokenContract.address)
-        ).to.eq(true)
-
-        // stake for 4 seasons
-        const amount = ethers.utils.parseUnits("10", 18)
-        const seasonAmount = 2
-        const decayGracePeriod = 86400
-        await jet.connect(user1).stake(amount, seasonAmount)
-        // accelerate the season
-        await network.provider.send("evm_increaseTime", [160 * decayGracePeriod]) // increase time for 20 days
-        await network.provider.send("evm_mine")
         await jet.connect(user1).claimVote(1)
         await sampleTokenContract.transferFromVoteTokens(
             jet.address,
@@ -1324,4 +1295,33 @@ describe("JetStaking", function () {
             await jet.balanceOfWithoutDecay(await user2.getAddress())
         ).to.be.eq(ethers.utils.parseUnits("1", 18))
     })
+
+    // it("should allow whitelisted contract to call transferFrom if block.timestamp <= season.decayStart", async () => {
+    //     await jet.connect(owner).whitelistContract(
+    //         sampleTokenContract.address,
+    //         true
+    //     )
+    //     expect(
+    //         await jet.whitelistedContracts(sampleTokenContract.address)
+    //     ).to.eq(true)
+
+    //     // stake for 4 seasons
+    //     const amount = ethers.utils.parseUnits("10", 18)
+    //     const seasonAmount = 2
+    //     const decayGracePeriod = 86400
+    //     await jet.connect(user1).stake(amount, seasonAmount)
+    //     // accelerate the season
+    //     await network.provider.send("evm_increaseTime", [160 * decayGracePeriod]) // increase time for 20 days
+    //     await network.provider.send("evm_mine")
+    //     await jet.connect(user1).claimVote(1)
+    //     await sampleTokenContract.transferFromVoteTokens(
+    //         jet.address,
+    //         await user1.getAddress(),
+    //         await user2.getAddress(),
+    //         ethers.utils.parseUnits("1", 18)
+    //     )
+    //     expect(
+    //         await jet.balanceOfWithoutDecay(await user2.getAddress())
+    //     ).to.be.eq(ethers.utils.parseUnits("1", 18))
+    // })
 })
