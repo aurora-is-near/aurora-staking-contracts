@@ -11,11 +11,11 @@ import "./interfaces/ITreasury.sol";
 contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
 
     uint256 totalAmountOfStakedAurora;
+    uint256 touchedAt;
     uint256[] totalShares; // T_{j}
     address[] streams;
     uint256[] weights;
     uint256[] rps; // Reward per share for a stream j>0
-    uint256 touchedAt;
     uint256[] tau;
 
     struct User {
@@ -199,9 +199,52 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 streamId,
         uint256 start,
         uint256 end
-    ) private pure returns(uint256 amount) {
+    ) private pure returns(uint256) {
         //TODO: update the schedule function
-        amount = 1;
+        uint256 oneYearBefore = 31536000;
+        require(schedules[streamId].time.length > 0, 'JetStakingV1: NO_SCHEDULE');
+        require(
+            end > start &&
+            start >= schedules[streamId].time[0] - oneYearBefore &&
+            end <= schedules[streamId].time[schedules[streamId].time.length - 1],
+            "JetStakingV1: INVALID_SCHEDULE_PARAMETERS"
+        );
+        // find start index and end index
+        uint256 startIndex = 0;
+        uint256 endIndex = 0;
+        for(uint i = 0; i < schedules[streamId].time.length; i++){
+            if(start < schedules[streamId].time[i]) startIndex = i;
+            if(end < schedules[streamId].time[i]) endIndex = i;
+        }
+
+        uint256 rewardScheduledAmount = 0;
+        uint256 denominator = 1;
+        if(startIndex == endIndex) {
+            // start and end in the same schedule period
+            if(startIndex != 0) {
+                denominator = schedules[streamId].time[startIndex] - schedules[streamId].time[startIndex - 1];
+            } else {
+                denominator = schedules[streamId].time[startIndex];
+            }
+            rewardScheduledAmount = ((end - start) * schedules[streamId].reward[startIndex]) / denominator;
+        } else {
+            // start and end are not in the same schedule period
+            if(startIndex != 0) {
+                denominator = schedules[streamId].time[startIndex] - schedules[streamId].time[startIndex - 1];
+            } else {
+                denominator = schedules[streamId].time[startIndex];
+            }
+            rewardScheduledAmount = ((schedules[streamId].time[startIndex] - start) * schedules[streamId].reward[startIndex]) / denominator;
+            for (uint256 i = startIndex; i < schedules[streamId].time.length; i++) {
+                if (i != endIndex) {
+                    rewardScheduledAmount += schedules[streamId].reward[i];
+                } else {
+                    denominator = (schedules[streamId].time[i] - schedules[streamId].time[i - 1];
+                    rewardScheduledAmount += ((schedules[streamId].time[i] - end) * schedules[streamId].reward[startIndex]) / denominator;
+                }
+            }
+        }
+        return rewardScheduledAmount;
     }
 
     /// @dev calculate the weight per stream based on the the timestamp.
