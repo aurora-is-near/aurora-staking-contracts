@@ -15,14 +15,15 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     uint256[] totalShares; // T_{j}
     address[] streams;
     uint256[] weights;
-    uint256[] rps; // Reward per share for a stream j>0
+    mapping(uint256 => uint256) rps; // Reward per share for a stream j>0
     uint256[] tau;
+    address public treasury;
 
     struct User {
-        uint256[] shares; // The amount of shares for user per stream j
-        uint256[] pendings; // The amount of tokens pending release for user per stream
-        uint256[] releaseTime; // The release moment per stream
-        uint256[] rps; // RPS or reward per share during the previous withdrawal
+        mapping(uint256 => uint256) shares; // The amount of shares for user per stream j
+        mapping(uint256 => uint256) pendings; // The amount of tokens pending release for user per stream
+        mapping(uint256 => uint256) releaseTime; // The release moment per stream
+        mapping(uint256 => uint256) rps; // RPS or reward per share during the previous withdrawal
     }
 
     struct Schedule {
@@ -31,7 +32,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     }
 
     mapping(address => User) users;
-    mapping(address => uint256) streamToIndex;
+    mapping(address => uint256) public streamToIndex;
     Schedule[] schedules;
 
     // events
@@ -61,30 +62,56 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 timestamp
     );
 
+    event StreamAdded(
+        address indexed stream,
+        uint256 index,
+        uint256 timestamp
+    );
+
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @param aurora token contract address
     /// @param scheduleTimes init the schedule time
     /// @param scheduleRewards init the schedule amounts
-    /// @param tauPerStream release time constant per stream (e.g AURORA stream)
+    /// @param tauAuroraStream release time constant per stream (e.g AURORA stream)
+    /// @param _admin the staking contract admin address (DAO governed address)
+    /// @param _flags admin controlled contract flags
+    /// @param _treasury the Aurora treasury contract address
     function initialize(
         address aurora,
+        string memory voteTokenName,
+        string memory voteTokenSymbol,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
-        uint256 tauPerStream
+        uint256 tauAuroraStream,
+        address _admin,
+        uint256 _flags,
+        address _treasury
     ) public initializer {
         require(
-            aurora != address(0),
+            aurora != address(0) &&
+            _admin != address(0) &&
+            _treasury != address(0),
             'JetStakingV1: INVALID_ADDRESS'
         );
-        
+        __ERC20_init(voteTokenName, voteTokenSymbol);
+        __AdminControlled_init(_admin, _flags);
+        treasury = _treasury;
         streams.push(aurora);
         streamToIndex[aurora] = 0;
-        totalShares[0] = 1; //TODO: check the initial value
-        weights[0] = 1; //TODO: need to be set
-        totalAmountOfStakedAurora = 0;
-        schedules[0] = Schedule(scheduleTimes, scheduleRewards);
-        tau[0] = tauPerStream;
+        totalShares.push(1); //TODO: check the initial value
+        weights.push(1); //TODO: need to be set
+        totalAmountOfStakedAurora = 1; //TODO: check the initial total staked value
+        schedules.push(
+            Schedule(scheduleTimes, scheduleRewards)
+        );
+        tau.push(tauAuroraStream);
         touchedAt = block.timestamp;
+        // default stream added (AURORA with an index 0)
+        emit StreamAdded(
+            aurora,
+            streamToIndex[aurora],
+            block.timestamp
+        );
     }
 
     /// @dev deploys new stream
@@ -105,16 +132,23 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
             'JetStakingV1: INVALID_ADDRESS'
         );
         require(
-            streamToIndex[stream] == 0,
+            streamToIndex[stream] == 0 && streams.length > 0,
             'JetStakingV1: STREAM_ALREADY_EXISTS'
         );
         streamToIndex[stream] = streams.length;
         streams.push(stream);
         uint256 streamId = streamToIndex[stream];
-        totalShares[streamId] = 1; //TODO: check the initial value of shares
-        weights[streamId] = weight;
-        tau[streamId] = tauPerStream;
-        schedules[streamId] = Schedule(scheduleTimes, scheduleRewards);
+        totalShares.push(1); //TODO: check the initial value of shares
+        weights.push(weight);
+        tau.push(tauPerStream);
+        schedules.push(
+            Schedule(scheduleTimes, scheduleRewards)
+        );
+        emit StreamAdded(
+            stream,
+            streamToIndex[stream],
+            block.timestamp
+        );
     }
 
     /// @dev a user stakes amount of AURORA tokens
@@ -199,22 +233,23 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 streamId,
         uint256 start,
         uint256 end
-    ) private pure returns(uint256) {
+    ) private view returns(uint256) {
         //TODO: update the schedule function
         uint256 oneYearBefore = 31536000;
-        require(schedules[streamId].time.length > 0, 'JetStakingV1: NO_SCHEDULE');
+        Schedule storage schedule = schedules[streamId];
+        require(schedule.time.length > 0, 'JetStakingV1: NO_SCHEDULE');
         require(
             end > start &&
-            start >= schedules[streamId].time[0] - oneYearBefore &&
-            end <= schedules[streamId].time[schedules[streamId].time.length - 1],
+            start >= schedule.time[0] - oneYearBefore &&
+            end <= schedule.time[schedule.time.length - 1],
             "JetStakingV1: INVALID_SCHEDULE_PARAMETERS"
         );
         // find start index and end index
         uint256 startIndex = 0;
         uint256 endIndex = 0;
-        for(uint i = 0; i < schedules[streamId].time.length; i++){
-            if(start < schedules[streamId].time[i]) startIndex = i;
-            if(end < schedules[streamId].time[i]) endIndex = i;
+        for(uint i = 0; i < schedule.time.length; i++){
+            if(start < schedule.time[i]) startIndex = i;
+            if(end < schedule.time[i]) endIndex = i;
         }
 
         uint256 rewardScheduledAmount = 0;
@@ -222,25 +257,25 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         if(startIndex == endIndex) {
             // start and end in the same schedule period
             if(startIndex != 0) {
-                denominator = schedules[streamId].time[startIndex] - schedules[streamId].time[startIndex - 1];
+                denominator = schedule.time[startIndex] - schedule.time[startIndex - 1];
             } else {
-                denominator = schedules[streamId].time[startIndex];
+                denominator = schedule.time[startIndex];
             }
-            rewardScheduledAmount = ((end - start) * schedules[streamId].reward[startIndex]) / denominator;
+            rewardScheduledAmount = ((end - start) * schedule.reward[startIndex]) / denominator;
         } else {
             // start and end are not in the same schedule period
             if(startIndex != 0) {
-                denominator = schedules[streamId].time[startIndex] - schedules[streamId].time[startIndex - 1];
+                denominator = schedule.time[startIndex] - schedule.time[startIndex - 1];
             } else {
-                denominator = schedules[streamId].time[startIndex];
+                denominator = schedule.time[startIndex];
             }
-            rewardScheduledAmount = ((schedules[streamId].time[startIndex] - start) * schedules[streamId].reward[startIndex]) / denominator;
-            for (uint256 i = startIndex; i < schedules[streamId].time.length; i++) {
+            rewardScheduledAmount = ((schedule.time[startIndex] - start) * schedule.reward[startIndex]) / denominator;
+            for (uint256 i = startIndex; i < schedule.time.length; i++) {
                 if (i != endIndex) {
-                    rewardScheduledAmount += schedules[streamId].reward[i];
+                    rewardScheduledAmount += schedule.reward[i];
                 } else {
-                    denominator = (schedules[streamId].time[i] - schedules[streamId].time[i - 1];
-                    rewardScheduledAmount += ((schedules[streamId].time[i] - end) * schedules[streamId].reward[startIndex]) / denominator;
+                    denominator = (schedule.time[i] - schedule.time[i - 1]);
+                    rewardScheduledAmount += ((schedule.time[i] - end) * schedule.reward[startIndex]) / denominator;
                 }
             }
         }
@@ -281,25 +316,27 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         address user,
         uint256 streamId
     ) private {
-        users[user].pendings[streamId] += (rps[streamId] - users[user].rps[streamId]) * users[user].shares[streamId];
-        users[user].rps[streamId] = rps[streamId];
-        users[user].releaseTime[streamId] = block.timestamp + tau[streamId];
-        emit Pending(streamId, msg.sender, users[user].pendings[streamId], block.timestamp);
+        User storage userAccount = users[user];
+        userAccount.pendings[streamId] += (rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId];
+        userAccount.rps[streamId] = rps[streamId];
+        userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
+        emit Pending(streamId, msg.sender, userAccount.pendings[streamId], block.timestamp);
     }
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
     /// @param amount the staked amount
     function _stake(uint256 amount) private {
         // recalculation of shares for AURORA
-        uint256 _amountOfSharesPerStream = amount * (totalShares[0] / totalAmountOfStakedAurora);
-        users[msg.sender].shares[0] += _amountOfSharesPerStream;
+        User storage userAccount = users[msg.sender];
+        uint256 _amountOfSharesPerStream = (amount * totalShares[0]) / totalAmountOfStakedAurora;
+        userAccount.shares[0] += _amountOfSharesPerStream;
         totalShares[0] += _amountOfSharesPerStream;
         totalAmountOfStakedAurora += amount;
 
         // recalculation of shares for other streams
         for(uint256 i = 1; i < streams.length; i++){
             uint256 weightedAmountOfSharesPerStream = _amountOfSharesPerStream * _weighting(weights[i], block.timestamp);
-            users[msg.sender].shares[i] += weightedAmountOfSharesPerStream;
+            userAccount.shares[i] += weightedAmountOfSharesPerStream;
             totalShares[i] += weightedAmountOfSharesPerStream;
         }
         emit Staked(msg.sender, amount, block.timestamp);

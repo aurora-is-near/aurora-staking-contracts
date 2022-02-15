@@ -43,12 +43,17 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     /// @param _supportedTokens list of supported tokens to approve
     function approveTokensTo(
         address[] memory _supportedTokens,
+        uint256[] memory _amounts,
         address _operator
     ) public onlyManager {
+        require(
+            _amounts.length == _supportedTokens.length,
+            'Treasury: Invalid approve tokens paramerters'
+        );
         for (uint256 i = 0; i < _supportedTokens.length; i++) {
-            IERC20Upgradeable(_supportedTokens[i]).safeApprove(
+            IERC20Upgradeable(_supportedTokens[i]).safeIncreaseAllowance(
                 _operator,
-                type(uint256).max
+                _amounts[i]
             );
         }
     }

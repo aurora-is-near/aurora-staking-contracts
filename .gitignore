@@ -8,3 +8,7 @@ build/
 #Hardhat files
 cache/
 artifacts/
+# IDE
+.DS_Store
+# OpenZeppelin
+.openzeppelin/
