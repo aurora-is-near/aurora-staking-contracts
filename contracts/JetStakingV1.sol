@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts v4.4.1 (token/ERC20/ERC20.sol)
 pragma solidity 0.8.10;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "./AdminControlled.sol";
 import "./ERC20Upgradeable.sol";
+import "./AdminControlled.sol";
 import "./interfaces/ITreasury.sol";
 
 contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
 
-    uint256 totalAmountOfStakedAurora;
+    uint256 public totalAmountOfStakedAurora;
     uint256 touchedAt;
     uint256[] totalShares; // T_{j}
-    address[] streams;
+    address[] public streams;
     uint256[] weights;
-    mapping(uint256 => uint256) rps; // Reward per share for a stream j>0
-    uint256[] tau;
+    mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
+    uint256[] public tau;
     address public treasury;
 
     struct User {
@@ -91,7 +88,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
             aurora != address(0) &&
             _admin != address(0) &&
             _treasury != address(0),
-            'JetStakingV1: INVALID_ADDRESS'
+            'INVALID_ADDRESS'
         );
         __ERC20_init(voteTokenName, voteTokenSymbol);
         __AdminControlled_init(_admin, _flags);
@@ -129,11 +126,11 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     ) external onlyAdmin {
         require(
             stream != address(0),
-            'JetStakingV1: INVALID_ADDRESS'
+            'INVALID_ADDRESS'
         );
         require(
             streamToIndex[stream] == 0 && streams.length > 0,
-            'JetStakingV1: STREAM_ALREADY_EXISTS'
+            'STREAM_ALREADY_EXISTS'
         );
         streamToIndex[stream] = streams.length;
         streams.push(stream);
@@ -180,7 +177,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     function withdraw(uint256 streamId) external {
         require(
             block.timestamp > users[msg.sender].releaseTime[streamId],
-            'ERR: invalid release time'
+            'INVALID_RELEASE_TIME'
         );
         uint256 pendingAmount = users[msg.sender].pendings[streamId];
         users[msg.sender].pendings[streamId] = 0;
@@ -196,7 +193,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 totalAmount = (totalAmountOfStakedAurora * users[msg.sender].shares[0]) / totalShares[0];
         require(
             amount <= totalAmount,
-            'JetStakingV1: INVALID_AMOUNT'
+            'INVALID_AMOUNT'
         );
         _before();
 
@@ -218,7 +215,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         if(totalAmount - amount > 0) {
             _stake(totalAmount - amount);
             //TODO: change the pay reward by calling the treasury.
-            IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), totalAmount - amount);
+            // IERC20Upgradeable(streams[0]).transfer(msg.sender, totalAmount - amount);
         }
         _after();
         emit Unstaked(msg.sender, amount, block.timestamp);
@@ -237,12 +234,12 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         //TODO: update the schedule function
         uint256 oneYearBefore = 31536000;
         Schedule storage schedule = schedules[streamId];
-        require(schedule.time.length > 0, 'JetStakingV1: NO_SCHEDULE');
+        require(schedule.time.length > 0, 'NO_SCHEDULE');
         require(
             end > start &&
             start >= schedule.time[0] - oneYearBefore &&
             end <= schedule.time[schedule.time.length - 1],
-            "JetStakingV1: INVALID_SCHEDULE_PARAMETERS"
+            "INVALID_SCHEDULE_PARAMETERS"
         );
         // find start index and end index
         uint256 startIndex = 0;

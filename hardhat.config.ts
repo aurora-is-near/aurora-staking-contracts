@@ -16,6 +16,7 @@ const {
   ETHERSCAN_API_KEY,
   PRIVATE_KEY,
   PRIVATE_KEY_TESTNET,
+  AURORA_API_KEY,
 } = process.env;
 
 const accountsTestnet = PRIVATE_KEY_TESTNET
@@ -29,13 +30,13 @@ const accountsMainnet = PRIVATE_KEY
 module.exports = {
   defaultNetwork: 'hardhat',
   solidity: {
-    version: '0.8.10',
+    version: "0.8.10",
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
-      },
-    },
+        runs: 1
+      }
+    }
   },
   namedAccounts: {
     owner: {
@@ -59,6 +60,10 @@ module.exports = {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
       accounts: accountsTestnet,
     },
+    aurora: {
+      url: `https://testnet.aurora.dev/${AURORA_API_KEY}`,
+      accounts: accountsMainnet
+    }
   },
   etherscan: {
     // Your API key for Etherscan

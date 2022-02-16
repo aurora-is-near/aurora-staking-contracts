@@ -24,11 +24,13 @@ describe("JetStakingV1", function () {
     let tauPerStream: number
     let scheduleTimes: any
     let scheduleRewards: any
+    let oneDay: any
 
     before(async () => {
         // deploys all the contracts
         [auroraOwner, stakingAdmin, user1, user2, user3, user4] = await ethers.getSigners()
         const supply = ethers.utils.parseUnits("1000000", 18)
+        oneDay = 24 * 60 * 60
         const Token = await ethers.getContractFactory("Token")
         auroraToken = await Token.connect(auroraOwner).deploy(supply, "AuroraToken", "AURORA")
         // random example for other reward token contracts
@@ -144,5 +146,39 @@ describe("JetStakingV1", function () {
         const tx = await jet.connect(user1).stake(amountStaked)
         const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.staked, 0)
         expect(amount).to.be.eq(amountStaked)
+    })
+
+    it('should allow user to move rewards to pending release', async () => {
+        await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const amountStaked = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(user1).approve(jet.address, amountStaked)
+        await jet.connect(user1).stake(amountStaked)
+        await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_mine")
+        const tx = await jet.moveRewardsToPending(0)
+        const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.pending, 0)
+        expect(amount).to.be.eq(0)
+    })
+
+    it('should allow user to unstake tokens', async () => {
+        await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const amountStaked = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(user1).approve(jet.address, amountStaked)
+        await jet.connect(user1).stake(amountStaked)
+        await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_mine")
+        await jet.connect(user1).unstake(ethers.utils.parseUnits("5", 18))
     })
 });

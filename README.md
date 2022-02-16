@@ -45,7 +45,7 @@ npm run coverage
 ## Deployment
 
 ```
-npm run deploy-local # default hardhat network
-npm run deploy-testnet # Aurora Testnet
-npm run deploy-mainnet # Ethereum Mainnet
+npm run deploy:local # default hardhat network
+npm run deploy:testnet # Aurora Testnet
+npm run deploy:mainnet # Ethereum Mainnet
 ```
