@@ -9,7 +9,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
 
     uint256 public totalAmountOfStakedAurora;
     uint256 touchedAt;
-    uint256[] totalShares; // T_{j}
+    uint256[] public totalShares; // T_{j}
     address[] public streams;
     uint256[] weights;
     mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
@@ -204,21 +204,74 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         for(uint j = 1; j < streams.length; j++) {
             _moveRewardsToPending(msg.sender, j);
         }
-
         // remove the shares from everywhere
         for(uint i = 0; i < streams.length; i++){
             totalShares[i] -= users[msg.sender].shares[i];
             users[msg.sender].shares[i] = 0;
         }
-        
+        // update the total Aurora staked
+        totalAmountOfStakedAurora -= amount;
         // stake totalAmount - amount
         if(totalAmount - amount > 0) {
             _stake(totalAmount - amount);
-            //TODO: change the pay reward by calling the treasury.
-            // IERC20Upgradeable(streams[0]).transfer(msg.sender, totalAmount - amount);
         }
         _after();
         emit Unstaked(msg.sender, amount, block.timestamp);
+    }
+
+    function getAmountOfShares(
+        address user,
+        uint256 streamId
+    ) external view returns(uint256) {
+        return users[user].shares[streamId];
+    }
+
+    // function getStreamAddressByIndex(uint256 id) external view returns(address) {
+    //     return streams[id];
+    // }
+
+    // function getStreamIndexByAddress(address stream) external view returns(uint256) {
+    //     return streamToIndex[stream];
+    // }
+
+    function getRewardPerShare(uint256 streamId) external view returns(uint256) {
+        return rps[streamId];
+    }
+
+    function getPending(
+        address user,
+        uint256 streamId
+    ) external view returns(uint256) {
+        return users[user].pendings[streamId];
+    }
+
+    function getSchedule(uint256 streamId) external view returns(uint256[] memory, uint256[] memory) {
+        return(schedules[streamId].time, schedules[streamId].reward);
+    }
+
+    function startEndScheduleIndex(uint256 start, uint256 end) public view returns(uint256 startIndex, uint256 endIndex) {
+        Schedule storage schedule = schedules[0];
+        require(schedule.time.length > 0, 'NO_SCHEDULE');
+        require(
+            end > start &&
+            start >= schedule.time[0] &&
+            end <= schedule.time[schedule.time.length - 1],
+            "INVALID_SCHEDULE_PARAMETERS"
+        );
+        // find start index and end index
+        for(uint i = 0; i < schedule.time.length - 1; i++){
+            if(start < schedule.time[i]) {
+                startIndex = i-1;
+                break;
+            }
+        }
+
+        for(uint i = schedule.time.length - 1; i > 0; i--){
+            if(end >= schedule.time[i]) {
+                endIndex = i;
+                break;
+            }
+        }
     }
 
     /// @dev calculate the total amount of the released tokens
@@ -231,48 +284,37 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 start,
         uint256 end
     ) private view returns(uint256) {
-        //TODO: update the schedule function
-        uint256 oneYearBefore = 31536000;
-        Schedule storage schedule = schedules[streamId];
-        require(schedule.time.length > 0, 'NO_SCHEDULE');
-        require(
-            end > start &&
-            start >= schedule.time[0] - oneYearBefore &&
-            end <= schedule.time[schedule.time.length - 1],
-            "INVALID_SCHEDULE_PARAMETERS"
-        );
-        // find start index and end index
-        uint256 startIndex = 0;
-        uint256 endIndex = 0;
-        for(uint i = 0; i < schedule.time.length; i++){
-            if(start < schedule.time[i]) startIndex = i;
-            if(end < schedule.time[i]) endIndex = i;
-        }
-
+        uint256 startIndex;
+        uint256 endIndex;
+        (startIndex, endIndex) = startEndScheduleIndex(start, end);
+        Schedule storage schedule = schedules[0];
         uint256 rewardScheduledAmount = 0;
-        uint256 denominator = 1;
+        uint256 denominator = schedule.time[1] - schedule.time[0];
+        uint256 reward = 0;
         if(startIndex == endIndex) {
-            // start and end in the same schedule period
-            if(startIndex != 0) {
-                denominator = schedule.time[startIndex] - schedule.time[startIndex - 1];
-            } else {
-                denominator = schedule.time[startIndex];
-            }
-            rewardScheduledAmount = ((end - start) * schedule.reward[startIndex]) / denominator;
-        } else {
-            // start and end are not in the same schedule period
-            if(startIndex != 0) {
-                denominator = schedule.time[startIndex] - schedule.time[startIndex - 1];
-            } else {
-                denominator = schedule.time[startIndex];
-            }
-            rewardScheduledAmount = ((schedule.time[startIndex] - start) * schedule.reward[startIndex]) / denominator;
-            for (uint256 i = startIndex; i < schedule.time.length; i++) {
+            // start and end are within the same schedule period
+            reward = schedule.reward[startIndex] - schedule.reward[startIndex+1];
+            rewardScheduledAmount = ((end - start) * reward) / denominator;
+        }
+        else {
+            // start and end are not within the same schedule period
+            reward = (schedule.reward[startIndex] - schedule.reward[startIndex + 1]);
+            rewardScheduledAmount = (schedule.time[startIndex + 1] - start) * reward / denominator;
+            
+            for (uint256 i = startIndex + 1; i < endIndex; i++) {
+                reward = schedule.reward[i] - schedule.reward[i+1];
                 if (i != endIndex) {
-                    rewardScheduledAmount += schedule.reward[i];
+                    rewardScheduledAmount += reward;
                 } else {
-                    denominator = (schedule.time[i] - schedule.time[i - 1]);
-                    rewardScheduledAmount += ((schedule.time[i] - end) * schedule.reward[startIndex]) / denominator;
+                    rewardScheduledAmount += (schedule.time[i] - end) * reward / denominator;
+                }
+            }
+            if(end == schedule.time[schedule.time.length - 1]) {
+                rewardScheduledAmount += reward;
+            } else {
+                if(end > schedule.time[endIndex]){
+                    reward = schedule.reward[endIndex] - schedule.reward[endIndex + 1];
+                    rewardScheduledAmount += (end - schedule.time[endIndex]) * reward / denominator;
                 }
             }
         }
@@ -293,13 +335,25 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     /// @dev called before touching the contract reserves
     function _before() private {
         // touch the contract block
-        totalAmountOfStakedAurora += _schedule(0, touchedAt, block.timestamp);
+        totalAmountOfStakedAurora += _schedule(0, touchedAt, block.timestamp) * 1000000000000000000;
         for (uint256 j = 0; j < streams.length; j++) {
-            rps[j] += _schedule(j, touchedAt, block.timestamp) / totalShares[j];
+            rps[j] += _schedule(j, touchedAt, block.timestamp) * 1000000000000000000 / totalShares[j];
             //TODO: deactivate stream if needed
         }
     }
 
+    function before(
+        uint256 startTime,
+        uint256 endTime
+    )
+    public
+    view
+    returns(uint256 total, uint256 rewardPerShareAurora, uint256 scheduleCalculated) {
+        total = totalAmountOfStakedAurora;
+        total += _schedule(0, startTime, endTime) * 1000000000000000000;
+        scheduleCalculated = _schedule(0, startTime, endTime);
+        rewardPerShareAurora = rps[0] * 1000000000000000000 + _schedule(0, startTime, endTime) * 1000000000000000000 / totalShares[0];
+    }
     /// @dev update last time this contract was touched
     function _after() private {
         touchedAt = block.timestamp;
