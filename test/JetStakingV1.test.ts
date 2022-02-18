@@ -119,122 +119,131 @@ describe("JetStakingV1", function () {
         )
     })
 
-    // it("should return treasury account", async () => {
-    //     expect(await jet.treasury()).to.eq(treasury.address)
-    // })
+    it("should return treasury account", async () => {
+        expect(await jet.treasury()).to.eq(treasury.address)
+    })
 
-    // it("should return jet staking name", async () => {
-    //     expect(await jet.name()).to.eq(name)
-    // })
+    it("should return jet staking name", async () => {
+        expect(await jet.name()).to.eq(name)
+    })
 
-    // it("should return let staking symbol", async () => {
-    //     expect(await jet.symbol()).to.eq(symbol)
-    // })
+    it("should return let staking symbol", async () => {
+        expect(await jet.symbol()).to.eq(symbol)
+    })
 
-    // it('should allow admin to deploy new stream', async () => {
-    //     const weight = 10
-    //     const tx = await jet.connect(stakingAdmin).deployStream(
-    //         streamToken1.address,
-    //         weight,
-    //         scheduleTimes,
-    //         scheduleRewards,
-    //         tauPerStream
-    //     )
-    //     const {stream, index, } = await getEventLogs(tx.hash, constants.eventsABI.streamAdded, 0)
-    //     expect(stream).to.be.eq(streamToken1.address)
-    //     expect(index).to.be.eq(await jet.streamToIndex(stream))
-    // })
+    it('should allow admin to deploy new stream', async () => {
+        const weight = 10
+        const tx = await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            weight,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const {stream, index, } = await getEventLogs(tx.hash, constants.eventsABI.streamAdded, 0)
+        expect(stream).to.be.eq(streamToken1.address)
+        expect(index).to.be.eq(await jet.streamToIndex(stream))
+    })
 
-    // it('should stake aurora tokens', async () => {
-    //     await jet.connect(stakingAdmin).deployStream(
-    //         streamToken1.address,
-    //         10,
-    //         scheduleTimes,
-    //         scheduleRewards,
-    //         tauPerStream
-    //     )
-    //     const amountStaked = ethers.utils.parseUnits("10", 18)
-    //     await auroraToken.connect(user1).approve(jet.address, amountStaked)
-    //     const tx = await jet.connect(user1).stake(amountStaked)
-    //     const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.staked, 0)
-    //     expect(amount).to.be.eq(amountStaked)
-    // })
+    it('should stake aurora tokens', async () => {
+        await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const amountStaked = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(user1).approve(jet.address, amountStaked)
+        const tx = await jet.connect(user1).stake(amountStaked)
+        const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.staked, 0)
+        expect(amount).to.be.eq(amountStaked)
+    })
 
-    // it('should allow user to move rewards to pending release', async () => {
-    //     await jet.connect(stakingAdmin).deployStream(
-    //         streamToken1.address,
-    //         10,
-    //         scheduleTimes,
-    //         scheduleRewards,
-    //         tauPerStream
-    //     )
-    //     const amountStaked = ethers.utils.parseUnits("10", 18)
-    //     await auroraToken.connect(user1).approve(jet.address, amountStaked)
-    //     await jet.connect(user1).stake(amountStaked)
-    //     await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
-    //     await network.provider.send("evm_mine")
-    //     const tx = await jet.moveRewardsToPending(0)
-    //     const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.pending, 0)
-    //     expect(amount).to.be.eq(0)
-    // })
+    it('should allow user to move rewards to pending release', async () => {
+        await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const amountStaked = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(user1).approve(jet.address, amountStaked)
+        await jet.connect(user1).stake(amountStaked)
+        await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_mine")
+        const tx = await jet.moveRewardsToPending(0)
+        const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.pending, 0)
+        expect(amount).to.be.eq(0)
+    })
 
-    // it('should allow user to unstake tokens', async () => {
-    //     await jet.connect(stakingAdmin).deployStream(
-    //         streamToken1.address,
-    //         10,
-    //         scheduleTimes,
-    //         scheduleRewards,
-    //         tauPerStream
-    //     )
-    //     const amountStaked = ethers.utils.parseUnits("10", 18)
-    //     await auroraToken.connect(user1).approve(jet.address, amountStaked)
-    //     await jet.connect(user1).stake(amountStaked)
-    //     await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
-    //     await network.provider.send("evm_mine")
-    //     await jet.connect(user1).unstake(ethers.utils.parseUnits("5", 18))
-    // })
+    it('should allow user to unstake tokens', async () => {
+        await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const amountStaked = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(user1).approve(jet.address, amountStaked)
+        await jet.connect(user1).stake(amountStaked)
+        await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_mine")
+        await jet.connect(user1).unstake(ethers.utils.parseUnits("5", 18))
+    })
 
-    // it('should allow user to withdraw tokens', async () => {
-    //     await jet.connect(stakingAdmin).deployStream(
-    //         streamToken1.address,
-    //         10,
-    //         scheduleTimes,
-    //         scheduleRewards,
-    //         tauPerStream
-    //     )
-    //     const amountStaked = ethers.utils.parseUnits("10", 18)
-    //     const user1BalanceBefore = await auroraToken.balanceOf(user1.address)
-    //     await auroraToken.connect(user1).approve(jet.address, amountStaked)
-    //     const tx1 = await jet.connect(user1).stake(amountStaked)
+    
+    it('should allow user to withdraw tokens', async () => {
+        await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const user1BalanceBefore = await auroraToken.balanceOf(user1.address)
+        const amountStaked = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(user1).approve(jet.address, amountStaked)
+        await jet.connect(user1).stake(amountStaked)
+        await network.provider.send("evm_increaseTime", [100 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_mine")
+        await auroraToken.connect(user2).approve(jet.address, amountStaked)
+        await jet.connect(user2).stake(amountStaked)
+        console.log(
+            'Total staked Aurora',
+            ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())
+        )
+        console.log(
+            'reward per share',
+            (await jet.getRewardPerShare(0)).toNumber()
+        )
+        console.log(
+            'reward per share for user: ',
+            await jet.getRewardPerSharePerUser(user1.address, 0)
+        )
+        console.log('User shares: ', await jet.getAmountOfShares(user1.address, 0))
+        await jet.connect(user1).unstake(amountStaked)
+        const pendingRelease = await jet.getPending(user1.address, 0)
+        console.log(
+            'Pending release tokens before withdrawal: ', 
+            ethers.utils.formatEther(pendingRelease)
+        )
+        await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_mine")
         
-    //     await network.provider.send("evm_increaseTime", [100 * oneDay]) // increase time for 20 days
-    //     await network.provider.send("evm_mine")
-    //     // console.log(
-    //     //     await getEventLogs(tx1.hash, constants.eventsABI.startEnd, 0)
-    //     // )
-    //     // console.log(
-    //     //     'reward per share',
-    //     //     ethers.utils.formatEther(await jet.getRewardPerShare(0))
-    //     // )
-    //     // console.log(await jet.getAmountOfShares(user1.address, 0))
-    //     await jet.connect(user1).unstake(amountStaked)
-    //     await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
-    //     await network.provider.send("evm_mine")
-    //     const pendingRelease = await jet.getPending(user1.address, 0)
-    //     // console.log(
-    //     //     'Pending release tokens before withdrawal: ', 
-    //     //     ethers.utils.formatEther(pendingRelease)
-    //     // )
-    //     const tx = await jet.connect(user1).withdraw(0)
-    //     const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.released, 1)
-    //     // console.log(ethers.utils.formatEther(amount))
-    //     // console.log(
-    //     //     'Pending release tokens after withdrawal: ',
-    //     //     ethers.utils.formatEther(await jet.getPending(user1.address, 0))
-    //     // )
-    //     // const user1BalanceAfter = await auroraToken.balanceOf(user1.address)
-    //     // // expect(user1BalanceBefore).to.be.lt(user1BalanceAfter)
-    // })
+        const tx = await jet.connect(user1).withdraw(0)
+        const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.released, 1)
+        console.log('Withdraw Amount', ethers.utils.formatEther(amount))
+        console.log(
+            'Pending release tokens after withdrawal: ',
+            ethers.utils.formatEther(await jet.getPending(user1.address, 0))
+        )
+        const user1BalanceAfter = await auroraToken.balanceOf(user1.address)
+        console.log('User balance after withdrawl', ethers.utils.formatEther(user1BalanceAfter))
+        // expect(user1BalanceBefore).to.be.lt(user1BalanceAfter)
+    })
     
     // it('should allow user to get the calculated reward per stream', async () => {
     //     await jet.connect(stakingAdmin).deployStream(
@@ -335,28 +344,6 @@ describe("JetStakingV1", function () {
         // await network.provider.send("evm_mine")
 
         /// Before Unstaking
-        console.log("---------------------From 0 to 4 schedules----------------------------------")
-        console.log(
-            'Before calculations',
-        )
-        const {total, rewardPerShareAurora, scheduleCalculated} = await jet.before(scheduleTimes[0], scheduleTimes[4])
-        const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[0], scheduleTimes[4])
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
-
-        console.log('schedule calculated over 4 years: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
         // User1 unstakes 5 Aurora tokens
         // const unstakedAmount = ethers.utils.parseUnits("5", 18)
         // await jet.connect(user1).unstake(unstakedAmount)
@@ -476,175 +463,240 @@ describe("JetStakingV1", function () {
     //     await auroraToken.connect(user1).approve(jet.address, amountStaked)
     //     await jet.connect(user1).stake(amountStaked)
     // })
+    it('should schedule from 0 to 4 years', async () => {
+        // console.log("---------------------From 0 to 4 schedules----------------------------------")
+        // console.log(
+        //     'Before calculations',
+        // )
+        const {total, rewardPerShareAurora, scheduleCalculated} = await jet.before(scheduleTimes[0], scheduleTimes[4])
+        const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[0], scheduleTimes[4])
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-    it('should from 1 to 2', async () => {
-        console.log("---------------------from 1 to 2 ----------------------------------")
-        console.log(
-            'Before calculations',
-        )
+        // console.log('schedule calculated over 4 years: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("10000.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(10000)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("10000.0")
+        expect(startIndex.toNumber()).to.be.eq(0)
+        expect(endIndex.toNumber()).to.be.eq(4)
+    })
+
+    it('should schedule from 1 to 2 years', async () => {
+        // console.log("---------------------from 1 to 2 ----------------------------------")
+        // console.log(
+        //     'Before calculations',
+        // )
 
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[1], scheduleTimes[2])
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[1], scheduleTimes[2])
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-        console.log('schedule calculated over 2 years: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
+        // console.log('schedule calculated over 2 years: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("2500.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(2500)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("2500.0")
+        expect(startIndex.toNumber()).to.be.eq(1)
+        expect(endIndex.toNumber()).to.be.eq(2)
     })
 
-    it('should from 1 to 3', async () => {
-        console.log("---------------------from 1 to 3 ----------------------------------")
-        console.log(
-            'Before calculations',
-        )
+    it('should schedule from 1 to 3', async () => {
+        // console.log("---------------------from 1 to 3 ----------------------------------")
+        // console.log(
+        //     'Before calculations',
+        // )
 
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[1], scheduleTimes[3])
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[1], scheduleTimes[3])
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-        console.log('schedule calculated over 2 years: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
+        // console.log('schedule calculated over 2 years: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("3750.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(3750)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("3750.0")
+        expect(startIndex.toNumber()).to.be.eq(1)
+        expect(endIndex.toNumber()).to.be.eq(3)
     })
 
-    it('should from 0 to 1', async () => {
-        console.log("---------------------from 0 to 1 ----------------------------------")
+    it('should schedule from 0 to 1', async () => {
+        // console.log("---------------------from 0 to 1 ----------------------------------")
 
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[0], scheduleTimes[1])
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[0], scheduleTimes[1])
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-        console.log('schedule calculated over 2 years: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
+        // console.log('schedule calculated over 2 years: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("5000.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(5000)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("5000.0")
+        expect(startIndex.toNumber()).to.be.eq(0)
+        expect(endIndex.toNumber()).to.be.eq(1)
     })
 
-    it('should from 0 to now 200 days', async () => {
-        console.log("---------------------from 0 to now (200 days)----------------------------------")
+    it('should schedule from 0 to now (200 days)', async () => {
+        // console.log("---------------------from 0 to now (200 days)----------------------------------")
         await network.provider.send("evm_increaseTime", [200 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[0], (await ethers.provider.getBlock("latest")).timestamp)
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[0], (await ethers.provider.getBlock("latest")).timestamp)
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-        console.log('schedule calculated over 200 days: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
+        // console.log('schedule calculated over 200 days: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("2737.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(2737)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("2737.0")
+        expect(startIndex.toNumber()).to.be.eq(0)
+        expect(endIndex.toNumber()).to.be.eq(0)
     })
-    it('should from 0 to now 400 days', async () => {
-        console.log("---------------------from 0 to now (400 days)----------------------------------")
+
+    it('should schedule from 0 to now (400 days)', async () => {
+        // console.log("---------------------from 0 to now (400 days)----------------------------------")
         await network.provider.send("evm_increaseTime", [400 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[0], (await ethers.provider.getBlock("latest")).timestamp)
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[0], (await ethers.provider.getBlock("latest")).timestamp)
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-        console.log('schedule calculated over 400 days: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
+        // console.log('schedule calculated over 400 days: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("5237.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(5237)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("5237.0")
+        expect(startIndex.toNumber()).to.be.eq(0)
+        expect(endIndex.toNumber()).to.be.eq(1)
     })
 
-    it('should from 0 to now 750 days', async () => {
-        console.log("---------------------from 0 to now (750 days)----------------------------------")
+    it('should schedule from 0 to now (750 days)', async () => {
+        // console.log("---------------------from 0 to now (750 days)----------------------------------")
         await network.provider.send("evm_increaseTime", [750 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[0], (await ethers.provider.getBlock("latest")).timestamp)
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(scheduleTimes[0], (await ethers.provider.getBlock("latest")).timestamp)
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-        console.log('schedule calculated over 750 days: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
+        // console.log('schedule calculated over 750 days: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("7566.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(7566)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("7566.0")
+        expect(startIndex.toNumber()).to.be.eq(0)
+        expect(endIndex.toNumber()).to.be.eq(2)
     })
-    it('should from 200 to now 750 days', async () => {
-        console.log("---------------------from 200 to now (750 days)----------------------------------")
+    it('should schedule from 200 to now (750 days)', async () => {
+        // console.log("---------------------from 200 to now (750 days)----------------------------------")
         const twoHunderedDays = (await ethers.provider.getBlock("latest")).timestamp + 200 * oneDay
-        console.log(twoHunderedDays)
+        // console.log(twoHunderedDays)
         await network.provider.send("evm_increaseTime", [750 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(twoHunderedDays, (await ethers.provider.getBlock("latest")).timestamp)
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(twoHunderedDays, (await ethers.provider.getBlock("latest")).timestamp)
-        console.log(
-            'RPS:',
-            ethers.utils.formatUnits(rewardPerShareAurora)
-        )
-        console.log(
-            'Total staked Aurora Tokens',
-            ethers.utils.formatUnits(total)
-        )
+        // console.log(
+        //     'RPS:',
+        //     ethers.utils.formatUnits(rewardPerShareAurora)
+        // )
+        // console.log(
+        //     'Total staked Aurora Tokens',
+        //     ethers.utils.formatUnits(total)
+        // )
 
-        console.log('schedule calculated over 750 days: ', scheduleCalculated.toNumber())
-        console.log(
-            'StartIndex: ',
-            startIndex.toNumber(),
-            'End Index: ', 
-            endIndex.toNumber()
-        )
+        // console.log('schedule calculated over 750 days: ', scheduleCalculated.toNumber())
+        // console.log(
+        //     'StartIndex: ',
+        //     startIndex.toNumber(),
+        //     'End Index: ', 
+        //     endIndex.toNumber()
+        // )
+        expect(ethers.utils.formatUnits(total)).to.be.eq("4828.000000000000000001")
+        expect(scheduleCalculated.toNumber()).to.be.eq(4828)
+        expect(ethers.utils.formatUnits(rewardPerShareAurora)).to.be.eq("4828.0")
+        expect(startIndex.toNumber()).to.be.eq(0)
+        expect(endIndex.toNumber()).to.be.eq(2)
     })
 });

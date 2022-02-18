@@ -201,7 +201,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         users[msg.sender].releaseTime[0] = block.timestamp + tau[0];
 
         // recalculate the shares and move them to pending
-        for(uint j = 1; j < streams.length; j++) {
+        for(uint j = 0; j < streams.length; j++) {
             _moveRewardsToPending(msg.sender, j);
         }
         // remove the shares from everywhere
@@ -226,6 +226,12 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         return users[user].shares[streamId];
     }
 
+    function getRewardPerSharePerUser(
+        address user,
+        uint256 streamId
+    )  external view returns(uint256) {
+        return users[user].rps[streamId];
+    }
     // function getStreamAddressByIndex(uint256 id) external view returns(address) {
     //     return streams[id];
     // }
@@ -245,11 +251,22 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         return users[user].pendings[streamId];
     }
 
-    function getSchedule(uint256 streamId) external view returns(uint256[] memory, uint256[] memory) {
+    function getSchedule(
+        uint256 streamId
+    )
+    external
+    view
+    returns(uint256[] memory, uint256[] memory) {
         return(schedules[streamId].time, schedules[streamId].reward);
     }
 
-    function startEndScheduleIndex(uint256 start, uint256 end) public view returns(uint256 startIndex, uint256 endIndex) {
+    function startEndScheduleIndex(
+        uint256 start,
+        uint256 end
+    )
+    public
+    view
+    returns(uint256 startIndex, uint256 endIndex) {
         Schedule storage schedule = schedules[0];
         require(schedule.time.length > 0, 'NO_SCHEDULE');
         require(
@@ -283,7 +300,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 streamId,
         uint256 start,
         uint256 end
-    ) private view returns(uint256) {
+    ) internal view returns(uint256) {
         uint256 startIndex;
         uint256 endIndex;
         (startIndex, endIndex) = startEndScheduleIndex(start, end);
@@ -318,7 +335,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
                 }
             }
         }
-        return rewardScheduledAmount;
+        return rewardScheduledAmount * 1000000000000000000; // 1000000000000000000 = 1 AURORA
     }
 
     /// @dev calculate the weight per stream based on the the timestamp.
@@ -333,11 +350,11 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     }
 
     /// @dev called before touching the contract reserves
-    function _before() private {
+    function _before() internal {
         // touch the contract block
-        totalAmountOfStakedAurora += _schedule(0, touchedAt, block.timestamp) * 1000000000000000000;
+        totalAmountOfStakedAurora += _schedule(0, touchedAt, block.timestamp);
         for (uint256 j = 0; j < streams.length; j++) {
-            rps[j] += _schedule(j, touchedAt, block.timestamp) * 1000000000000000000 / totalShares[j];
+            rps[j] += _schedule(j, touchedAt, block.timestamp) / totalShares[j];
             //TODO: deactivate stream if needed
         }
     }
@@ -350,9 +367,9 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     view
     returns(uint256 total, uint256 rewardPerShareAurora, uint256 scheduleCalculated) {
         total = totalAmountOfStakedAurora;
-        total += _schedule(0, startTime, endTime) * 1000000000000000000;
-        scheduleCalculated = _schedule(0, startTime, endTime);
-        rewardPerShareAurora = rps[0] * 1000000000000000000 + _schedule(0, startTime, endTime) * 1000000000000000000 / totalShares[0];
+        total += _schedule(0, startTime, endTime);
+        scheduleCalculated = _schedule(0, startTime, endTime) / 1000000000000000000;
+        rewardPerShareAurora = rps[0] + _schedule(0, startTime, endTime) / (totalShares[0]);
     }
     /// @dev update last time this contract was touched
     function _after() private {
