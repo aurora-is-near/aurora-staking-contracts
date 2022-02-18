@@ -182,7 +182,8 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 pendingAmount = users[msg.sender].pendings[streamId];
         users[msg.sender].pendings[streamId] = 0;
         //TODO: change the transfer to happen through the treasury contract
-        IERC20Upgradeable(streams[streamId]).transfer(msg.sender, pendingAmount);
+        ITreasury(treasury).payRewards(msg.sender, streams[streamId], pendingAmount);
+        // IERC20Upgradeable(streams[streamId]).transfer(msg.sender, pendingAmount);
         emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
     }
 
@@ -306,36 +307,31 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         (startIndex, endIndex) = startEndScheduleIndex(start, end);
         Schedule storage schedule = schedules[0];
         uint256 rewardScheduledAmount = 0;
-        uint256 denominator = schedule.time[1] - schedule.time[0];
+        uint256 denominator = 31556926; //schedule.time[i] - schedule.time[i+1];
         uint256 reward = 0;
         if(startIndex == endIndex) {
             // start and end are within the same schedule period
             reward = schedule.reward[startIndex] - schedule.reward[startIndex+1];
             rewardScheduledAmount = ((end - start) * reward) / denominator;
-        }
-        else {
+        } else {
             // start and end are not within the same schedule period
+            // Reward during the startIndex period
             reward = (schedule.reward[startIndex] - schedule.reward[startIndex + 1]);
             rewardScheduledAmount = (schedule.time[startIndex + 1] - start) * reward / denominator;
-            
+            // Reward during the period from startIndex + 1  to endIndex - 1
             for (uint256 i = startIndex + 1; i < endIndex; i++) {
                 reward = schedule.reward[i] - schedule.reward[i+1];
-                if (i != endIndex) {
-                    rewardScheduledAmount += reward;
-                } else {
-                    rewardScheduledAmount += (schedule.time[i] - end) * reward / denominator;
-                }
-            }
-            if(end == schedule.time[schedule.time.length - 1]) {
                 rewardScheduledAmount += reward;
-            } else {
-                if(end > schedule.time[endIndex]){
-                    reward = schedule.reward[endIndex] - schedule.reward[endIndex + 1];
-                    rewardScheduledAmount += (end - schedule.time[endIndex]) * reward / denominator;
-                }
+            }
+            // Reward during the endIndex period
+            if(end > schedule.time[endIndex]){
+                reward = schedule.reward[endIndex] - schedule.reward[endIndex + 1];
+                rewardScheduledAmount += (end - schedule.time[endIndex]) * reward / denominator;
+            } else if(end == schedule.time[schedule.time.length - 1] && start == schedule.time[0]) {
+                rewardScheduledAmount += schedule.reward[schedule.time.length - 1];
             }
         }
-        return rewardScheduledAmount * 1000000000000000000; // 1000000000000000000 = 1 AURORA
+        return rewardScheduledAmount * 1000000000000000000; // 1000000000000000000  = 1 AURORA
     }
 
     /// @dev calculate the weight per stream based on the the timestamp.
@@ -385,7 +381,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 streamId
     ) private {
         User storage userAccount = users[user];
-        userAccount.pendings[streamId] += (rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId];
+        userAccount.pendings[streamId] += ((rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId]);
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
         emit Pending(streamId, msg.sender, userAccount.pendings[streamId], block.timestamp);
