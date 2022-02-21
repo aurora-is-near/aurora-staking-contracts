@@ -182,7 +182,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 pendingAmount = users[msg.sender].pendings[streamId];
         users[msg.sender].pendings[streamId] = 0;
         //TODO: change the transfer to happen through the treasury contract
-        ITreasury(treasury).payRewards(msg.sender, streams[streamId], pendingAmount);
+        ITreasury(treasury).payRewards(msg.sender, streams[streamId], pendingAmount);  
         // IERC20Upgradeable(streams[streamId]).transfer(msg.sender, pendingAmount);
         emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
     }
@@ -226,13 +226,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     ) external view returns(uint256) {
         return users[user].shares[streamId];
     }
-
-    function getRewardPerSharePerUser(
-        address user,
-        uint256 streamId
-    )  external view returns(uint256) {
-        return users[user].rps[streamId];
-    }
+    
     // function getStreamAddressByIndex(uint256 id) external view returns(address) {
     //     return streams[id];
     // }

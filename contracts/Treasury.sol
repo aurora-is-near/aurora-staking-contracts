@@ -81,7 +81,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
         uint256 _amount
     ) external isActive onlyOwner {
         require(isSupportedToken[_token], "Token is not supported");
-        IERC20Upgradeable(_token).safeTransfer(_user, _amount);
+        IERC20Upgradeable(_token).transfer(_user, _amount);
     }
 
     /// @notice adds token as supproted rewards token by Treasury
