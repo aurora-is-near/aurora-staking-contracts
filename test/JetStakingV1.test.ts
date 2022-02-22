@@ -134,7 +134,7 @@ describe("JetStakingV1", function () {
             scheduleRewards,
             tauPerStream
         )
-        const {stream, index, } = await getEventLogs(tx.hash, constants.eventsABI.streamAdded, 0)
+        const {stream, index, } = await getEventLogs(tx.hash, constants.eventsABI.streamActivated, 0)
         expect(stream).to.be.eq(streamToken1.address)
         expect(index).to.be.eq(await jet.streamToIndex(stream))
     })

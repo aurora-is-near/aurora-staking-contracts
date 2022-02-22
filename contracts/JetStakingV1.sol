@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
+
+import "./ITreasury.sol";
+import "./AdminControlled.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "./AdminControlled.sol";
-import "./ITreasury.sol";
+
 
 contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
 
@@ -59,7 +61,13 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 timestamp
     );
 
-    event StreamAdded(
+    event StreamActivated(
+        address indexed stream,
+        uint256 index,
+        uint256 timestamp
+    );
+
+    event StreamDeactivated(
         address indexed stream,
         uint256 index,
         uint256 timestamp
@@ -104,7 +112,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         tau.push(tauAuroraStream);
         touchedAt = block.timestamp;
         // default stream added (AURORA with an index 0)
-        emit StreamAdded(
+        emit StreamActivated(
             aurora,
             streamToIndex[aurora],
             block.timestamp
@@ -141,11 +149,29 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         schedules.push(
             Schedule(scheduleTimes, scheduleRewards)
         );
-        emit StreamAdded(
+        emit StreamActivated(
             stream,
             streamToIndex[stream],
             block.timestamp
         );
+    }
+
+    function removeStream(
+        address stream,
+        address streamOwner
+    ) external onlyAdmin {
+        _before();
+        //TODO: distribute all reward to users
+        // using pull pattern instead of push.
+        // totalReward_j = rps_j * totalShares_j
+        // where j is the stream Id
+        emit StreamDeactivated(
+            stream,
+            streamToIndex[stream],
+            block.timestamp
+        );
+        //TODO: transfer back the rest of tokens to the stream owner
+        // transfer the (IERC20Upgradeable(streams[j]).balanceOf(address(this)) - totalReward_j) > 0
     }
 
     /// @dev a user stakes amount of AURORA tokens
@@ -182,7 +208,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 pendingAmount = users[msg.sender].pendings[streamId];
         users[msg.sender].pendings[streamId] = 0;
         //TODO: change the transfer to happen through the treasury contract
-        ITreasury(treasury).payRewards(msg.sender, streams[streamId], pendingAmount);  
+        ITreasury(treasury).payRewards(msg.sender, streams[streamId], pendingAmount);
         // IERC20Upgradeable(streams[streamId]).transfer(msg.sender, pendingAmount);
         emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
     }
