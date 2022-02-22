@@ -226,14 +226,6 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     ) external view returns(uint256) {
         return users[user].shares[streamId];
     }
-    
-    // function getStreamAddressByIndex(uint256 id) external view returns(address) {
-    //     return streams[id];
-    // }
-
-    // function getStreamIndexByAddress(address stream) external view returns(uint256) {
-    //     return streamToIndex[stream];
-    // }
 
     function getRewardPerShare(uint256 streamId) external view returns(uint256) {
         return rps[streamId];
@@ -325,6 +317,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
                 rewardScheduledAmount += schedule.reward[schedule.time.length - 1];
             }
         }
+        //TODO: phantom overflow/underflow check
         return rewardScheduledAmount * 1000000000000000000; // 1000000000000000000  = 1 AURORA
     }
 
@@ -349,18 +342,6 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         }
     }
 
-    function before(
-        uint256 startTime,
-        uint256 endTime
-    )
-    public
-    view
-    returns(uint256 total, uint256 rewardPerShareAurora, uint256 scheduleCalculated) {
-        total = totalAmountOfStakedAurora;
-        total += _schedule(0, startTime, endTime);
-        scheduleCalculated = _schedule(0, startTime, endTime) / 1000000000000000000;
-        rewardPerShareAurora = rps[0] + _schedule(0, startTime, endTime) / (totalShares[0]);
-    }
     /// @dev update last time this contract was touched
     function _after() private {
         touchedAt = block.timestamp;
@@ -375,6 +356,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256 streamId
     ) private {
         User storage userAccount = users[user];
+        //TODO: phantom overflow/underflow check
         userAccount.pendings[streamId] += ((rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId]);
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
@@ -386,6 +368,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     function _stake(uint256 amount) private {
         // recalculation of shares for AURORA
         User storage userAccount = users[msg.sender];
+        //TODO: phantom overflow/underflow check
         uint256 _amountOfSharesPerStream = (amount * totalShares[0]) / totalAmountOfStakedAurora;
         userAccount.shares[0] += _amountOfSharesPerStream;
         totalShares[0] += _amountOfSharesPerStream;

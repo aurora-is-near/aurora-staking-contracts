@@ -54,7 +54,7 @@ describe("JetStakingV1", function () {
         tauPerStream = 10
 
         let startTime = (await ethers.provider.getBlock("latest")).timestamp
-        const JetStakingV1 = await ethers.getContractFactory('JetStakingV1')
+        const JetStakingV1 = await ethers.getContractFactory('JetStakingTesting')
         scheduleTimes = [
             startTime, 
             startTime + oneYear, 
@@ -92,8 +92,9 @@ describe("JetStakingV1", function () {
         await auroraToken.connect(auroraOwner).transfer(user2.address, ethers.utils.parseUnits("10000", 18))
         await auroraToken.connect(auroraOwner).transfer(user3.address, ethers.utils.parseUnits("10000", 18))
         await auroraToken.connect(auroraOwner).transfer(user4.address, ethers.utils.parseUnits("10000", 18))
-        // approve 20% of the total supply to the treasury contract
+        // transfer 20% of the total supply to the treasury contract
         const twentyPercentOfAuroraTotalSupply = ethers.utils.parseUnits("200000000", 18)
+        const onePercentOfTokenSupply = ethers.utils.parseUnits("1000000", 18) 
         await auroraToken.connect(auroraOwner).transfer(treasury.address, twentyPercentOfAuroraTotalSupply)
         // transfer ownership of the treasury to the jet staking contract
         await treasury.connect(auroraOwner).transferOwnership(jet.address)
