@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "./ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "./AdminControlled.sol";
-import "./interfaces/ITreasury.sol";
+import "./ITreasury.sol";
 
 contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
 

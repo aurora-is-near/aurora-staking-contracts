@@ -1,7 +1,5 @@
-import { expect, use } from "chai";
-import { ethers, network, deployments, upgrades } from "hardhat";
-import * as constants from './constants'
-import { getEventLogs } from "./testHelper";
+import { expect } from "chai";
+import { ethers, upgrades } from "hardhat";
 
 describe("Treasury", function () {
     let auroraOwner: any
