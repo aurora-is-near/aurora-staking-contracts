@@ -9,15 +9,28 @@ import "./interfaces/ITreasury.sol";
 
 contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-
+    //TODO: use pausable from AdminControlled
     mapping(address => bool) public isSupportedToken;
     mapping(address => bool) public isManager;
 
     bool public paused;
 
-    event ManagerAdded(address manager, address addedBy, uint256 timestamp);
-    event ManagerRemoved(address manager, address removedBy, uint256 timestamp);
-    event TokenAdded(address token, address addedBy, uint256 timestamp);
+    event ManagerAdded(address indexed manager, address indexed addedBy, uint256 timestamp);
+    event ManagerRemoved(address indexed manager, address indexed removedBy, uint256 timestamp);
+    event TokenAdded(address indexed token, address indexed addedBy, uint256 timestamp);
+    event TokenRemoved(address indexed token, address indexed addedBy, uint256 timestamp);
+
+    /// @dev Throws if called by any account other than the owner
+    modifier onlyManager() {
+        require(isManager[msg.sender], "Sender is not a manager");
+        _;
+    }
+
+    /// @dev Throws if called when contract is paused
+    modifier isActive() {
+        require(!paused, "Pausable: Treasury paused");
+        _;
+    }
 
     /// @notice initializes ownable Treasury with list of managers and supported tokens
     /// @param _managers list of managers
@@ -58,18 +71,6 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
         }
     }
 
-    /// @dev Throws if called by any account other than the owner
-    modifier onlyManager() {
-        require(isManager[msg.sender], "Sender is not a manager");
-        _;
-    }
-
-    /// @dev Throws if called when contract is paused
-    modifier isActive() {
-        require(!paused, "Pausable: Treasury paused");
-        _;
-    }
-
     /// @notice transfers token amount from Treasury balance to user.
     /// @dev Used by jet staking contracts
     /// @param _user user to transfer tokens to
@@ -84,42 +85,35 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
         IERC20Upgradeable(_token).transfer(_user, _amount);
     }
 
-    /// @notice adds token as supproted rewards token by Treasury
+    /// @notice adds token as a supproted rewards token by Treasury
     /// @param _token ERC20 token address
     function addSupportedToken(address _token) external onlyManager {
-        require(!isSupportedToken[_token], "Token already added");
+        require(!isSupportedToken[_token], "Token already exists");
         isSupportedToken[_token] = true;
-
         emit TokenAdded(_token, msg.sender, block.timestamp);
+    }
+
+    /// @notice removed token as a supproted rewards token by Treasury
+    /// @param _token ERC20 token address
+    function removeSupportedToken(address _token) external onlyManager {
+        require(isSupportedToken[_token], "Token does not exist");
+        isSupportedToken[_token] = false;
+        emit TokenRemoved(_token, msg.sender, block.timestamp);
     }
 
     /// @notice adds address to list of owners
     /// @param _manager any ethereum account
     function addManager(address _manager) external onlyManager {
-        require(!isManager[_manager], "Manager already added");
+        require(!isManager[_manager], "Manager already exists");
         isManager[_manager] = true;
-
         emit ManagerAdded(_manager, msg.sender, block.timestamp);
     }
 
     /// @notice removes address from list of owners
     /// @param _manager any active manager
     function removeManager(address _manager) external onlyManager {
-        require(isManager[_manager], "Manager already added");
+        require(isManager[_manager], "Manager does not exist");
         isManager[_manager] = false;
-
         emit ManagerRemoved(_manager, msg.sender, block.timestamp);
-    }
-
-    /// @notice makes Treasury contract inactive
-    function pause() external onlyManager {
-        require(!paused, "Pausable: Already paused");
-        paused = true;
-    }
-
-    /// @notice makes Treasury contract active
-    function unpause() external onlyManager {
-        require(paused, "Pausable: Not paused");
-        paused = false;
     }
 }
