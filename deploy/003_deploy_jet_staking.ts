@@ -33,11 +33,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             scheduleTimes,
             scheduleRewards,
             tauPerStream,
-            admin,
             flags,
             treasury
         ]
     })
+    //TODO: transfer ownership to the admin address
+    // await jet.transferOwnership(admin)
+
 }
 
 module.exports = func

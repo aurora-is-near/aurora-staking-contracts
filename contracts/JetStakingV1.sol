@@ -78,7 +78,6 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     /// @param scheduleTimes init the schedule time
     /// @param scheduleRewards init the schedule amounts
     /// @param tauAuroraStream release time constant per stream (e.g AURORA stream)
-    /// @param _admin the staking contract admin address (DAO governed address)
     /// @param _flags admin controlled contract flags
     /// @param _treasury the Aurora treasury contract address
     function initialize(
@@ -88,18 +87,16 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauAuroraStream,
-        address _admin,
         uint256 _flags,
         address _treasury
     ) public initializer {
         require(
             aurora != address(0) &&
-            _admin != address(0) &&
             _treasury != address(0),
             'INVALID_ADDRESS'
         );
         __ERC20_init(voteTokenName, voteTokenSymbol);
-        __AdminControlled_init(_admin, _flags);
+        __AdminControlled_init(_flags);
         treasury = _treasury;
         streams.push(aurora);
         streamToIndex[aurora] = 0;
@@ -131,7 +128,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
-    ) external onlyAdmin {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(
             stream != address(0),
             'INVALID_ADDRESS'
@@ -159,7 +156,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     function removeStream(
         address stream,
         address streamOwner
-    ) external onlyAdmin {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _before();
         //TODO: distribute all reward to users
         // using pull pattern instead of push.

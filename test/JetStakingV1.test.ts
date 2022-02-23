@@ -78,11 +78,11 @@ describe("JetStakingV1", function () {
                 scheduleTimes,
                 scheduleRewards,
                 tauPerStream,
-                stakingAdmin.address,
                 flags,
                 treasury.address
             ]
         )
+        await jet.transferOwnership(stakingAdmin.address)
     })
 
     beforeEach(async () => {        

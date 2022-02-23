@@ -2,66 +2,63 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract AdminControlled is Initializable {
+contract AdminControlled is AccessControlUpgradeable {
     address public admin;
-    uint256 public paused;
+    uint public paused;
 
-    // solhint-disable-next-line
-    function __AdminControlled_init(address _admin, uint256 flags)
-        public
-        initializer
-    {
-        admin = _admin;
-        paused = flags;
-    }
+    bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
-    modifier onlyAdmin() {
-        require(msg.sender == admin);
+    modifier pausable(uint flag) {
+        require((paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Paused");
         _;
     }
 
-    modifier pausable(uint256 flag) {
-        require((paused & flag) == 0 || msg.sender == admin);
-        _;
+    function __AdminControlled_init(uint _flags) public initializer {
+        __AccessControl_init();
+        paused = _flags;
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSE_ROLE, msg.sender);
     }
 
-    function adminPause(uint256 flags) public onlyAdmin {
+    function adminPause(uint flags) external onlyRole(PAUSE_ROLE) {
         paused = flags;
     }
 
-    function adminSstore(uint256 key, uint256 value) public onlyAdmin {
+    function transferOwnership(address newAdmin) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newAdmin != address(0), "Ownable: new owner is the zero address");
+        _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        _grantRole(PAUSE_ROLE, newAdmin);
+        admin = newAdmin;
+
+        _revokeRole(PAUSE_ROLE, _msgSender());
+        _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        emit OwnershipTransferred(_msgSender(), newAdmin);
+    }
+
+    function adminSstore(uint key, uint value) external onlyRole(DEFAULT_ADMIN_ROLE) {
         assembly {
             sstore(key, value)
         }
     }
 
     function adminSstoreWithMask(
-        uint256 key,
-        uint256 value,
-        uint256 mask
-    ) public onlyAdmin {
+        uint key,
+        uint value,
+        uint mask
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         assembly {
             let oldval := sload(key)
             sstore(key, xor(and(xor(value, oldval), mask), oldval))
         }
     }
 
-    function adminSendEth(address payable destination, uint256 amount)
-        public
-        onlyAdmin
-    {
+    function adminSendEth(address payable destination, uint amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         destination.transfer(amount);
     }
 
-    function adminReceiveEth() public payable onlyAdmin {}
-    // function adminDelegatecall(address target, bytes memory data) public payable onlyAdmin returns (bytes memory) {
-    //     /// @custom:oz-upgrades-unsafe-allow delegatecall
-    //     (bool success, bytes memory rdata) = target.delegatecall(data);
-    //     //TODO: This function has unsafe upgrade. It should apply OnlyDelegateCall which allows
-    //     // calling this function only throw proxy not the implementation. For more details:
-    //     // https://docs.openzeppelin.com/upgrades-plugins/1.x/faq#delegatecall-selfdestruct
-    //     require(success);
-    //     return rdata;
-    // }
+    function adminReceiveEth() external payable {}
+
+    event OwnershipTransferred(address oldAdmin, address newAdmin);
 }
