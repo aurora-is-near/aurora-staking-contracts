@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 
-describe("Treasury", function () {
+describe("AdminControlled", function () {
     let admin: any
     let newAdmin: any
 

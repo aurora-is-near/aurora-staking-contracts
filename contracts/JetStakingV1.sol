@@ -3,11 +3,11 @@ pragma solidity 0.8.10;
 
 import "./ITreasury.sol";
 import "./AdminControlled.sol";
+import "./VotingERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 
-contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
+contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     uint256 public totalAmountOfStakedAurora;
     uint256 touchedAt;
@@ -33,6 +33,7 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     mapping(address => User) users;
     mapping(address => uint256) public streamToIndex;
     Schedule[] schedules;
+    mapping(address => bool) whitelistedContracts;
 
     // events
     event Staked(
@@ -71,6 +72,12 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         address indexed stream,
         uint256 index,
         uint256 timestamp
+    );
+
+    event VotesTransfered(
+        address indexed _sender,
+        address indexed _recipient,
+        uint256 _amount
     );
 
     /// @dev initialize the contract and deploys the first stream (AURORA)
@@ -171,6 +178,42 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         // transfer the (IERC20Upgradeable(streams[j]).balanceOf(address(this)) - totalReward_j) > 0
     }
 
+    /// @notice updates treasury account
+    /// @dev restricted for the admin only
+    /// @param _treasury treasury contract address for the reward tokens
+    function updateTreasury(address _treasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_treasury != address(0), "INVALID_ADDRESS");
+        treasury = _treasury;
+    }
+
+    /// @notice standard ERC20 transfer
+    /// @dev reverts on any token transfer
+    function transfer(address, uint256) public override returns (bool) {
+        revert();
+    }
+
+    /// @notice standard ERC20 approve
+    /// @dev reverts on any call
+    function approve(address, uint256) public virtual override returns (bool) {
+        revert();
+    }
+
+    /// @notice standard ERC20 transfer from
+    /// @dev can called only by whitelisted contracts, implements accessible VOTE cheking based on decay. Can by paused by admin.
+    /// @param _sender owner of the VOTE token
+    /// @param _recipient tokens transfer to
+    /// @param _amount amount of tokens to transfer
+    function transferFrom(
+        address _sender,
+        address _recipient,
+        uint256 _amount
+    ) public override pausable(1) returns (bool) {
+        require(whitelistedContracts[msg.sender], "ONLY_WHITELISTED_CONTRACT");
+        _transfer(_sender, _recipient, _amount);
+        emit VotesTransfered(_sender, _recipient, _amount);
+        return true;
+    }
+
     /// @dev a user stakes amount of AURORA tokens
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
@@ -178,6 +221,9 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
     function stake(uint256 amount) external {
         _before();
         _stake(amount);
+        // mint and update the user's voting tokens balance
+        //TODO: mint voting tokens
+        _balances[msg.sender] += users[msg.sender].shares[0];
         _after();
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
@@ -239,6 +285,8 @@ contract JetStakingV1 is AdminControlled, ERC20Upgradeable {
         if(totalAmount - amount > 0) {
             _stake(totalAmount - amount);
         }
+        // update the user's voting tokens balance
+        _balances[msg.sender] -= users[msg.sender].shares[0];
         _after();
         emit Unstaked(msg.sender, amount, block.timestamp);
     }
