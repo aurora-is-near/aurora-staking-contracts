@@ -39,12 +39,14 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     event Staked(
         address indexed user,
         uint256 amount,
+        uint256 shares,
         uint256 timestamp
     );
 
     event Unstaked(
         address indexed user,
         uint256 amount,
+        uint256 shares,
         uint256 timestamp
     );
 
@@ -186,6 +188,41 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         treasury = _treasury;
     }
 
+        /// @notice adds address to whitelist. Whitelisted addreses only are allowed to call transferFrom function
+    /// @dev restricted for the admin only
+    /// @param _address address to be added to whitelist
+    /// @param _allowance flag determines allowance for the address
+    function whitelistContract(address _address, bool _allowance)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(_address != address(0), "Zero address");
+        whitelistedContracts[_address] = _allowance;
+    }
+
+    /// @notice batch adding address to whitelist. Whitelisted addreses only are allowed to call transferFrom function
+    /// @dev restricted for the admin only
+    /// @param _addresses addresses to be added to whitelist
+    /// @param _allowances flag determines allowances for the addresses
+    function batchWhitelistContract(
+        address[] memory _addresses,
+        bool[] memory _allowances
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_addresses.length == _allowances.length, "Invalid length");
+
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            require(_addresses[i] != address(0), "Zero address");
+            whitelistContract(_addresses[i], _allowances[i]);
+        }
+    }
+
+    /// @notice Creates `_amount` tokens and assigns them to `_user`, increasing the total supply.
+    /// @param _user user address to mint
+    /// @param _amount of tokens to mint
+    function mint(address _user, uint256 _amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _mint(_user, _amount);
+    }
+
     /// @notice standard ERC20 transfer
     /// @dev reverts on any token transfer
     function transfer(address, uint256) public override returns (bool) {
@@ -220,7 +257,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) external {
         _before();
-        _stake(amount);
+        _stake(msg.sender, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
         _balances[msg.sender] += users[msg.sender].shares[0];
@@ -269,6 +306,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
         users[msg.sender].pendings[0] += amount;
         users[msg.sender].releaseTime[0] = block.timestamp + tau[0];
+        uint256 userShares = users[msg.sender].shares[0];
 
         // recalculate the shares and move them to pending
         for(uint j = 0; j < streams.length; j++) {
@@ -283,12 +321,13 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         totalAmountOfStakedAurora -= amount;
         // stake totalAmount - amount
         if(totalAmount - amount > 0) {
-            _stake(totalAmount - amount);
+            _stake(msg.sender, totalAmount - amount);
         }
         // update the user's voting tokens balance
+        // TODO: burn tokens
         _balances[msg.sender] -= users[msg.sender].shares[0];
         _after();
-        emit Unstaked(msg.sender, amount, block.timestamp);
+        emit Unstaked(msg.sender, amount, userShares, block.timestamp);
     }
 
     function getAmountOfShares(
@@ -436,9 +475,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
     /// @param amount the staked amount
-    function _stake(uint256 amount) private {
+    function _stake(address account, uint256 amount) private {
         // recalculation of shares for AURORA
-        User storage userAccount = users[msg.sender];
+        User storage userAccount = users[account];
         //TODO: phantom overflow/underflow check
         uint256 _amountOfSharesPerStream = (amount * totalShares[0]) / totalAmountOfStakedAurora;
         userAccount.shares[0] += _amountOfSharesPerStream;
@@ -451,6 +490,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             userAccount.shares[i] += weightedAmountOfSharesPerStream;
             totalShares[i] += weightedAmountOfSharesPerStream;
         }
-        emit Staked(msg.sender, amount, block.timestamp);
+        emit Staked(account, amount, userAccount.shares[0], block.timestamp);
     }
 }
