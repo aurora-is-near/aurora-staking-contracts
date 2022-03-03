@@ -13,6 +13,10 @@ function before(
         total = totalAmountOfStakedAurora;
         total += _schedule(0, startTime, endTime);
         scheduleCalculated = _schedule(0, startTime, endTime) / 1000000000000000000;
-        rewardPerShareAurora = rps[0] + _schedule(0, startTime, endTime) / (totalShares[0]);
+        if(totalShares[0] != 0) {
+            rewardPerShareAurora = rps[0] + _schedule(0, startTime, endTime) / (totalShares[0]);
+        } else {
+            rewardPerShareAurora = rps[0] + _schedule(0, startTime, endTime);
+        }
     }
 }
