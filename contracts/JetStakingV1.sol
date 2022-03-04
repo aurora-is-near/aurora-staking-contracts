@@ -251,21 +251,20 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         return true;
     }
 
-    function batchStakeOnBehalfOfAnotherUsers(
+    function batchStakeOnBehalfOfOtherUsers(
         address[] memory accounts,
         uint256[] memory amounts,
         uint256 batchAmount
     ) external {
-        require(accounts.length == amounts.length, 'INVALID_ARRAY_LENGTH');
-        uint256 amount = 0;
+        require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
+        uint256 totalAmount = 0;
         for(uint256 i = 0; i < amounts.length; i++){
-            require(accounts[i] != address(0), 'INVALID_ADDRESS');
-            batchAmount != 0 && amounts[i] == 0 ? amount = batchAmount : amount = amounts[i];
-            _stakeOnBehalfOfAnotherUser(accounts[i], amount);
+            totalAmount += amounts[i];
+            _stakeOnBehalfOfAnotherUser(accounts[i], amounts[i]);
         }
-        _after();
+        require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
+        IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), batchAmount);
     }
-
 
     function stakeOnBehalfOfAnotherUser(
         address account,
@@ -342,7 +341,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             'NOTHING_TO_UNSTAKE'
         );
         _before();
-        uint256 totalReward = (totalAmountOfStakedAurora * users[msg.sender].shares[0]) / totalShares[0];
+        uint256 totalReward = (totalAmountOfStakedAurora / totalShares[0]) * users[msg.sender].shares[0];
         require(
             amount <= totalReward,
             'INVALID_AMOUNT'
@@ -354,10 +353,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             _moveRewardsToPending(msg.sender, j, reward);
         }
         // remove the shares from everywhere
-        // for(uint i = 1; i < streams.length; i++){
-        //     totalShares[i] -= users[msg.sender].shares[i];
-        //     users[msg.sender].shares[i] = 0;
-        // }
+        for(uint i = 0; i < streams.length; i++){
+            totalShares[i] -= users[msg.sender].shares[i];
+            users[msg.sender].shares[i] = 0;
+        }
         // update the total Aurora staked
         totalAmountOfStakedAurora -= reward;
         users[msg.sender].deposit -= amount;
@@ -384,16 +383,15 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         return rps[streamId];
     }
 
+    function getRewardPerShareForUser(uint256 streamId, address account) external view returns(uint256) {
+        return users[account].rps[streamId];
+    }
+
     function getPending(
         address user,
         uint256 streamId
     ) external view returns(uint256) {
         return users[user].pendings[streamId];
-    }
-
-    function calculateReward(address account, uint256 streamId) public view returns(uint256) {
-        User storage userAccount = users[account];
-        return ((rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId]);
     }
 
     function getSchedule(
@@ -504,7 +502,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     }
 
     /// @dev update last time this contract was touched
-    function _after() private {
+    function _after() internal {
         touchedAt = block.timestamp;
     }
 
@@ -520,7 +518,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         User storage userAccount = users[user];
         //TODO: phantom overflow/underflow check
         userAccount.pendings[streamId] += reward;
-        uint256 unclaimedShares = reward * totalShares[0] / totalAmountOfStakedAurora;
+        uint256 unclaimedShares = (reward / totalAmountOfStakedAurora) * totalShares[0];
         userAccount.shares[0] -= unclaimedShares;
         totalShares[0] -= unclaimedShares;
         userAccount.rps[streamId] = rps[streamId];
@@ -528,14 +526,13 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         emit Pending(streamId, msg.sender, userAccount.pendings[streamId], block.timestamp);
     }
 
-    function _recalculateUnclaimedShares(address account, uint256 streamId) internal {
+    function _recalculateUnclaimedShares(address account, uint256 streamId) internal returns(uint256) {
         User storage userAccount = users[account];
         // estimated reward
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId]);
-        uint256 unclaimedShares = reward * totalShares[0] / totalAmountOfStakedAurora;
-        totalAmountOfStakedAurora += reward;
-        userAccount.shares[0] += unclaimedShares;
-        totalShares[0] += unclaimedShares;
+        uint256 unclaimedShares = (reward / totalAmountOfStakedAurora) * totalShares[0];
+        if(streamId == 0) totalAmountOfStakedAurora += reward;
+        return unclaimedShares;
     }
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
@@ -543,19 +540,22 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function _stake(address account, uint256 amount) private {
         // recalculation of shares for user
         User storage userAccount = users[account];
-        userAccount.deposit += amount;
         //TODO: phantom overflow/underflow check
         uint256 _amountOfSharesPerStream = 0;
+        uint256 unclaimedShares = 0;
         if(totalShares[0] != 0){
-            _recalculateUnclaimedShares(account, 0);
+            unclaimedShares = _recalculateUnclaimedShares(account, 0);
+            userAccount.shares[0] += unclaimedShares;
+            totalShares[0] += unclaimedShares;
             _amountOfSharesPerStream = (amount) * totalShares[0] / (totalAmountOfStakedAurora);
         } else {
-             _amountOfSharesPerStream = amount / 1000000000;
+             _amountOfSharesPerStream = amount / 1000000000000000000;
         }
 
         userAccount.shares[0] += _amountOfSharesPerStream;
         totalShares[0] += _amountOfSharesPerStream;
         totalAmountOfStakedAurora += amount;
+        userAccount.deposit += amount;
 
         // recalculation of shares for other streams
         for(uint256 i = 1; i < streams.length; i++){

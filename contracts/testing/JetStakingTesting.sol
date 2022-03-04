@@ -19,4 +19,18 @@ function before(
             rewardPerShareAurora = rps[0] + _schedule(0, startTime, endTime);
         }
     }
+
+    function updateUserCalculation() external {
+        _before();
+        _after();
+    }
+
+    function getTotalUserReward() external view returns(uint256 totalReward) {
+        totalReward = (totalAmountOfStakedAurora / totalShares[0]) * users[msg.sender].shares[0];
+    }
+
+    function calculateReward(address account, uint256 streamId) public view returns(uint256) {
+        User storage userAccount = users[account];
+        return (totalAmountOfStakedAurora / totalShares[0]) * userAccount.shares[0];
+    }
 }

@@ -186,100 +186,167 @@ describe("JetStakingV1", function () {
         )
         const amountStaked = ethers.utils.parseUnits("10", 18)
         
-        console.log('------------ user 1 stakes 10 aurora tokens -------------')
-        await auroraToken.connect(user1).approve(jet.address, amountStaked)
-        await jet.connect(user1).stake(amountStaked)
+        console.log('------------ user 1 stakes 13 aurora tokens -------------')
+        await auroraToken.connect(user1).approve(jet.address, ethers.utils.parseUnits("13", 18))
+        await jet.connect(user1).stake(ethers.utils.parseUnits("13", 18))
+        await jet.connect(user1).updateUserCalculation()
+        await jet.connect(user2).updateUserCalculation()
+        await jet.connect(user3).updateUserCalculation()
         console.log(
             'Calculated shares (User 1): ',
-            (await jet.getAmountOfShares(user1.address, 0)).toNumber(), 
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user1.address, 0), 9), 
+            'Calculated shares (User 2): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user2.address, 0), 9), 
+            'Calculated shares (User 3): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user3.address, 0), 9),
             'Reward Per Share',
-            ethers.utils.formatEther(await jet.getRewardPerShare(0))
+            ethers.utils.formatUnits(await jet.getRewardPerShare(0), 9)
         )
         console.log('Total Deposited Aurora: ', ethers.utils.formatEther(await jet.totalDeposit()))
         console.log('Total Staked Aurora: ', ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))
-        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0)))
+        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0), 9))
         console.log('------------ user 2 stakes 10 aurora tokens -------------')
         await network.provider.send("evm_increaseTime", [1]) // increase time for 20 days
         await network.provider.send("evm_mine")
         console.log('waiting for ', 1, ' seconds ......')
+        console.log('user 2 stakes 10 Aurora tokens')
         await auroraToken.connect(user2).approve(jet.address, amountStaked)
         await jet.connect(user2).stake(amountStaked)
         console.log('waiting for ', 20 * oneDay, ' seconds ......')
         await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
+        await jet.connect(user1).updateUserCalculation()
+        await jet.connect(user2).updateUserCalculation()
+        await jet.connect(user3).updateUserCalculation()
         console.log(
             'Calculated shares (User 1): ',
-            (await jet.getAmountOfShares(user1.address, 0)).toNumber(), 
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user1.address, 0), 9), 
             'Calculated shares (User 2): ',
-            (await jet.getAmountOfShares(user2.address, 0)).toNumber(), 
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user2.address, 0), 9), 
+            'Calculated shares (User 3): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user3.address, 0), 9),
             'Reward Per Share',
-            ethers.utils.formatEther(await jet.getRewardPerShare(0))
+            ethers.utils.formatUnits(await jet.getRewardPerShare(0), 9)
         )
         console.log('Total Deposited Aurora: ', ethers.utils.formatEther(await jet.totalDeposit()))
         console.log('Total Staked Aurora: ', ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))
-        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0)))
-        console.log('------------ user 1 unstake 5 aurora tokens -------------')
+        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0), 9))
+        console.log('------------ user 1 unstake 13 aurora tokens -------------')
         console.log('waiting for ', 20 * oneDay, ' seconds ......')
         await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
-        await jet.connect(user1).unstake(ethers.utils.parseUnits("5", 18))
+        console.log('Total deposit for User1: ', ethers.utils.formatEther(await jet.getUserTotalDeposit(user1.address)))
+        await jet.connect(user1).updateUserCalculation()
+        console.log('Total User 1 Reward: ', ethers.utils.formatEther(await jet.connect(user1).getTotalUserReward()))
+        await jet.connect(user1).unstake(ethers.utils.parseUnits("13", 18))
         console.log(
             'Unstaked amount including rewards is (pending): ',
             ethers.utils.formatEther(await jet.getPending(user1.address, 0))
         )
+        await jet.connect(user1).updateUserCalculation()
+        await jet.connect(user2).updateUserCalculation()
+        await jet.connect(user3).updateUserCalculation()
         console.log(
             'Calculated shares (User 1): ',
-            (await jet.getAmountOfShares(user1.address, 0)).toNumber(), 
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user1.address, 0), 9), 
+            'Calculated shares (User 2): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user2.address, 0), 9), 
+            'Calculated shares (User 3): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user3.address, 0), 9),
             'Reward Per Share',
-            ethers.utils.formatEther(await jet.getRewardPerShare(0))
+            ethers.utils.formatUnits(await jet.getRewardPerShare(0), 9)
         )
         console.log('Total Deposited Aurora: ', ethers.utils.formatEther(await jet.totalDeposit()))
         console.log('Total Staked Aurora: ', ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))
-        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0)))
+        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0), 9))
         console.log('------------ user 1 stakes 10 aurora tokens -------------')
         console.log('waiting for ', 20 * oneDay, ' seconds ......')
         await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
         await auroraToken.connect(user1).approve(jet.address, amountStaked)
         await jet.connect(user1).stake(amountStaked)
+        await jet.connect(user1).updateUserCalculation()
+        await jet.connect(user2).updateUserCalculation()
+        await jet.connect(user3).updateUserCalculation()
         console.log(
             'Calculated shares (User 1): ',
-            (await jet.getAmountOfShares(user1.address, 0)).toNumber(), 
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user1.address, 0), 9), 
+            'Calculated shares (User 2): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user2.address, 0), 9), 
+            'Calculated shares (User 3): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user3.address, 0), 9),
             'Reward Per Share',
-            ethers.utils.formatEther(await jet.getRewardPerShare(0))
+            ethers.utils.formatUnits(await jet.getRewardPerShare(0), 9)
         )
         console.log('Total Deposited Aurora: ', ethers.utils.formatEther(await jet.totalDeposit()))
         console.log('Total Staked Aurora: ', ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))
-        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0)))
+        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0), 9))
         console.log('------------ user 2 unstake 2 aurora tokens -------------')
         console.log('waiting for ', 20 * oneDay, ' seconds ......')
         await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
+        
         await jet.connect(user2).unstake(ethers.utils.parseUnits("2", 18))
+        await jet.connect(user1).updateUserCalculation()
+        await jet.connect(user2).updateUserCalculation()
+        await jet.connect(user3).updateUserCalculation()
         console.log(
+            'Calculated shares (User 1): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user1.address, 0), 9), 
             'Calculated shares (User 2): ',
-            (await jet.getAmountOfShares(user2.address, 0)).toNumber(), 
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user2.address, 0), 9), 
+            'Calculated shares (User 3): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user3.address, 0), 9),
             'Reward Per Share',
-            ethers.utils.formatEther(await jet.getRewardPerShare(0))
+            ethers.utils.formatUnits(await jet.getRewardPerShare(0), 9)
         )
         console.log('Total Deposited Aurora: ', ethers.utils.formatEther(await jet.totalDeposit()))
         console.log('Total Staked Aurora: ', ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))
-        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0)))
+        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0), 9))
         console.log('------------ user 3 stakes 10 aurora tokens -------------')
         await auroraToken.connect(user3).approve(jet.address, amountStaked)
         await jet.connect(user3).stake(amountStaked)
-        await network.provider.send("evm_increaseTime", [300 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_increaseTime", [366 * oneDay]) // increase time for 20 days
         await network.provider.send("evm_mine")
         console.log('waiting for ', 300 * oneDay , ' seconds ......')
+
+        await jet.connect(user1).updateUserCalculation()
+        await jet.connect(user2).updateUserCalculation()
+        await jet.connect(user3).updateUserCalculation()
         console.log(
+            'Calculated shares (User 1): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user1.address, 0), 9), 
+            'Calculated shares (User 2): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user2.address, 0), 9), 
             'Calculated shares (User 3): ',
-            (await jet.getAmountOfShares(user3.address, 0)).toNumber(), 
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user3.address, 0), 9),
             'Reward Per Share',
-            ethers.utils.formatEther(await jet.getRewardPerShare(0))
+            ethers.utils.formatUnits(await jet.getRewardPerShare(0), 9)
         )
         console.log('Total Deposited Aurora: ', ethers.utils.formatEther(await jet.totalDeposit()))
         console.log('Total Staked Aurora: ', ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))
-        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0)))
+        console.log('Total Shares: ', ethers.utils.formatUnits(await jet.totalShares(0), 9))
+        console.log('------------ user 3 unstakes 10 aurora tokens -------------')
+        await jet.connect(user3).unstake(amountStaked)
+        console.log(
+            'user3 total deposit',
+            ethers.utils.formatEther(await jet.getUserTotalDeposit(user3.address)),
+            'Unstaked amount including rewards is (pending): ',
+            ethers.utils.formatEther(await jet.getPending(user3.address, 0))
+        )
+        await jet.connect(user1).updateUserCalculation()
+        await jet.connect(user2).updateUserCalculation()
+        await jet.connect(user3).updateUserCalculation()
+        console.log(
+            'Calculated shares (User 1): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user1.address, 0), 9), 
+            'Calculated shares (User 2): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user2.address, 0), 9), 
+            'Calculated shares (User 3): ',
+            ethers.utils.formatUnits(await jet.getAmountOfShares(user3.address, 0), 9),
+            'Reward Per Share',
+            ethers.utils.formatUnits(await jet.getRewardPerShare(0), 9)
+        )
     })
 
     
@@ -304,49 +371,51 @@ describe("JetStakingV1", function () {
         await jet.connect(user2).stake(amountStaked)
         await auroraToken.connect(user3).approve(jet.address, amountStaked)
         await jet.connect(user3).stake(amountStaked)
-        console.log(
-            'Total staked Aurora',
-            ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())
-        )
-        console.log(
-            'reward per share',
-            ethers.utils.formatEther(await jet.getRewardPerShare(0))
-        )
-        console.log(
-            'Total Shares',
-            (await jet.totalShares(0)).toNumber()
-        )
+        // console.log(
+        //     'Total staked Aurora',
+        //     ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())
+        // )
+        // console.log(
+        //     'reward per share',
+        //     ethers.utils.formatEther(await jet.getRewardPerShare(0))
+        // )
+        // console.log(
+        //     'Total Shares',
+        //     (await jet.totalShares(0)).toNumber()
+        // )
         const rewardPerShare = ethers.utils.formatEther(await jet.getRewardPerShare(0))
-        console.log(parseFloat(rewardPerShare))
-        const userShares = (await jet.getAmountOfShares(user1.address, 0)).toNumber()
-        const expectedReward = parseInt(ethers.utils.formatEther(amountStaked)) + parseFloat(rewardPerShare) * userShares
-        console.log(
-            'Reward to claim for User 1: ', 
-            ethers.utils.formatEther(await jet.calculateReward(user1.address, 0))
-        )
+        // console.log(parseFloat(rewardPerShare))
+        const userShares = ethers.utils.formatEther(await jet.getAmountOfShares(user1.address, 0))
+        // console.log(
+        //     'Reward to claim for User 1: ', 
+        //     ethers.utils.formatEther(await jet.calculateReward(user1.address, 0))
+        // )
 
-        console.log(
-            'Reward to claim for User 2: ', 
-            ethers.utils.formatEther(await jet.calculateReward(user2.address, 0))
-        )
+        // console.log(
+        //     'Reward to claim for User 2: ', 
+        //     ethers.utils.formatEther(await jet.calculateReward(user2.address, 0))
+        // )
 
-        console.log(
-            'Reward to claim for User 3: ', 
-            ethers.utils.formatEther(await jet.calculateReward(user3.address, 0))
-        )
-
+        // console.log(
+        //     'Reward to claim for User 3: ', 
+        //     ethers.utils.formatEther(await jet.calculateReward(user3.address, 0))
+        // )
+        await jet.connect(user1).updateUserCalculation()
+        const totalAmountOfStakedAurora = ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())
+        const totalShares = ethers.utils.formatEther(await jet.totalShares(0))
+        const expectedReward = (parseFloat(totalAmountOfStakedAurora) / parseFloat(totalShares))  * parseFloat(userShares) + 2 // 2 is the diff reward till calling unstake
         await jet.connect(user1).unstake(amountStaked)
-        // const pendingRelease = await jet.getPending(user1.address, 0)
-        // await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
-        // await network.provider.send("evm_mine")
-        // const tx = await jet.connect(user1).withdraw(0)
-        // const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.released, 1)
+        const pendingRelease = await jet.getPending(user1.address, 0)
+        await network.provider.send("evm_increaseTime", [20 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_mine")
+        const tx = await jet.connect(user1).withdraw(0)
+        const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.released, 1)
         // console.log(parseInt(ethers.utils.formatEther(amount)))
         // console.log(expectedReward)
-        // expect(parseInt(expectedReward.toString())).to.be.eq(parseInt(ethers.utils.formatEther(amount)))
-        // expect(pendingRelease).to.be.eq(amount)
-        // const user1BalanceAfter = await auroraToken.balanceOf(user1.address)
-        // expect(user1BalanceBefore).to.be.lt(user1BalanceAfter)
+        expect(parseInt(expectedReward.toString())).to.be.eq(parseInt(ethers.utils.formatEther(amount)))
+        expect(pendingRelease).to.be.eq(amount)
+        const user1BalanceAfter = await auroraToken.balanceOf(user1.address)
+        expect(user1BalanceBefore).to.be.lt(user1BalanceAfter)
     })
 
     it('should able to get schedule times per stream', async () => {
