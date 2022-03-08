@@ -457,22 +457,22 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         if(startIndex == endIndex) {
             // start and end are within the same schedule period
             reward = schedule.reward[startIndex] - schedule.reward[startIndex+1];
-            rewardScheduledAmount = ((end - start) * reward) / denominator;
+            rewardScheduledAmount = (reward / denominator) * (end - start);
         } else {
             // start and end are not within the same schedule period
             // Reward during the startIndex period
             reward = (schedule.reward[startIndex] - schedule.reward[startIndex + 1]);
-            rewardScheduledAmount = (schedule.time[startIndex + 1] - start) * reward / denominator;
+            rewardScheduledAmount = (reward / denominator) * (schedule.time[startIndex + 1] - start);
             // Reward during the period from startIndex + 1  to endIndex - 1
-            for (uint256 i = startIndex + 1; i < endIndex; i++) {
+            for (uint256 i = startIndex + 1; i < endIndex && end > schedule.time[i]; i++) {
                 reward = schedule.reward[i] - schedule.reward[i+1];
                 rewardScheduledAmount += reward;
             }
             // Reward during the endIndex period
-            if(end > schedule.time[endIndex] && end != schedule.time[schedule.time.length - 1]){
+            if(end > schedule.time[endIndex]){
                 reward = schedule.reward[endIndex] - schedule.reward[endIndex + 1];
-                rewardScheduledAmount += (end - schedule.time[endIndex]) * reward / denominator;
-            } else if(end == schedule.time[schedule.time.length - 1] && start == schedule.time[0]) {
+                rewardScheduledAmount += (reward / denominator) * (end - schedule.time[endIndex]);
+            } else if(end == schedule.time[schedule.time.length - 1]) {
                 rewardScheduledAmount += schedule.reward[schedule.time.length - 1];
             }
         }

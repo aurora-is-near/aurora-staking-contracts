@@ -10,8 +10,7 @@ contract JetStakingTesting is JetStakingV1 {
     public
     view
     returns(uint256 total, uint256 rewardPerShareAurora, uint256 scheduleCalculated) {
-        total = totalAmountOfStakedAurora;
-        total += _schedule(0, startTime, endTime);
+        total = _schedule(0, startTime, endTime);
         scheduleCalculated = _schedule(0, startTime, endTime) / 1000000000000000000;
         if(totalShares[0] != 0) {
             rewardPerShareAurora = _schedule(0, startTime, endTime) / (totalShares[0]);
