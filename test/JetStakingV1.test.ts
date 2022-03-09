@@ -174,7 +174,7 @@ describe("JetStakingV1", function () {
         await jet.connect(user1).stake(amountStaked1)
         let currentTime = (await ethers.provider.getBlock("latest")).timestamp
         const timeDiff = currentTime - startTime
-        await network.provider.send("evm_increaseTime", [4 * oneYear - timeDiff - 1]) // increase time for 20 days
+        await network.provider.send("evm_increaseTime", [4 * oneYear - timeDiff - 1])
         await network.provider.send("evm_mine")
         await jet.connect(user1).updateUserCalculation()
         const expectedReward = 
@@ -189,7 +189,7 @@ describe("JetStakingV1", function () {
         expect(parseInt(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))).to.be.eq(
             parseInt(expectedReward.toString())
         )
-        expect(1000000000 * parseInt(ethers.utils.formatEther(amountStaked1))).to.be.eq(
+        expect(parseInt(ethers.utils.formatUnits(amountStaked1, 0))).to.be.eq(
             parseInt(ethers.utils.formatUnits(await jet.totalShares(0), 0))
         )
     })
@@ -223,8 +223,8 @@ describe("JetStakingV1", function () {
         const amounts = [
             ethers.utils.parseUnits("5", 18),
             ethers.utils.parseUnits("10", 18),
-            ethers.utils.parseUnits("5", 18),
-            ethers.utils.parseUnits("20", 18)
+            ethers.utils.parseUnits("10000", 18),
+            ethers.utils.parseUnits("10000", 18)
         ]
         // Year 1
         await auroraToken.connect(user1).approve(jet.address, amounts[0])
@@ -237,10 +237,10 @@ describe("JetStakingV1", function () {
         await jet.connect(user1).updateUserCalculation()
         timeDiff = timeAfter - timeBefore
         // calculated expected shares and reward
-        let expectedShares = parseFloat(ethers.utils.formatEther(amounts[0]))
-        let totalShares = expectedShares * 1000000000
+        let expectedShares = parseFloat(ethers.utils.formatUnits(amounts[0], 0))
+        let totalShares = expectedShares
         const User1FirstStakeShares = totalShares
-        let expectedReward = ((parseInt(scheduleRewards[0]) - parseInt(scheduleRewards[1])) / 1e9) * timeDiff / oneYear
+        let expectedReward = ((parseInt(scheduleRewards[0]) - parseInt(scheduleRewards[1]))) * timeDiff / oneYear
         let totalExpectedReward = expectedReward * expectedShares / totalShares
 
         p.addRow({ 
@@ -249,9 +249,9 @@ describe("JetStakingV1", function () {
             Amount: parseFloat(ethers.utils.formatEther(amounts[0])),
             Year: '1', 
             Duration: timeDiff,
-            Expected_Reward_For_This_User: totalExpectedReward,
+            Expected_Reward_For_This_User: totalExpectedReward / 1e18,
             Actual_Reward_For_This_User: parseFloat(ethers.utils.formatEther(await jet.connect(user1).getTotalUserReward())),
-            Expected_Total_Reward: totalExpectedReward,
+            Expected_Total_Reward: totalExpectedReward / 1e18,
             Actual_Total_Reward: parseFloat(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())),
             Expected_Total_Shares: parseFloat(totalShares.toString()),
             Actual_Total_Shares: parseFloat(ethers.utils.formatUnits(await jet.totalShares(0), 0)),
@@ -260,7 +260,7 @@ describe("JetStakingV1", function () {
         })
         const expectedTotalSharesUser1Year1 = totalShares
         expect(totalShares).to.be.eq(parseInt(ethers.utils.formatUnits(await jet.totalShares(0), 0)))
-        expect(parseFloat(ethers.utils.formatEther(await jet.connect(user1).getTotalUserReward()))).to.be.greaterThanOrEqual(
+        expect(parseFloat(ethers.utils.formatUnits(await jet.connect(user1).getTotalUserReward(), 0))).to.be.greaterThanOrEqual(
             totalExpectedReward
         )
 
@@ -291,7 +291,7 @@ describe("JetStakingV1", function () {
             Duration: timeDiff,
             Expected_Reward_For_This_User: totalExpectedRewardUser2,
             Actual_Reward_For_This_User: parseFloat(ethers.utils.formatEther(await jet.connect(user2).getTotalUserReward())),
-            Expected_Total_Reward: totalExpectedReward,
+            Expected_Total_Reward: totalExpectedReward / 1e18,
             Actual_Total_Reward: parseFloat(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())),
             Expected_Total_Shares: parseFloat(totalShares.toString()),
             Actual_Total_Shares: parseFloat(ethers.utils.formatUnits(await jet.totalShares(0), 0)),
@@ -304,13 +304,14 @@ describe("JetStakingV1", function () {
         const unstakedUser1Amount = ethers.utils.parseUnits("1.5", 18)
         await network.provider.send("evm_increaseTime", [oneYear])
         await network.provider.send("evm_mine")
+        const firstTime = (await ethers.provider.getBlock("latest")).timestamp
         await jet.connect(user1).updateUserCalculation()
         const user1TotalStakedReward = parseFloat(ethers.utils.formatEther(await jet.connect(user1).getTotalUserReward()))
         totalAmountOfStakedAurora = parseFloat(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))        
-        const currentUser1TotalShares = User1FirstStakeShares
-        await jet.connect(user1).unstake(unstakedUser1Amount)        
-        timeAfter = (await ethers.provider.getBlock("latest")).timestamp + 1
-        timeDiff = timeAfter - timeBeforeUser1Stake - 2 
+        const currentUser1TotalShares = parseInt(await jet.getUserShares(user1.address))
+        await jet.connect(user1).unstake(unstakedUser1Amount)
+        timeAfter = (await ethers.provider.getBlock("latest")).timestamp - 1
+        timeDiff = timeAfter - timeBeforeUser1Stake
         // calculate the percentage of the reward of the unstaked amount
         const claimedRewardUser1Unstake = parseFloat(ethers.utils.formatEther(unstakedUser1Amount)) * user1TotalStakedReward / parseFloat(ethers.utils.formatEther(amounts[0])) 
         const unclaimedRewardUser1Unstake = user1TotalStakedReward - claimedRewardUser1Unstake
@@ -340,25 +341,29 @@ describe("JetStakingV1", function () {
         )
         expect(totalShares).to.be.lessThanOrEqual(parseInt(ethers.utils.formatUnits(await jet.totalShares(0), 0)))
        
-        // Year 3
+        // Year 2
+        await jet.connect(user1).updateUserCalculation()
         await auroraToken.connect(user3).approve(jet.address, amounts[2])
-        timeBefore = (await ethers.provider.getBlock("latest")).timestamp + 1
-        console.log(totalShares, parseFloat(ethers.utils.formatEther(amounts[2])), totalAmountOfStakedAurora)
+        timeBefore = (await ethers.provider.getBlock("latest")).timestamp
         const user3Shares = parseFloat(ethers.utils.formatEther(amounts[2])) * (totalShares/ totalAmountOfStakedAurora)
+        // console.log('Total staking before staking', parseFloat(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())))
         await jet.connect(user3).stake(amounts[2])
+        // console.log('Total staking after staking', parseFloat(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())))
         await network.provider.send("evm_increaseTime", [oneYear])
         await network.provider.send("evm_mine")
         await jet.connect(user3).updateUserCalculation()
+        // console.log('Total staking after 1 year', parseFloat(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())))
         timeAfter = (await ethers.provider.getBlock("latest")).timestamp
         timeDiff = timeAfter - timeBefore
+        console.log(timeDiff, timeAfter - firstTime)
         let expectedRewardDuringThisPeriod = (
-            ((parseInt(scheduleRewards[1]) - parseInt(scheduleRewards[2])) / 1e18) * (2 * oneDay) / oneYear +
-            ((parseInt(scheduleRewards[2]) - parseInt(scheduleRewards[3])) / 1e18) * (timeDiff - 2 * oneDay) / oneYear
+            ((parseInt(scheduleRewards[1]) - parseInt(scheduleRewards[2])) / 1e18) * (oneYear - oneDay) / oneYear +
+            ((parseInt(scheduleRewards[2]) - parseInt(scheduleRewards[3])) / 1e18) * (timeDiff - oneYear) / oneYear
         )
-        const expectedUser3Reward = expectedRewardDuringThisPeriod * user3Shares
-        totalAmountOfStakedAurora += expectedRewardDuringThisPeriod 
+        totalAmountOfStakedAurora += expectedRewardDuringThisPeriod
+        const expectedUser3Reward = totalAmountOfStakedAurora * user3Shares / totalShares
         totalShares += user3Shares
-        
+
         p.addRow({ 
             User_Address: user3.address,
             Operation: 'Staking',
@@ -374,6 +379,11 @@ describe("JetStakingV1", function () {
             Pending: ethers.utils.formatEther(await jet.getPending(user3.address, 0)),
             Total_Deposit: parseFloat(ethers.utils.formatEther(await jet.totalDeposit()))
         })
+
+        expect(parseFloat(ethers.utils.formatEther(await jet.connect(user3).getTotalUserReward()))).to.be.lessThanOrEqual(
+            expectedUser3Reward
+        )
+        expect(totalShares).to.be.lessThanOrEqual(parseInt(ethers.utils.formatUnits(await jet.totalShares(0), 0)))
 
         p.printTable();
     })
@@ -667,7 +677,6 @@ describe("JetStakingV1", function () {
         const {total, rewardPerShareAurora, scheduleCalculated} = await jet.before(scheduleTimes[0], scheduleTimes[4])
         const { startIndex, endIndex } = await jet.startEndScheduleIndex(0, scheduleTimes[0], scheduleTimes[4])
         const expectedScheduleReward = scheduleRewards[0]/1e18
-        console.log(expectedScheduleReward)
         expect(Math.round(parseFloat(ethers.utils.formatUnits(total)))).to.be.eq(parseFloat(expectedScheduleReward.toString()))
         expect(Math.round(parseFloat(ethers.utils.formatUnits(rewardPerShareAurora)))).to.be.eq(parseFloat(expectedScheduleReward.toString()))
         expect(startIndex.toNumber()).to.be.eq(0)
@@ -840,38 +849,25 @@ describe("JetStakingV1", function () {
         expect(startIndex.toNumber()).to.be.eq(1)
         expect(endIndex.toNumber()).to.be.eq(3)
     })
+    it('should stake on behalf of another user', async() => {
 
-    it('should allow to stake max amount', async () => {
-        let amountStaked = await auroraToken.balanceOf(user5.address)
-        await auroraToken.connect(user5).approve(jet.address, amountStaked)
-        await jet.connect(user5).stake(amountStaked)
-        let totalStaked = amountStaked
-        // let totalShares = 
-        const stakingPeriod = 112 * oneDay
-        amountStaked = ethers.utils.parseUnits("10", 18)
-        await network.provider.send("evm_increaseTime", [stakingPeriod]) // increase time for 20 days
-        await network.provider.send("evm_mine")
-        // await auroraToken.connect(user2).approve(jet.address, amountStaked)
-        // await jet.connect(user2).stake(amountStaked)
-        // console.log(
-        //     'Total staked Aurora',
-        //     ethers.utils.formatEther(await jet.totalAmountOfStakedAurora())
-        // )
-        // console.log(
-        //     'reward per share',
-        //     (await jet.getRewardPerShare(0)).toNumber()
-        // )
-        // console.log(
-        //     'total shares',
-        //     ethers.utils.formatEther(await jet.totalShares(0))
-        // )
-        // console.log(
-        //     'Reward to claim for User 5: ', 
-        //     (await jet.calculateReward(user5.address, 0)).toNumber()
-        // )
-        // console.log(
-        //     'Reward to claim for User 2: ', 
-        //     (await jet.calculateReward(user2.address, 0)).toNumber()
-        // )
+    })
+    it('should allow batch stake on behalf of another users', async() => {
+
+    })
+    it('should whitelist contract by admin role', async () => {
+
+    })
+    it('should batch whitelist contracts by admin role', async () => {
+
+    })
+    it('should fail to whitelist if not admin role', async () => {
+
+    })
+    it('should update treasury address only by admin role', async () => {
+
+    })
+    it('should remove stream', async () => {
+        
     })
 });
