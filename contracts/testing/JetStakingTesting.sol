@@ -13,9 +13,9 @@ contract JetStakingTesting is JetStakingV1 {
         total = _schedule(0, startTime, endTime);
         scheduleCalculated = _schedule(0, startTime, endTime) / 1000000000000000000;
         if(totalShares[0] != 0) {
-            rewardPerShareAurora = _schedule(0, startTime, endTime) / (totalShares[0]);
+            rewardPerShareAurora = total / (totalShares[0]);
         } else {
-            rewardPerShareAurora = _schedule(0, startTime, endTime);
+            rewardPerShareAurora = total;
         }
     }
 
