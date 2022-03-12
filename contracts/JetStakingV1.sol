@@ -313,9 +313,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) public onlyValidSchedule {
-        if(touchedAt != 0) {
-            _before();
-        }
+        _before();
         _stake(msg.sender, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
@@ -518,20 +516,20 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     /// @dev called before touching the contract reserves (stake/unstake)
     function _before() internal {
-        // touch the contract once per block
-        if(touchedAt != block.timestamp){
+        // release rewards once per block after 1st stake
+        if(touchedAt != 0 && touchedAt != block.timestamp){
             totalAmountOfStakedAurora += _schedule(0, touchedAt, block.timestamp);
             // AURORA rps is not used because rewards are split among staker shares (compound?)
             for (uint256 i = 1; i < streams.length; i++) {
                 rps[i] += _schedule(i, touchedAt, block.timestamp) / totalShares[i];
                 //TODO: deactivate stream if needed
             }
+            touchedAt = block.timestamp;
         }
     }
 
     /// @dev update last time this contract was touched
     function _after() internal {
-        touchedAt = block.timestamp;
     }
 
     /// @dev allocate the collected reward to the pending tokens
@@ -566,9 +564,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         address account,
         uint256 amount
     ) internal {
-        if(touchedAt != 0) {
-            _before();
-        }
+        _before();
         _stake(account, amount);
         _after();
     }
@@ -581,7 +577,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 _amountOfShares = 0;
         if(totalShares[0] == 0){
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
-             _amountOfShares = amount;
+            _amountOfShares = amount;
+            // start rewards release
+            touchedAt = block.timestamp;
         } else {
             _amountOfShares = amount * totalShares[0] / totalAmountOfStakedAurora;
         }
