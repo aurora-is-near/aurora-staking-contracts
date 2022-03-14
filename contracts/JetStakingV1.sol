@@ -298,13 +298,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     ) external {
         _before();
         _moveRewardsToPending(msg.sender, streamId);
-        _after();
     }
 
     function moveAllRewardsToPending() external {
         _before();
         _moveAllRewardsToPending(msg.sender);
-        _after();
     }
 
 
@@ -318,7 +316,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
         _balances[msg.sender] += users[msg.sender].shares[0];
-        _after();
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
@@ -394,7 +391,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // update the user's voting tokens balance
         // TODO: burn tokens
         _balances[msg.sender] = users[msg.sender].shares[0];
-        _after();
     }
 
     function getAmountOfShares(
@@ -528,10 +524,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         }
     }
 
-    /// @dev update last time this contract was touched
-    function _after() internal {
-    }
-
     /// @dev allocate the collected reward to the pending tokens
     /// @notice TODO: potentially withdraw the released rewards if any
     /// @param account is the staker address
@@ -566,7 +558,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     ) internal {
         _before();
         _stake(account, amount);
-        _after();
     }
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
