@@ -21,16 +21,14 @@ contract JetStakingTesting is JetStakingV1 {
 
     function updateUserCalculation() external {
         _before();
-        //_recalculateUnclaimedShares(msg.sender, 0);
-        _after();
     }
 
     function getTotalUserReward() external view returns(uint256 totalReward) {
         totalReward = users[msg.sender].shares[0] * (totalAmountOfStakedAurora / totalShares[0]);
     }
 
-    function calculateReward(address account, uint256 streamId) public view returns(uint256) {
-        User storage userAccount = users[account];
-        return (totalAmountOfStakedAurora / totalShares[0]) * userAccount.shares[0];
+    function calculateReward(address account) public view returns(uint256) {
+        uint256 userShares = users[account].shares[0];
+        return (totalAmountOfStakedAurora * userShares) / totalShares[0];
     }
 }

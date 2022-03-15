@@ -8,13 +8,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
+    uint256 constant DENOMINATOR = 31556926; //1Year
     uint256 public totalAmountOfStakedAurora;
     uint256 touchedAt;
-    uint256[] public totalShares; // T_{j}
-    address[] public streams;
     uint256[] weights;
-    mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
     uint256[] public tau;
+    uint256[] public totalShares;
+    address[] public streams;
     address public treasury;
 
     struct User {
@@ -32,8 +32,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     mapping(address => User) users;
     mapping(address => uint256) public streamToIndex;
-    Schedule[] schedules;
+    mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
     mapping(address => bool) whitelistedContracts;
+    Schedule[] schedules;
 
     // events
     event Staked(
@@ -144,7 +145,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) onlyValidSchedule {
         require(
             stream != address(0),
             "INVALID_ADDRESS"
@@ -155,7 +156,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
         streamToIndex[stream] = streams.length;
         streams.push(stream);
-        uint256 streamId = streamToIndex[stream];
         totalShares.push(0);
         weights.push(weight);
         tau.push(tauPerStream);
@@ -191,11 +191,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @dev restricted for the admin only
     /// @param _treasury treasury contract address for the reward tokens
     function updateTreasury(address _treasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        //TODO: should pause this contract
         require(_treasury != address(0), "INVALID_ADDRESS");
         treasury = _treasury;
     }
 
-        /// @notice adds address to whitelist. Whitelisted addreses only are allowed to call transferFrom function
+    /// @notice adds address to whitelist. Whitelisted addreses only are allowed to call transferFrom function
     /// @dev restricted for the admin only
     /// @param _address address to be added to whitelist
     /// @param _allowance flag determines allowance for the address
@@ -263,7 +264,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         address[] memory accounts,
         uint256[] memory amounts,
         uint256 batchAmount
-    ) external {
+    ) external onlyValidSchedule {
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
         uint256 totalAmount = 0;
         for(uint256 i = 0; i < amounts.length; i++){
@@ -282,7 +283,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function stakeOnBehalfOfAnotherUser(
         address account,
         uint256 amount
-    ) public {
+    ) public onlyValidSchedule {
         _stakeOnBehalfOfAnotherUser(account, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
@@ -471,17 +472,16 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         (startIndex, endIndex) = startEndScheduleIndex(streamId, start, end);
         Schedule storage schedule = schedules[streamId];
         uint256 rewardScheduledAmount = 0;
-        uint256 denominator = 31556926; //schedule.time[i] - schedule.time[i+1];
         uint256 reward = 0;
         if(startIndex == endIndex) {
             // start and end are within the same schedule period
             reward = schedule.reward[startIndex] - schedule.reward[startIndex+1];
-            rewardScheduledAmount = (reward / denominator) * (end - start);
+            rewardScheduledAmount = (reward / DENOMINATOR) * (end - start);
         } else {
             // start and end are not within the same schedule period
             // Reward during the startIndex period
             reward = (schedule.reward[startIndex] - schedule.reward[startIndex + 1]);
-            rewardScheduledAmount = (reward / denominator) * (schedule.time[startIndex + 1] - start);
+            rewardScheduledAmount = (reward / DENOMINATOR) * (schedule.time[startIndex + 1] - start);
             // Reward during the period from startIndex + 1  to endIndex - 1
             for (uint256 i = startIndex + 1; i < endIndex; i++) {
                 reward = schedule.reward[i] - schedule.reward[i+1];
@@ -490,7 +490,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // Reward during the endIndex period
             if(end > schedule.time[endIndex]){
                 reward = schedule.reward[endIndex] - schedule.reward[endIndex + 1];
-                rewardScheduledAmount += (reward / denominator) * (end - schedule.time[endIndex]);
+                rewardScheduledAmount += (reward / DENOMINATOR) * (end - schedule.time[endIndex]);
             } else if(end == schedule.time[schedule.time.length - 1]) {
                 rewardScheduledAmount += schedule.reward[schedule.time.length - 1];
             }
