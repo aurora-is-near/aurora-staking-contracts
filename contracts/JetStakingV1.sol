@@ -298,13 +298,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     ) external {
         _before();
         _moveRewardsToPending(msg.sender, streamId);
-        _after();
     }
 
     function moveAllRewardsToPending() external {
         _before();
         _moveAllRewardsToPending(msg.sender);
-        _after();
     }
 
 
@@ -313,14 +311,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) public onlyValidSchedule {
-        if(touchedAt != 0) {
-            _before();
-        }
+        _before();
         _stake(msg.sender, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
         _balances[msg.sender] += users[msg.sender].shares[0];
-        _after();
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
@@ -383,6 +378,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // update the total Aurora staked and deposits
         totalAmountOfStakedAurora -= amount;
         users[msg.sender].deposit = 0;
+        // move unstaked AURORA to pending.
+        users[msg.sender].pendings[0] += amount;
+        users[msg.sender].releaseTime[0] = block.timestamp + tau[0];
+        emit Pending(0, msg.sender, users[msg.sender].pendings[0], block.timestamp);
         emit Unstaked(msg.sender, userSharesValue, userShares , block.timestamp);
         // restake the rest
         uint256 amountToRestake = userSharesValue - amount;
@@ -392,7 +391,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // update the user's voting tokens balance
         // TODO: burn tokens
         _balances[msg.sender] = users[msg.sender].shares[0];
-        _after();
     }
 
     function getAmountOfShares(
@@ -514,20 +512,16 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     /// @dev called before touching the contract reserves (stake/unstake)
     function _before() internal {
-        // touch the contract once per block
-        if(touchedAt != block.timestamp){
+        // release rewards once per block after 1st stake
+        if(touchedAt != 0 && touchedAt != block.timestamp){
             totalAmountOfStakedAurora += _schedule(0, touchedAt, block.timestamp);
             // AURORA rps is not used because rewards are split among staker shares (compound?)
             for (uint256 i = 1; i < streams.length; i++) {
                 rps[i] += _schedule(i, touchedAt, block.timestamp) / totalShares[i];
                 //TODO: deactivate stream if needed
             }
+            touchedAt = block.timestamp;
         }
-    }
-
-    /// @dev update last time this contract was touched
-    function _after() internal {
-        touchedAt = block.timestamp;
     }
 
     /// @dev allocate the collected reward to the pending tokens
@@ -562,11 +556,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         address account,
         uint256 amount
     ) internal {
-        if(touchedAt != 0) {
-            _before();
-        }
+        _before();
         _stake(account, amount);
-        _after();
     }
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
@@ -577,7 +568,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 _amountOfShares = 0;
         if(totalShares[0] == 0){
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
-             _amountOfShares = amount;
+            _amountOfShares = amount;
+            // start rewards release
+            touchedAt = block.timestamp;
         } else {
             _amountOfShares = amount * totalShares[0] / totalAmountOfStakedAurora;
         }
