@@ -239,8 +239,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     /// @notice standard ERC20 approve
     /// @dev reverts on any call
-    function approve(address, uint256) public virtual override returns (bool) {
-        revert();
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+        require(whitelistedContracts[spender], "ONLY_WHITELISTED_CONTRACT");
+        address owner = _msgSender();
+        _approve(owner, spender, amount);
+        return true;
     }
 
     /// @notice standard ERC20 transfer from
@@ -313,10 +316,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) public onlyValidSchedule {
         _before();
+        _burn(msg.sender, users[msg.sender].shares[0]);
         _stake(msg.sender, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
-        _balances[msg.sender] += users[msg.sender].shares[0];
+        //_balances[msg.sender] = users[msg.sender].shares[0];
+        _mint(msg.sender, users[msg.sender].shares[0]);
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
@@ -355,6 +360,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // INVALID_SCHEDULE_PARAMETERS
         // Also no restaking after ending of schedule
         _before();
+        _burn(msg.sender, users[msg.sender].shares[0]);
         require(
             totalAmountOfStakedAurora != 0,
             "NOTHING_TO_UNSTAKE"
@@ -388,10 +394,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 amountToRestake = userSharesValue - amount;
         if(amountToRestake > 0) {
             _stake(msg.sender, amountToRestake);
+            _mint(msg.sender, users[msg.sender].shares[0]);
         }
         // update the user's voting tokens balance
         // TODO: burn tokens
-        _balances[msg.sender] = users[msg.sender].shares[0];
+        //_balances[msg.sender] = users[msg.sender].shares[0];
     }
 
     function getAmountOfShares(
@@ -557,7 +564,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 amount
     ) internal {
         _before();
+        _burn(account, users[account].shares[0]);
         _stake(account, amount);
+        _mint(account, users[account].shares[0]);
     }
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
