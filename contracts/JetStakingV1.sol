@@ -9,14 +9,16 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     uint256 constant DENOMINATOR = 31556926; //1Year
+    uint256 constant SEASON_PERIOD = 5260000; //2Months
     uint256 public totalAmountOfStakedAurora;
+    uint256 public currentSeason;
     uint256 touchedAt;
     uint256[] weights;
     uint256[] public tau;
     uint256[] public totalShares;
     address[] public streams;
     address public treasury;
-
+    uint256[] seasons;
     struct User {
         uint256 deposit;
         mapping(uint256 => uint256) shares; // The amount of shares for user per stream j
@@ -30,10 +32,17 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] reward;
     }
 
+    struct Vote {
+        uint256 count;
+        uint256 validAt;
+    }
+
     mapping(address => User) users;
     mapping(address => uint256) public streamToIndex;
     mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
     mapping(address => bool) whitelistedContracts;
+    mapping(address => Vote) public futureVotes;
+
     Schedule[] schedules;
 
     // events
@@ -106,7 +115,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] memory scheduleRewards,
         uint256 tauAuroraStream,
         uint256 _flags,
-        address _treasury
+        address _treasury,
+        uint256 seasons_count
     ) public initializer {
         require(
             aurora != address(0) &&
@@ -125,6 +135,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             Schedule(scheduleTimes, scheduleRewards)
         );
         tau.push(tauAuroraStream);
+        // set season 0 start time
+        currentSeason = 0;
+        for(uint256 i = 0; i <= seasons_count; i++){
+            seasons.push(block.timestamp + SEASON_PERIOD * i);
+        }
         // default stream added (AURORA with an index 0)
         emit StreamActivated(
             aurora,
@@ -255,9 +270,21 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 _amount
     ) public override pausable(1) returns (bool) {
         require(whitelistedContracts[msg.sender], "ONLY_WHITELISTED_CONTRACT");
+        currentSeason = getCurrentSeason();
+        _burnOldVotesAndMintCurrentVotes(msg.sender);
+        require(
+            _amount <= _balances[msg.sender],
+            'INSUFFICIENT_VOTES'
+        );
         _transfer(_sender, _recipient, _amount);
         emit VotesTransfered(_sender, _recipient, _amount);
         return true;
+    }
+
+    function getCurrentSeason() public view returns(uint256) {
+        for(uint256 i = seasons.length - 1; i >= 0; i--) {
+            if (block.timestamp > seasons[i]) return i;
+        }
     }
 
     function batchStakeOnBehalfOfOtherUsers(
@@ -270,8 +297,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         for(uint256 i = 0; i < amounts.length; i++){
             totalAmount += amounts[i];
             _stakeOnBehalfOfAnotherUser(accounts[i], amounts[i]);
-            // mint and update the user's voting tokens balance
-            //TODO: mint voting tokens
+            _updateFutureVotes(msg.sender);
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), batchAmount);
@@ -285,8 +311,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 amount
     ) public onlyValidSchedule {
         _stakeOnBehalfOfAnotherUser(account, amount);
-        // mint and update the user's voting tokens balance
-        //TODO: mint voting tokens
+        _updateFutureVotes(msg.sender);
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
 
@@ -314,9 +339,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function stake(uint256 amount) public onlyValidSchedule {
         _before();
         _stake(msg.sender, amount);
-        // mint and update the user's voting tokens balance
-        //TODO: mint voting tokens
-        _balances[msg.sender] += users[msg.sender].shares[0];
+        _updateFutureVotes(msg.sender);
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
@@ -387,10 +410,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 amountToRestake = totalUserSharesValue - userSharesValue;
         if(amountToRestake > 0) {
             _stake(msg.sender, amountToRestake);
+            _updateFutureVotes(msg.sender);
         }
-        // update the user's voting tokens balance
-        // TODO: burn tokens
-        _balances[msg.sender] = users[msg.sender].shares[0];
     }
 
     function getAmountOfShares(
@@ -589,5 +610,25 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             totalShares[i] += weightedAmountOfSharesPerStream;
         }
         emit Staked(account, amount, _amountOfShares, block.timestamp);
+    }
+
+    function  _updateFutureVotes(address account) internal {
+        uint256 timeDiff;
+        uint256 currentTimestamp = block.timestamp;
+        if(currentTimestamp > seasons[currentSeason]) currentSeason = getCurrentSeason();
+        currentTimestamp == seasons[currentSeason] ?  timeDiff = 1 : timeDiff = currentTimestamp - seasons[currentSeason];
+        futureVotes[account].count = users[account].shares[0] / timeDiff;
+        futureVotes[account].validAt = currentSeason + 1;
+    }
+
+    function _burnOldVotesAndMintCurrentVotes(address account) internal {
+        currentSeason = getCurrentSeason();
+        if(currentSeason == futureVotes[account].validAt) {
+            if(_balances[account] > 0) {
+                _burn(account, _balances[account]);
+            }
+            _mint(account, futureVotes[account].count);
+            _updateFutureVotes(account);
+        }
     }
 }
