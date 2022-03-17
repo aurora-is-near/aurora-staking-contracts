@@ -345,10 +345,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         return users[account].shares[0];
     }
 
-    /// @dev unstake amount of AURORA tokens. It calculates the total amount of
+    /// @dev unstake amount of user shares. It calculates the total amount of
     /// staked tokens based on the amount of shares, moves them to pending withdrawl,
-    /// then restake the (total amount - amount) if there is any.
-    function unstake(uint256 amount) external {
+    /// then restake the (total user staked amount - shares value) if there is any.
+    function unstake(uint256 shares) external {
         //TODO: allow unstaking after schedule end
         // this edge case does not allow users to unstake
         // if the schedules end becaues it reverts with
@@ -360,15 +360,14 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             "NOTHING_TO_UNSTAKE"
         );
         uint256 userShares = users[msg.sender].shares[0];
-        uint256 userSharesValue = (totalAmountOfStakedAurora * userShares) / totalShares[0];
         require(
-            userSharesValue != 0,
-            "ZERO_TOTAL_SHARES_VALUE"
+            shares <= userShares &&
+            shares != 0 &&
+            userShares != 0,
+            'INVALID_SHARES_AMOUNT'
         );
-        require(
-            amount <= userSharesValue,
-            "AMOUNT_IS_GREATER_THAN_TOTAL_SHARES_VALUE"
-        );
+        uint256 userSharesValue = (totalAmountOfStakedAurora * shares) / totalShares[0];
+        uint256 totalUserSharesValue = (totalAmountOfStakedAurora * userShares) / totalShares[0];
         // move rewards to pending
         _moveAllRewardsToPending(msg.sender);
         // remove the shares from everywhere
@@ -377,15 +376,15 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             users[msg.sender].shares[i] = 0;
         }
         // update the total Aurora staked and deposits
-        totalAmountOfStakedAurora -= amount;
+        totalAmountOfStakedAurora -= userSharesValue;
         users[msg.sender].deposit = 0;
         // move unstaked AURORA to pending.
-        users[msg.sender].pendings[0] += amount;
+        users[msg.sender].pendings[0] += userSharesValue;
         users[msg.sender].releaseTime[0] = block.timestamp + tau[0];
         emit Pending(0, msg.sender, users[msg.sender].pendings[0], block.timestamp);
-        emit Unstaked(msg.sender, userSharesValue, userShares , block.timestamp);
+        emit Unstaked(msg.sender, userSharesValue, userShares, block.timestamp);
         // restake the rest
-        uint256 amountToRestake = userSharesValue - amount;
+        uint256 amountToRestake = totalUserSharesValue - userSharesValue;
         if(amountToRestake > 0) {
             _stake(msg.sender, amountToRestake);
         }
@@ -462,11 +461,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param start is the start timestamp within the schedule
     /// @param end is the end timestamp (e.g block.timestamp .. now)
     /// @return amount of the released tokens for that period
-    function _schedule(
+    function schedule(
         uint256 streamId,
         uint256 start,
         uint256 end
-    ) internal view returns(uint256) {
+    ) public view returns(uint256) {
         uint256 startIndex;
         uint256 endIndex;
         (startIndex, endIndex) = startEndScheduleIndex(streamId, start, end);
@@ -514,10 +513,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function _before() internal {
         // release rewards once per block after 1st stake
         if(touchedAt != 0 && touchedAt != block.timestamp){
-            totalAmountOfStakedAurora += _schedule(0, touchedAt, block.timestamp);
+            totalAmountOfStakedAurora += schedule(0, touchedAt, block.timestamp);
             // AURORA rps is not used because rewards are split among staker shares (compound?)
             for (uint256 i = 1; i < streams.length; i++) {
-                rps[i] += _schedule(i, touchedAt, block.timestamp) / totalShares[i];
+                rps[i] += schedule(i, touchedAt, block.timestamp) / totalShares[i];
                 //TODO: deactivate stream if needed
             }
             touchedAt = block.timestamp;
