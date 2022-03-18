@@ -11,7 +11,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     uint256 constant DENOMINATOR = 31556926; //1Year
     uint256 constant SEASON_PERIOD = 5260000; //2Months
     uint256 public totalAmountOfStakedAurora;
-    uint256 public currentSeason;
+    uint256 private _currentSeason;
     uint256 touchedAt;
     uint256[] weights;
     uint256[] public tau;
@@ -136,7 +136,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
         tau.push(tauAuroraStream);
         // set season 0 start time
-        currentSeason = 0;
+        _currentSeason = 0;
         for(uint256 i = 0; i <= seasons_count; i++){
             seasons.push(block.timestamp + SEASON_PERIOD * i);
         }
@@ -239,11 +239,20 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         }
     }
 
-    /// @notice Creates `_amount` tokens and assigns them to `_user`, increasing the total supply.
-    /// @param _user user address to mint
-    /// @param _amount of tokens to mint
-    function mint(address _user, uint256 _amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _mint(_user, _amount);
+    /// @notice Creates `amount` vote tokens and assigns them to `user`,
+    /// increasing the total supply. Only admin role has this privilege.
+    /// @param user user address to mint
+    /// @param amount of tokens to mint
+    function mint(address user, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _mint(user, amount);
+    }
+
+    /// @notice burns `amount` vote tokens.
+    /// Only admin role has this privilege.
+    /// @param user user address to mint
+    /// @param amount of tokens to mint
+    function burn(address user, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _burn(user, amount);
     }
 
     /// @notice standard ERC20 transfer
@@ -270,7 +279,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 _amount
     ) public override pausable(1) returns (bool) {
         require(whitelistedContracts[msg.sender], "ONLY_WHITELISTED_CONTRACT");
-        currentSeason = getCurrentSeason();
+        _currentSeason = currentSeason();
         _burnOldVotesAndMintCurrentVotes(msg.sender);
         require(
             _amount <= _balances[msg.sender],
@@ -281,7 +290,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         return true;
     }
 
-    function getCurrentSeason() public view returns(uint256) {
+    function currentSeason() public view returns(uint256) {
         for(uint256 i = seasons.length - 1; i >= 0; i--) {
             if (block.timestamp > seasons[i]) return i;
         }
@@ -615,15 +624,15 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function  _updateFutureVotes(address account) internal {
         uint256 timeDiff;
         uint256 currentTimestamp = block.timestamp;
-        if(currentTimestamp > seasons[currentSeason]) currentSeason = getCurrentSeason();
-        currentTimestamp == seasons[currentSeason] ?  timeDiff = 1 : timeDiff = currentTimestamp - seasons[currentSeason];
+        if(currentTimestamp > seasons[_currentSeason]) _currentSeason = currentSeason();
+        currentTimestamp == seasons[_currentSeason] ?  timeDiff = 1 : timeDiff = currentTimestamp - seasons[_currentSeason];
         futureVotes[account].count = users[account].shares[0] / timeDiff;
-        futureVotes[account].validAt = currentSeason + 1;
+        futureVotes[account].validAt = _currentSeason + 1;
     }
 
     function _burnOldVotesAndMintCurrentVotes(address account) internal {
-        currentSeason = getCurrentSeason();
-        if(currentSeason == futureVotes[account].validAt) {
+        _currentSeason = currentSeason();
+        if(_currentSeason == futureVotes[account].validAt) {
             if(_balances[account] > 0) {
                 _burn(account, _balances[account]);
             }
