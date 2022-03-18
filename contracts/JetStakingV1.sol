@@ -364,7 +364,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             shares <= userShares &&
             shares != 0 &&
             userShares != 0,
-            'INVALID_SHARES_AMOUNT'
+            "INVALID_SHARES_AMOUNT"
         );
         uint256 userSharesValue = (totalAmountOfStakedAurora * shares) / totalShares[0];
         uint256 totalUserSharesValue = (totalAmountOfStakedAurora * userShares) / totalShares[0];
@@ -461,7 +461,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param start is the start timestamp within the schedule
     /// @param end is the end timestamp (e.g block.timestamp .. now)
     /// @return amount of the released tokens for that period
-    function schedule(
+    function rewardsSchedule(
         uint256 streamId,
         uint256 start,
         uint256 end
@@ -513,10 +513,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function _before() internal {
         // release rewards once per block after 1st stake
         if(touchedAt != 0 && touchedAt != block.timestamp){
-            totalAmountOfStakedAurora += schedule(0, touchedAt, block.timestamp);
+            totalAmountOfStakedAurora += rewardsSchedule(0, touchedAt, block.timestamp);
             // AURORA rps is not used because rewards are split among staker shares (compound?)
             for (uint256 i = 1; i < streams.length; i++) {
-                rps[i] += schedule(i, touchedAt, block.timestamp) / totalShares[i];
+                rps[i] += rewardsSchedule(i, touchedAt, block.timestamp) / totalShares[i];
                 //TODO: deactivate stream if needed
             }
             touchedAt = block.timestamp;
