@@ -415,6 +415,13 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         return users[user].pendings[streamId];
     }
 
+    function getReleaseTime(
+        address user,
+        uint256 streamId
+    ) external view returns(uint256) {
+        return users[user].releaseTime[streamId];
+    }
+
     function getSchedule(
         uint256 streamId
     )
