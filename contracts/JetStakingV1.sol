@@ -2,12 +2,13 @@
 pragma solidity 0.8.10;
 
 import "./ITreasury.sol";
+import "./IJetStakingV1.sol";
 import "./AdminControlled.sol";
 import "./VotingERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 
-contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
+contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable {
     uint256 constant DENOMINATOR = 31556926; //1Year
     uint256 constant SEASON_PERIOD = 5260000; //2Months
     uint256 public totalAmountOfStakedAurora;
