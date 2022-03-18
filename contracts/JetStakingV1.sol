@@ -13,7 +13,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     uint256 constant SEASON_PERIOD = 5260000; //2Months
     uint256 public totalAmountOfStakedAurora;
     uint256 private _currentSeason;
-    uint256 touchedAt;
+    uint256 public touchedAt;
     uint256[] weights;
     uint256[] public tau;
     uint256[] public totalShares;
@@ -397,7 +397,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
             shares <= userShares &&
             shares != 0 &&
             userShares != 0,
-            'INVALID_SHARES_AMOUNT'
+            "INVALID_SHARES_AMOUNT"
         );
         uint256 userSharesValue = (totalAmountOfStakedAurora * shares) / totalShares[0];
         uint256 totalUserSharesValue = (totalAmountOfStakedAurora * userShares) / totalShares[0];
@@ -409,7 +409,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
             users[msg.sender].shares[i] = 0;
         }
         // update the total Aurora staked and deposits
-        totalAmountOfStakedAurora -= userSharesValue;
+        totalAmountOfStakedAurora -= totalUserSharesValue;
         users[msg.sender].deposit = 0;
         // move unstaked AURORA to pending.
         users[msg.sender].pendings[0] += userSharesValue;
@@ -444,6 +444,13 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         uint256 streamId
     ) external view returns(uint256) {
         return users[user].pendings[streamId];
+    }
+
+    function getReleaseTime(
+        address user,
+        uint256 streamId
+    ) external view returns(uint256) {
+        return users[user].releaseTime[streamId];
     }
 
     function getSchedule(
@@ -492,7 +499,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     /// @param start is the start timestamp within the schedule
     /// @param end is the end timestamp (e.g block.timestamp .. now)
     /// @return amount of the released tokens for that period
-    function schedule(
+    function rewardsSchedule(
         uint256 streamId,
         uint256 start,
         uint256 end
@@ -544,10 +551,10 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     function _before() internal {
         // release rewards once per block after 1st stake
         if(touchedAt != 0 && touchedAt != block.timestamp){
-            totalAmountOfStakedAurora += schedule(0, touchedAt, block.timestamp);
+            totalAmountOfStakedAurora += rewardsSchedule(0, touchedAt, block.timestamp);
             // AURORA rps is not used because rewards are split among staker shares (compound?)
             for (uint256 i = 1; i < streams.length; i++) {
-                rps[i] += schedule(i, touchedAt, block.timestamp) / totalShares[i];
+                rps[i] += rewardsSchedule(i, touchedAt, block.timestamp) / totalShares[i];
                 //TODO: deactivate stream if needed
             }
             touchedAt = block.timestamp;
@@ -602,7 +609,8 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
             // start rewards release
             touchedAt = block.timestamp;
         } else {
-            _amountOfShares = amount * totalShares[0] / totalAmountOfStakedAurora;
+            // Round up (+1) so users don't get less sharesValue than their staked amount
+            _amountOfShares = (amount * totalShares[0]) / totalAmountOfStakedAurora + 1;
         }
         if(userAccount.shares[0] != 0) {
             // move rewards to pending: new shares should not claim previous rewards.
