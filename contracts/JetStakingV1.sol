@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     uint256 constant DENOMINATOR = 31556926; //1Year
     uint256 public totalAmountOfStakedAurora;
-    uint256 touchedAt;
+    uint256 public touchedAt;
     uint256[] weights;
     uint256[] public tau;
     uint256[] public totalShares;
