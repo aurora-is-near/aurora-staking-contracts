@@ -376,7 +376,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             users[msg.sender].shares[i] = 0;
         }
         // update the total Aurora staked and deposits
-        totalAmountOfStakedAurora -= userSharesValue;
+        totalAmountOfStakedAurora -= totalUserSharesValue;
         users[msg.sender].deposit = 0;
         // move unstaked AURORA to pending.
         users[msg.sender].pendings[0] += userSharesValue;
