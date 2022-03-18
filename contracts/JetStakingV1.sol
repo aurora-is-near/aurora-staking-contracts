@@ -571,7 +571,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // start rewards release
             touchedAt = block.timestamp;
         } else {
-            _amountOfShares = amount * totalShares[0] / totalAmountOfStakedAurora;
+            // Round up (+1) so users don't get less sharesValue than their staked amount
+            _amountOfShares = (amount * totalShares[0]) / totalAmountOfStakedAurora + 1;
         }
         if(userAccount.shares[0] != 0) {
             // move rewards to pending: new shares should not claim previous rewards.
