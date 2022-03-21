@@ -36,6 +36,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     struct Vote {
         uint256 count;
         uint256 validAt;
+        uint256 weight;
     }
 
     mapping(address => User) users;
@@ -280,7 +281,6 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         uint256 _amount
     ) public override pausable(1) returns (bool) {
         require(whitelistedContracts[msg.sender], "ONLY_WHITELISTED_CONTRACT");
-        _currentSeason = currentSeason();
         _burnOldVotesAndMintCurrentVotes(msg.sender);
         require(
             _amount <= _balances[msg.sender],
@@ -307,7 +307,6 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         for(uint256 i = 0; i < amounts.length; i++){
             totalAmount += amounts[i];
             _stakeOnBehalfOfAnotherUser(accounts[i], amounts[i]);
-            _updateFutureVotes(msg.sender);
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), batchAmount);
@@ -321,7 +320,6 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         uint256 amount
     ) public onlyValidSchedule {
         _stakeOnBehalfOfAnotherUser(account, amount);
-        _updateFutureVotes(msg.sender);
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
 
@@ -348,8 +346,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) public onlyValidSchedule {
         _before();
-        _stake(msg.sender, amount);
-        _updateFutureVotes(msg.sender);
+        _stake(msg.sender, amount, true);
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
@@ -384,7 +381,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     function unstake(uint256 shares) external {
         //TODO: allow unstaking after schedule end
         // this edge case does not allow users to unstake
-        // if the schedules end becaues it reverts with
+        // at the schedules end becaues it reverts with
         // INVALID_SCHEDULE_PARAMETERS
         // Also no restaking after ending of schedule
         _before();
@@ -419,9 +416,10 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         // restake the rest
         uint256 amountToRestake = totalUserSharesValue - userSharesValue;
         if(amountToRestake > 0) {
-            _stake(msg.sender, amountToRestake);
-            _updateFutureVotes(msg.sender);
+            _stake(msg.sender, amountToRestake, false);
         }
+        // reset all future votes
+        _removeFutureVotesFromVoteBalance(msg.sender);
     }
 
     function getAmountOfShares(
@@ -460,6 +458,10 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     view
     returns(uint256[] memory, uint256[] memory) {
         return(schedules[streamId].time, schedules[streamId].reward);
+    }
+
+    function getExpectedFutureVoteBalance(address account) public returns(uint256){
+        return futureVotes[account].count;
     }
 
     function startEndScheduleIndex(
@@ -594,12 +596,12 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         uint256 amount
     ) internal {
         _before();
-        _stake(account, amount);
+        _stake(account, amount, true);
     }
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
     /// @param amount the staked amount
-    function _stake(address account, uint256 amount) private {
+    function _stake(address account, uint256 amount, bool updateFutureVoteBalance) private {
         // recalculation of shares for user
         User storage userAccount = users[account];
         uint256 _amountOfShares = 0;
@@ -627,26 +629,53 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
             userAccount.shares[i] += weightedAmountOfSharesPerStream;
             totalShares[i] += weightedAmountOfSharesPerStream;
         }
+        // update vote tokens future balance
+        if(updateFutureVoteBalance) _addFutureVotestoVoteBalance(account);
         emit Staked(account, amount, _amountOfShares, block.timestamp);
     }
 
-    function  _updateFutureVotes(address account) internal {
-        uint256 timeDiff;
-        uint256 currentTimestamp = block.timestamp;
-        if(currentTimestamp > seasons[_currentSeason]) _currentSeason = currentSeason();
-        currentTimestamp == seasons[_currentSeason] ?  timeDiff = 1 : timeDiff = currentTimestamp - seasons[_currentSeason];
-        futureVotes[account].count = users[account].shares[0] / timeDiff;
+    function _addFutureVotestoVoteBalance(address account) internal {
+        _currentSeason = currentSeason();
+        uint256 timeDiff = block.timestamp - seasons[_currentSeason];
+        if(futureVotes[account].validAt < _currentSeason + 1) {
+            // update the vote balance for the first time within this season period
+            futureVotes[account].count = users[account].shares[0] * (SEASON_PERIOD - timeDiff) / SEASON_PERIOD;
+            futureVotes[account].weight = users[account].shares[0];
+        } else {
+            // update future vote balance within the same season e.g user stakes multiple times in the same season
+            uint256 weightDiff = users[account].shares[0] - futureVotes[account].weight;
+            futureVotes[account].count += weightDiff * (SEASON_PERIOD - timeDiff) / SEASON_PERIOD;
+            futureVotes[account].weight = users[account].shares[0];
+        }
+        futureVotes[account].validAt = _currentSeason + 1;
+    }
+
+    function _removeFutureVotesFromVoteBalance(address account) internal {
+        _currentSeason = currentSeason();
+        if(users[account].shares[0] == 0) {
+            // set future votes to zero if user shares = 0
+            futureVotes[account].count = 0;
+            futureVotes[account].weight = 0;
+        } else {
+            // set future votes to weighted shares if user unstaked shares < total use shares
+            uint256 timeDiff = block.timestamp - seasons[_currentSeason];
+            futureVotes[account].count = users[account].shares[0] * (SEASON_PERIOD - timeDiff) / SEASON_PERIOD;
+            futureVotes[account].weight = users[account].shares[0];
+        }
         futureVotes[account].validAt = _currentSeason + 1;
     }
 
     function _burnOldVotesAndMintCurrentVotes(address account) internal {
         _currentSeason = currentSeason();
-        if(_currentSeason == futureVotes[account].validAt) {
+        if(futureVotes[account].validAt <= _currentSeason) {
+            // burn old votes if exists
             if(_balances[account] > 0) {
                 _burn(account, _balances[account]);
             }
+            // mint new votes
             _mint(account, futureVotes[account].count);
-            _updateFutureVotes(account);
+            // update future vote validAt to current_season + 1
+            futureVotes[account].validAt = _currentSeason + 1;
         }
     }
 }
