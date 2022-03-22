@@ -667,7 +667,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
 
     function _burnOldVotesAndMintCurrentVotes(address account) internal {
         _currentSeason = currentSeason();
-        if(futureVotes[account].validAt <= _currentSeason) {
+        if(futureVotes[account].validAt <= _currentSeason && futureVotes[account].validAt != 0) {
             // burn old votes if exists
             if(_balances[account] > 0) {
                 _burn(account, _balances[account]);
