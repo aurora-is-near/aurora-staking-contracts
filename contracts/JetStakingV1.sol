@@ -346,7 +346,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
     /// @param amount is the AURORA amount.
     function stake(uint256 amount) public onlyValidSchedule {
         _before();
-        _stake(msg.sender, amount, true);
+        _stake(msg.sender, amount);
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
     }
@@ -416,7 +416,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         // restake the rest
         uint256 amountToRestake = totalUserSharesValue - userSharesValue;
         if(amountToRestake > 0) {
-            _stake(msg.sender, amountToRestake, false);
+            _stake(msg.sender, amountToRestake);
         }
         // reset all future votes
         _removeFutureVotesFromVoteBalance(msg.sender);
@@ -596,12 +596,12 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
         uint256 amount
     ) internal {
         _before();
-        _stake(account, amount, true);
+        _stake(account, amount);
     }
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
     /// @param amount the staked amount
-    function _stake(address account, uint256 amount, bool updateFutureVoteBalance) private {
+    function _stake(address account, uint256 amount) private {
         // recalculation of shares for user
         User storage userAccount = users[account];
         uint256 _amountOfShares = 0;
@@ -630,7 +630,7 @@ contract JetStakingV1 is IJetStakingV1, AdminControlled, VotingERC20Upgradeable 
             totalShares[i] += weightedAmountOfSharesPerStream;
         }
         // update vote tokens future balance
-        if(updateFutureVoteBalance) _addFutureVotestoVoteBalance(account);
+        _addFutureVotestoVoteBalance(account);
         emit Staked(account, amount, _amountOfShares, block.timestamp);
     }
 
