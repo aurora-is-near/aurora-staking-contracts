@@ -160,7 +160,6 @@ describe("JetStakingV1", function () {
         const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.staked, 0)
         expect(amount).to.be.eq(amountStaked)
     })
-    /*
 
     it('user stakes and never claims', async () => {
         await jet.connect(stakingAdmin).deployStream(
@@ -496,5 +495,4 @@ describe("JetStakingV1", function () {
     it('should remove stream', async () => {
         
     })
-    */
 });
