@@ -275,7 +275,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             //TODO: mint voting tokens
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
-        IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), batchAmount);
+        IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(treasury), batchAmount);
     }
 
     /// @dev it is called for airdropping Aurora users
@@ -288,7 +288,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         _stakeOnBehalfOfAnotherUser(account, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
-        IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
+        IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(treasury), amount);
     }
 
     /// @dev moves the reward for specific stream Id to pending rewards.
@@ -319,7 +319,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         //TODO: mint voting tokens
         _balances[msg.sender] += users[msg.sender].shares[0];
         //TODO: change the pay reward by calling the treasury.
-        IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(this), amount);
+        IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(treasury), amount);
     }
 
     /// @dev withdraw amount in the pending. User should wait for
