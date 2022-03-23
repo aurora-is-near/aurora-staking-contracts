@@ -609,7 +609,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         for(uint256 i = 1; i < streams.length; i++){
             uint256 weightedAmountOfSharesPerStream = _amountOfShares * _weighting(weights[i], block.timestamp);
             userAccount.shares[i] += weightedAmountOfSharesPerStream;
-            userAccount.rps[i] += rps[i]; // The new shares should not claim old rewards
+            userAccount.rps[i] = rps[i]; // The new shares should not claim old rewards
             totalShares[i] += weightedAmountOfSharesPerStream;
         }
         emit Staked(account, amount, _amountOfShares, block.timestamp);
