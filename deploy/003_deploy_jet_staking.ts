@@ -28,8 +28,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         },
         args: [
             aurora,
-            symbol,
             name,
+            symbol,
             scheduleTimes,
             scheduleRewards,
             tauPerStream,
