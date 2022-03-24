@@ -407,8 +407,27 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         return rps[streamId] / RPS_FACTOR;
     }
 
+    function getLatestRewardPerShare(uint256 streamId) public view returns(uint256) {
+        require(streamId != 0, "AURORA_REWARDS_COMPOUND");
+        require(block.timestamp > schedules[streamId].time[0], "STREAM_DIDNT_START");
+        if(touchedAt > schedules[streamId].time[0]){
+            uint256 result = rps[streamId] + (rewardsSchedule(streamId, touchedAt, block.timestamp) * RPS_FACTOR) / totalShares[streamId];
+            return result;
+        }
+        // Release rewards from stream start.
+        return rps[streamId] + (rewardsSchedule(streamId, schedules[streamId].time[0], block.timestamp) * RPS_FACTOR) / totalShares[streamId];
+    }
+
+
     function getRewardPerShareForUser(uint256 streamId, address account) external view returns(uint256) {
         return users[account].rps[streamId] / RPS_FACTOR;
+    }
+
+    function getStreamClaimableAmount(uint256 streamId, address account) external view returns(uint256) {
+        uint256 latestRps = getLatestRewardPerShare(streamId);
+        uint256 userRps = users[account].rps[streamId];
+        uint256 userShares = users[account].shares[streamId];
+        return ((latestRps - userRps) * userShares) / RPS_FACTOR;
     }
 
     function getPending(
@@ -557,7 +576,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
             userAccount.shares[streamId] = userAccount.shares[0] * _weighting(weights[streamId], schedules[streamId].time[0]);
         }
-        uint256 reward = (rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId] / RPS_FACTOR;
+        uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId]) / RPS_FACTOR;
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
