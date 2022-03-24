@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     uint256 constant DENOMINATOR = 31556926; //1Year
+    uint256 constant RPS_FACTOR = 1e27;
     uint256 public totalAmountOfStakedAurora;
     uint256 public touchedAt;
     uint256[] weights;
@@ -403,11 +404,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
 
     function getRewardPerShare(uint256 streamId) external view returns(uint256) {
-        return rps[streamId];
+        return rps[streamId] / RPS_FACTOR;
     }
 
     function getRewardPerShareForUser(uint256 streamId, address account) external view returns(uint256) {
-        return users[account].rps[streamId];
+        return users[account].rps[streamId] / RPS_FACTOR;
     }
 
     function getPending(
@@ -530,10 +531,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             totalAmountOfStakedAurora += rewardsSchedule(0, touchedAt, block.timestamp);
             for (uint256 i = 1; i < streams.length; i++) {
                 if(touchedAt > schedules[i].time[0]){
-                    rps[i] += rewardsSchedule(i, touchedAt, block.timestamp) / totalShares[i];
+                    rps[i] += rewardsSchedule(i, touchedAt, block.timestamp) * RPS_FACTOR / totalShares[i];
                 } else if(block.timestamp > schedules[i].time[0]){
                     // Release rewards from stream start.
-                    rps[i] += rewardsSchedule(i, schedules[i].time[0], block.timestamp) / totalShares[i];
+                    rps[i] += rewardsSchedule(i, schedules[i].time[0], block.timestamp) * RPS_FACTOR / totalShares[i];
                 }
                 //TODO: deactivate stream if needed and only distribute rewards if stream is active !
             }
@@ -556,7 +557,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
             userAccount.shares[streamId] = userAccount.shares[0] * _weighting(weights[streamId], schedules[streamId].time[0]);
         }
-        uint256 reward = (rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId];
+        uint256 reward = (rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId] / RPS_FACTOR;
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
