@@ -9,9 +9,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     uint256 constant DENOMINATOR = 31556926; //1Year
-    // RPS_FACTOR = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
+    // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
-    uint256 constant RPS_FACTOR = 1e31;
+    uint256 constant RPS_MULTIPLIER = 1e31;
     uint256 public totalAmountOfStakedAurora;
     uint256 public touchedAt;
     uint256[] weights;
@@ -318,9 +318,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function stake(uint256 amount) public onlyValidSchedule {
         _before();
         _stake(msg.sender, amount);
+        User storage userAccount = users[msg.sender];
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
-        _balances[msg.sender] += users[msg.sender].shares[0];
+        _balances[msg.sender] += userAccount.shares[0];
         //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(streams[0]).transferFrom(msg.sender, address(treasury), amount);
     }
@@ -329,12 +330,13 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
     function withdraw(uint256 streamId) external {
+        User storage userAccount = users[msg.sender];
         require(
-            block.timestamp > users[msg.sender].releaseTime[streamId],
+            block.timestamp > userAccount.releaseTime[streamId],
             "INVALID_RELEASE_TIME"
         );
-        uint256 pendingAmount = users[msg.sender].pendings[streamId];
-        users[msg.sender].pendings[streamId] = 0;
+        uint256 pendingAmount = userAccount.pendings[streamId];
+        userAccount.pendings[streamId] = 0;
         //TODO: change the transfer to happen through the treasury contract
         ITreasury(treasury).payRewards(msg.sender, streams[streamId], pendingAmount);
         // IERC20Upgradeable(streams[streamId]).transfer(msg.sender, pendingAmount);
@@ -358,12 +360,13 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // if the schedules end becaues it reverts with
         // INVALID_SCHEDULE_PARAMETERS
         // Also no restaking after ending of schedule
+        User storage userAccount = users[msg.sender];
         _before();
         require(
             totalAmountOfStakedAurora != 0,
             "NOTHING_TO_UNSTAKE"
         );
-        uint256 userShares = users[msg.sender].shares[0];
+        uint256 userShares = userAccount.shares[0];
         require(
             shares <= userShares &&
             shares != 0 &&
@@ -376,16 +379,16 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         _moveAllRewardsToPending(msg.sender);
         // remove the shares from everywhere
         for(uint256 i = 0; i < streams.length; i++){
-            totalShares[i] -= users[msg.sender].shares[i];
-            users[msg.sender].shares[i] = 0;
+            totalShares[i] -= userAccount.shares[i];
+            userAccount.shares[i] = 0;
         }
         // update the total Aurora staked and deposits
         totalAmountOfStakedAurora -= totalUserSharesValue;
-        users[msg.sender].deposit = 0;
+        userAccount.deposit = 0;
         // move unstaked AURORA to pending.
-        users[msg.sender].pendings[0] += userSharesValue;
-        users[msg.sender].releaseTime[0] = block.timestamp + tau[0];
-        emit Pending(0, msg.sender, users[msg.sender].pendings[0], block.timestamp);
+        userAccount.pendings[0] += userSharesValue;
+        userAccount.releaseTime[0] = block.timestamp + tau[0];
+        emit Pending(0, msg.sender, userAccount.pendings[0], block.timestamp);
         emit Unstaked(msg.sender, userSharesValue, userShares, block.timestamp);
         // restake the rest
         uint256 amountToRestake = totalUserSharesValue - userSharesValue;
@@ -394,7 +397,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         }
         // update the user's voting tokens balance
         // TODO: burn tokens
-        _balances[msg.sender] = users[msg.sender].shares[0];
+        _balances[msg.sender] = userAccount.shares[0];
     }
 
     function getAmountOfShares(
@@ -406,30 +409,30 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
 
     function getRewardPerShare(uint256 streamId) external view returns(uint256) {
-        return rps[streamId] / RPS_FACTOR;
+        return rps[streamId] / RPS_MULTIPLIER;
     }
 
     function getLatestRewardPerShare(uint256 streamId) public view returns(uint256) {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         require(block.timestamp > schedules[streamId].time[0], "STREAM_DIDNT_START");
         if(touchedAt > schedules[streamId].time[0]){
-            uint256 result = rps[streamId] + (rewardsSchedule(streamId, touchedAt, block.timestamp) * RPS_FACTOR) / totalShares[streamId];
+            uint256 result = rps[streamId] + (rewardsSchedule(streamId, touchedAt, block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
             return result;
         }
         // Release rewards from stream start.
-        return rps[streamId] + (rewardsSchedule(streamId, schedules[streamId].time[0], block.timestamp) * RPS_FACTOR) / totalShares[streamId];
+        return rps[streamId] + (rewardsSchedule(streamId, schedules[streamId].time[0], block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
     }
 
 
     function getRewardPerShareForUser(uint256 streamId, address account) external view returns(uint256) {
-        return users[account].rps[streamId] / RPS_FACTOR;
+        return users[account].rps[streamId] / RPS_MULTIPLIER;
     }
 
     function getStreamClaimableAmount(uint256 streamId, address account) external view returns(uint256) {
         uint256 latestRps = getLatestRewardPerShare(streamId);
         uint256 userRps = users[account].rps[streamId];
         uint256 userShares = users[account].shares[streamId];
-        return ((latestRps - userRps) * userShares) / RPS_FACTOR;
+        return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
 
     function getPending(
@@ -552,10 +555,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             totalAmountOfStakedAurora += rewardsSchedule(0, touchedAt, block.timestamp);
             for (uint256 i = 1; i < streams.length; i++) {
                 if(touchedAt > schedules[i].time[0]){
-                    rps[i] += rewardsSchedule(i, touchedAt, block.timestamp) * RPS_FACTOR / totalShares[i];
+                    rps[i] += rewardsSchedule(i, touchedAt, block.timestamp) * RPS_MULTIPLIER / totalShares[i];
                 } else if(block.timestamp > schedules[i].time[0]){
                     // Release rewards from stream start.
-                    rps[i] += rewardsSchedule(i, schedules[i].time[0], block.timestamp) * RPS_FACTOR / totalShares[i];
+                    rps[i] += rewardsSchedule(i, schedules[i].time[0], block.timestamp) * RPS_MULTIPLIER / totalShares[i];
                 }
                 //TODO: deactivate stream if needed and only distribute rewards if stream is active !
             }
@@ -578,7 +581,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
             userAccount.shares[streamId] = userAccount.shares[0] * _weighting(weights[streamId], schedules[streamId].time[0]);
         }
-        uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId]) / RPS_FACTOR;
+        uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) * userAccount.shares[streamId]) / RPS_MULTIPLIER;
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
