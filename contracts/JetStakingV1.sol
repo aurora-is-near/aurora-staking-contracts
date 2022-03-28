@@ -451,7 +451,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param streamId stream index
     /// @return rps[streamId]
     function getRewardPerShare(uint256 streamId) external view returns(uint256) {
-        return rps[streamId] / RPS_MULTIPLIER;
+        return rps[streamId];
     }
 
     /// @dev calculates and gets the latest reward per share (RPS) for a stream
@@ -472,7 +472,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param streamId stream index
     /// @return user.rps[streamId]
     function getRewardPerShareForUser(uint256 streamId, address account) external view returns(uint256) {
-        return users[account].rps[streamId] / RPS_MULTIPLIER;
+        return users[account].rps[streamId];
     }
 
     /// @dev gets the user's stream claimable amount
