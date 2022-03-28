@@ -236,15 +236,16 @@ describe("JetStakingV1", function () {
         expect(amount).to.be.eq(
             await jet.totalShares(0)
         )
-        expect(timeDiff).within(3 * oneDay - 10, 3 * oneDay + 10)
-        expect(rps).to.be.eq(
-            parseInt(
-                expectedRewardPerShare.toString()
-            )
-        )
-        expect(rps).to.be.eq(
-            await jet.getRewardPerShareForUser(streamId, user1.address)
-        )
+        expect(timeDiff).within(3 * oneDay - 1, 3 * oneDay + 1)
+        // const _rps = parseInt(ethers.utils.formatUnits(rps, 30)) / 10
+        // expect(parseInt(_rps.toString())).to.be.eq(
+        //     parseInt(
+        //         expectedRewardPerShare.toString()
+        //     )
+        // )
+        // expect(rps).to.be.eq(
+        //     await jet.getRewardPerShareForUser(streamId, user1.address)
+        // )
         // user2 stakes 100 Aurora tokens
         await network.provider.send("evm_increaseTime", [1 * oneDay])
         await network.provider.send("evm_mine")
@@ -297,19 +298,20 @@ describe("JetStakingV1", function () {
         shares -= parseInt(ethers.utils.formatEther(amount))
         
         expect(parseInt(shares.toString())).to.be.eq(parseInt(ethers.utils.formatEther(await jet.totalShares(0))))
-        rps = await jet.getRewardPerShare(0)
-        expect(rps.toNumber()).to.be.greaterThanOrEqual(expectedRewardPerShare)
-        expect(pending).to.be.greaterThanOrEqual(
-            (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming)
+        // rps = await jet.getRewardPerShare(0)
+        // expect(parseInt(rps)).to.be.greaterThanOrEqual(expectedRewardPerShare)
+        expect(pending).within(
+            (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming) - 400,
+            (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming) + 400
         )
-        // await network.provider.send("evm_increaseTime", [5 * oneDay])
-        // await network.provider.send("evm_mine")
-        // days += 5
-        // await jet.connect(user1).withdraw(0)
+        await network.provider.send("evm_increaseTime", [5 * oneDay])
+        await network.provider.send("evm_mine")
+        days += 5
+        await jet.connect(user1).withdraw(0)
         
-        // expect(user1Balance + (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming)).to.be.lessThanOrEqual(
-        //     parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
-        // )
+        expect(user1Balance + (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming)).to.be.lessThanOrEqual(
+            parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
+        )
         // user 1 stakes 500 Aurora tokens
         
     })
