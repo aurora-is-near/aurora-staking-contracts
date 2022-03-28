@@ -171,7 +171,7 @@ describe("JetStakingV1", function () {
         const amountStaked1 = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amountStaked1)
         await jet.connect(user1).stake(amountStaked1)
-        let currentTime = (await ethers.provider.getBlock("latest")).timestamp
+        const currentTime = (await ethers.provider.getBlock("latest")).timestamp
         const timeDiff = currentTime - startTime
         await network.provider.send("evm_increaseTime", [4 * oneYear - timeDiff - 1])
         await network.provider.send("evm_mine")
@@ -205,7 +205,7 @@ describe("JetStakingV1", function () {
         await auroraToken.connect(user1).approve(jet.address, amount)
         let touchedAt = (await ethers.provider.getBlock("latest")).timestamp
         await jet.connect(user1).stake(amount)
-        let user1Balance = parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
+        const user1Balance = parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
         // wait for 3 days
         let days = 0
         await network.provider.send("evm_increaseTime", [3 * oneDay])
@@ -218,7 +218,7 @@ describe("JetStakingV1", function () {
         const streamId = 1
         let rps = await jet.getRewardPerShare(streamId)
         await jet.connect(user1).moveRewardsToPending(streamId)
-        let pending = parseInt(ethers.utils.formatEther(await jet.getPending(streamId, user1.address)))
+        const pending = parseInt(ethers.utils.formatEther(await jet.getPending(streamId, user1.address)))
         rps = await jet.getRewardPerShare(streamId)
         const user1RPSAfterClaiming = rps
         await network.provider.send("evm_increaseTime", [1])
@@ -490,25 +490,25 @@ describe("JetStakingV1", function () {
         expect(startIndex.toNumber()).to.be.eq(1)
         expect(endIndex.toNumber()).to.be.eq(3)
     })
-    it('should stake on behalf of another user', async() => {
+    // it('should stake on behalf of another user', async() => {
 
-    })
-    it('should allow batch stake on behalf of another users', async() => {
+    // })
+    // it('should allow batch stake on behalf of another users', async() => {
 
-    })
-    it('should whitelist contract by admin role', async () => {
+    // })
+    // it('should whitelist contract by admin role', async () => {
 
-    })
-    it('should batch whitelist contracts by admin role', async () => {
+    // })
+    // it('should batch whitelist contracts by admin role', async () => {
 
-    })
-    it('should fail to whitelist if not admin role', async () => {
+    // })
+    // it('should fail to whitelist if not admin role', async () => {
 
-    })
-    it('should update treasury address only by admin role', async () => {
+    // })
+    // it('should update treasury address only by admin role', async () => {
 
-    })
-    it('should remove stream', async () => {
+    // })
+    // it('should remove stream', async () => {
         
-    })
+    // })
 });

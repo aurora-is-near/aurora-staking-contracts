@@ -10,7 +10,7 @@ describe("AdminControlled", function () {
         [admin, newAdmin] = await ethers.getSigners()
     })
 
-    it('should allow transfer ownership new admin', async () => {
+    // it('should allow transfer ownership new admin', async () => {
        
-    })
+    // })
 });
