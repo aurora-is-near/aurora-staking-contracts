@@ -16,7 +16,14 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const oneYear: number = 31536000
     const tauPerStream = 1000
     const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
-    const scheduleRewards = [0, 100, 50, 25, 25]
+    // TODO: update schedule rewards
+    const scheduleRewards = [
+        hre.ethers.utils.parseUnits("200000000", 18),// 100M
+        hre.ethers.utils.parseUnits("100000000", 18), // 50M
+        hre.ethers.utils.parseUnits("50000000", 18), // 25M
+        hre.ethers.utils.parseUnits("25000000", 18), // 12.5M
+        hre.ethers.utils.parseUnits("12500000", 18), // 0M
+    ]
 
     await deploy('JetStakingV1', {
         log: true,
