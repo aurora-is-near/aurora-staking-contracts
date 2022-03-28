@@ -459,13 +459,13 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @return rps[streamId] + scheduled reward up till now
     function getLatestRewardPerShare(uint256 streamId) public view returns(uint256) {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
-        require(block.timestamp > schedules[streamId].time[0], "STREAM_DIDNT_START");
         if(touchedAt > schedules[streamId].time[0]){
-            uint256 result = rps[streamId] + (rewardsSchedule(streamId, touchedAt, block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
-            return result;
+            return rps[streamId] + (rewardsSchedule(streamId, touchedAt, block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
+        } else if(block.timestamp > schedules[streamId].time[0]){
+            // Release rewards from stream start.
+            return rps[streamId] + (rewardsSchedule(streamId, schedules[streamId].time[0], block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
         }
-        // Release rewards from stream start.
-        return rps[streamId] + (rewardsSchedule(streamId, schedules[streamId].time[0], block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
+        return 0;
     }
 
     /// @dev gets the user's reward per share (RPS) for a stream
@@ -480,8 +480,13 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @return (latesRPS - user.rps) * user.shares
     function getStreamClaimableAmount(uint256 streamId, address account) external view returns(uint256) {
         uint256 latestRps = getLatestRewardPerShare(streamId);
-        uint256 userRps = users[account].rps[streamId];
-        uint256 userShares = users[account].shares[streamId];
+        User storage userAccount = users[account];
+        uint256 userRps = userAccount.rps[streamId];
+        uint256 userShares = userAccount.shares[streamId];
+        if(userShares == 0 && userAccount.shares[0] != 0){
+            // User staked before stream was added so initialize shares with the weight when the stream was created.
+            userShares = userAccount.shares[0] * _weighting(weights[streamId], schedules[streamId].time[0]);
+        }
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
 
