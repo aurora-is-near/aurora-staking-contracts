@@ -1,0 +1,27 @@
+---
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+name: jet-contracts
+jobs:
+  tests:
+    name: Tests
+    runs-on: [self-hosted, light]
+    env:
+      INFURA_KEY: ${{secrets.INFURA_KEY}}
+      ETHERSCAN_API_KEY: ${{secrets.ETHERSCAN_API_KEY}}
+      PRIVATE_KEY_TESTNET: ${{secrets.PRIVATE_KEY_TESTNET}}
+      PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
+      MNEMONIC: ${{secrets.MNEMONIC}}
+      AURORA_API_KEY: ${{secrets.AURORA_API_KEY}}
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v2
+      - run: npm install
+      - run: npm run lint
+      - run: npm run compile
+      - run: npm run coverage
