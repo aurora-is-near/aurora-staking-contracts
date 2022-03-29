@@ -1,0 +1,21 @@
+---
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+
+name: You name it
+jobs:
+  tests:
+    name: Tests
+    runs-on: [self-hosted, light]
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v2
+        run: npm install
+        run: cp .env.secret .env
+        run: npm lint
+        run: npm compile
+        run: npm coverage
