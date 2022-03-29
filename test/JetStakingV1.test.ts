@@ -15,6 +15,7 @@ describe("JetStakingV1", function () {
     let user3: any
     let user4: any
     let user5: any
+    let spender: any
     let treasury: any
     let jet: any
     let name: string
@@ -28,7 +29,7 @@ describe("JetStakingV1", function () {
 
     before(async () => {
         // deploys all the contracts
-        [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5] = await ethers.getSigners()
+        [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5, spender] = await ethers.getSigners()
         const supply = ethers.utils.parseUnits("1000000000", 18)
         oneDay = 86400
         const Token = await ethers.getContractFactory("Token")
@@ -66,11 +67,11 @@ describe("JetStakingV1", function () {
             startTime + 4 * oneYear
         ]
         scheduleRewards = [
-            ethers.utils.parseUnits("200000000", 18),// 10000
-            ethers.utils.parseUnits("100000000", 18), // 5000 
-            ethers.utils.parseUnits("50000000", 18), // 2500
-            ethers.utils.parseUnits("25000000", 18), // 1250
-            ethers.utils.parseUnits("12500000", 18), // 625 
+            ethers.utils.parseUnits("200000000", 18), // 100M
+            ethers.utils.parseUnits("100000000", 18), // 50M 
+            ethers.utils.parseUnits("50000000", 18),  // 25M
+            ethers.utils.parseUnits("25000000", 18),  // 25M
+            ethers.utils.parseUnits("12500000", 18),  // 0 
         ]
         jet = await upgrades.deployProxy(
             JetStakingV1,
@@ -490,24 +491,203 @@ describe("JetStakingV1", function () {
         expect(startIndex.toNumber()).to.be.eq(1)
         expect(endIndex.toNumber()).to.be.eq(3)
     })
-    // it('should stake on behalf of another user', async() => {
-
-    // })
-    // it('should allow batch stake on behalf of another users', async() => {
-
-    // })
-    // it('should whitelist contract by admin role', async () => {
-
-    // })
-    // it('should batch whitelist contracts by admin role', async () => {
-
-    // })
-    // it('should fail to whitelist if not admin role', async () => {
-
-    // })
-    // it('should update treasury address only by admin role', async () => {
-
-    // })
+    it('should only admin whitelist contract address', async () => {
+        const SampleContract = await ethers.getContractFactory("Token")
+        const sampleContract = await SampleContract.connect(auroraOwner).deploy(1000, "SampleContract", "SC")
+        await jet.connect(stakingAdmin).whitelistContract(sampleContract.address, true)
+        expect(await jet.whitelistedContracts(sampleContract.address)).to.be.eq(true)
+    })
+    it('should only admin batch whitelist contracts', async () => {
+        const SampleContract1 = await ethers.getContractFactory("Token")
+        const sampleContract1 = await SampleContract1.connect(auroraOwner).deploy(1000, "SampleContract1", "SC1")
+        const SampleContract2 = await ethers.getContractFactory("Token")
+        const sampleContract2 = await SampleContract2.connect(auroraOwner).deploy(1000, "SampleContract2", "SC2")
+        await jet.connect(stakingAdmin).batchWhitelistContract(
+            [
+                sampleContract1.address,
+                sampleContract2.address
+            ],
+            [
+                true,
+                true
+            ]
+        )
+        expect(await jet.whitelistedContracts(sampleContract1.address)).to.be.eq(true)
+        expect(await jet.whitelistedContracts(sampleContract2.address)).to.be.eq(true)
+    })
+    it('should only admin mint vote tokens', async () => {
+        const amount = ethers.utils.parseUnits("5", 18)
+        await jet.connect(stakingAdmin).mint(spender.address, amount)
+        expect(await jet.balanceOf(spender.address)).to.be.eq(amount)
+    })
+    it('should revert in transfer', async () => {
+        const amount = ethers.utils.parseUnits("5", 18)
+        await jet.connect(stakingAdmin).mint(spender.address, amount)
+        await expect(jet.connect(spender).transfer(spender.address, amount)).to.be.reverted;
+    })
+    it('should revert in approving vote tokens', async () => {
+        const amount = ethers.utils.parseUnits("5", 18)
+        await jet.connect(stakingAdmin).mint(spender.address, amount)
+        await expect(jet.connect(spender).approve(stakingAdmin.address, amount)).to.be.reverted;
+    })
+    it('should only whitelisted contract call transferFrom', async () => {
+        const sampleWhitelistContractAddress = spender.address
+        await jet.connect(stakingAdmin).whitelistContract(sampleWhitelistContractAddress, true)
+        expect(await jet.whitelistedContracts(sampleWhitelistContractAddress)).to.be.eq(true)
+        const amount = ethers.utils.parseUnits("5", 18)
+        await jet.connect(stakingAdmin).mint(user5.address, amount)
+        await jet.connect(spender).transferFrom(user5.address, user4.address, amount)
+        expect(await jet.balanceOf(user4.address)).to.be.eq(amount)
+    })
+    it('should stake on behalf of another user', async () => {
+        const amount = ethers.utils.parseUnits("5", 18)
+        await auroraToken.connect(auroraOwner).mint(auroraOwner.address, amount)
+        await auroraToken.connect(auroraOwner).approve(jet.address, amount)
+        await jet.connect(auroraOwner).stakeOnBehalfOfAnotherUser(
+            user1.address,
+            amount
+        )
+        expect(amount).to.be.eq(
+            await jet.getUserTotalDeposit(user1.address)
+        )
+    })
+    it('should batch stake on bahalf of another users', async () => {
+        const amount = ethers.utils.parseUnits("5", 18)
+        const batchAmount = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(auroraOwner).mint(auroraOwner.address, batchAmount)
+        await auroraToken.connect(auroraOwner).approve(jet.address, batchAmount)
+        await jet.connect(auroraOwner).batchStakeOnBehalfOfOtherUsers(
+            [
+                user1.address,
+                user2.address
+            ],
+            [
+                amount,
+                amount
+            ],
+            batchAmount
+        )
+        expect(amount).to.be.eq(
+            await jet.getUserTotalDeposit(user1.address)
+        )
+        expect(amount).to.be.eq(
+            await jet.getUserTotalDeposit(user2.address)
+        )
+    })
+    it('should get user shares', async () => {
+        expect(await jet.getUserShares(user1.address)).to.be.eq(0)
+    })
+    it('should get release time', async () => {
+        // stake 
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        // unstake
+        await network.provider.send("evm_increaseTime", [1])
+        await network.provider.send("evm_mine")
+        await jet.connect(user1).unstake(amount)
+        // get released time
+        expect(parseInt(await jet.getReleaseTime(0, user1.address))).to.be.greaterThan(
+            (await ethers.provider.getBlock("latest")).timestamp
+        )
+    })
+    it('should withdraw rewards after release time', async () => {
+         // stake 
+         const amount = ethers.utils.parseUnits("1000", 18)
+         const user1BalanceBefore = parseInt(await auroraToken.balanceOf(user1.address))
+         await auroraToken.connect(user1).approve(jet.address, amount)
+         await jet.connect(user1).stake(amount)
+         // unstake
+         await network.provider.send("evm_increaseTime", [1])
+         await network.provider.send("evm_mine")
+         await jet.connect(user1).unstake(amount)
+ 
+         // withdraw
+         await network.provider.send("evm_increaseTime", [tauPerStream + 1])
+         await network.provider.send("evm_mine")
+         const streamId = 0 // main aurora rewards
+         await jet.connect(user1).withdraw(streamId)
+         const user1BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
+         expect(user1BalanceAfter).to.be.greaterThan(user1BalanceBefore)
+    })
+    it('should claim all rewards', async () => {
+        // deploy stream
+        await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // stake 
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_increaseTime", [oneDay])
+        await network.provider.send("evm_mine")
+        await jet.connect(user1).moveAllRewardsToPending()
+        const streamId = await jet.streamToIndex(streamToken1.address)
+        expect(
+            parseInt(await jet.getPending(streamId, user1.address))
+        ).to.be.greaterThan(0)
+    })
+    it('should get reward per share for user', async () => {
+        const streamId = 1
+        expect(parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))).to.be.eq(0)
+         // deploy stream
+         await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        expect(amount).to.be.eq(
+            await jet.getAmountOfShares(streamId, user1.address)
+        )
+    })
+    it('should get reward per share for a user', async () => {
+        const streamId = 1
+        const user1RPSBefore = parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))
+        expect(user1RPSBefore).to.be.eq(0)
+        expect(parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))).to.be.eq(0)
+         // deploy stream
+         await jet.connect(stakingAdmin).deployStream(
+            streamToken1.address,
+            10,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_increaseTime", [oneDay])
+        await network.provider.send("evm_mine")
+        await jet.connect(user1).updateUserCalculation()
+        const user1RPSAfter = parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))
+        expect(user1RPSAfter).to.be.greaterThan(user1RPSBefore)
+    })
+    it('should only admin update the treasury address', async () => {
+        // deploy new treasury contract
+        const Treasury = await ethers.getContractFactory("Treasury")
+        const newTreasury = await upgrades.deployProxy(
+            Treasury,
+            [
+                [auroraOwner.address],
+                [
+                    auroraToken.address,
+                    streamToken1.address,
+                    streamToken2.address
+                ]
+            ]
+        )
+        await jet.connect(stakingAdmin).updateTreasury(newTreasury.address)
+        expect(newTreasury.address).to.be.eq(await jet.treasury())
+    })
     // it('should remove stream', async () => {
         
     // })

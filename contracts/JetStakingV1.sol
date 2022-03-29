@@ -58,7 +58,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     mapping(address => User) users;
     mapping(address => uint256) public streamToIndex;
     mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
-    mapping(address => bool) whitelistedContracts;
+    mapping(address => bool) public whitelistedContracts;
     Schedule[] schedules;
 
     // events
@@ -448,7 +448,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @dev gets reward per share (RPS) for a stream
     /// @param streamId stream index
     /// @return rps[streamId]
-    function getRewardPerShare(uint256 streamId) external view returns(uint256) {
+    function getRewardPerShare(uint256 streamId)
+        external
+        view
+        returns (uint256)
+    {
         return rps[streamId];
     }
 
@@ -461,11 +465,22 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         returns (uint256)
     {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
-        if(touchedAt > schedules[streamId].time[0]){
-            return rps[streamId] + (rewardsSchedule(streamId, touchedAt, block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
-        } else if(block.timestamp > schedules[streamId].time[0]){
+        if (touchedAt > schedules[streamId].time[0]) {
+            return
+                rps[streamId] +
+                (rewardsSchedule(streamId, touchedAt, block.timestamp) *
+                    RPS_MULTIPLIER) /
+                totalShares[streamId];
+        } else if (block.timestamp > schedules[streamId].time[0]) {
             // Release rewards from stream start.
-            return rps[streamId] + (rewardsSchedule(streamId, schedules[streamId].time[0], block.timestamp) * RPS_MULTIPLIER) / totalShares[streamId];
+            return
+                rps[streamId] +
+                (rewardsSchedule(
+                    streamId,
+                    schedules[streamId].time[0],
+                    block.timestamp
+                ) * RPS_MULTIPLIER) /
+                totalShares[streamId];
         }
         return 0;
     }
@@ -473,7 +488,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @dev gets the user's reward per share (RPS) for a stream
     /// @param streamId stream index
     /// @return user.rps[streamId]
-    function getRewardPerShareForUser(uint256 streamId, address account) external view returns(uint256) {
+    function getRewardPerShareForUser(uint256 streamId, address account)
+        external
+        view
+        returns (uint256)
+    {
         return users[account].rps[streamId];
     }
 
@@ -489,9 +508,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         User storage userAccount = users[account];
         uint256 userRps = userAccount.rps[streamId];
         uint256 userShares = userAccount.shares[streamId];
-        if(userShares == 0 && userAccount.shares[0] != 0){
+        if (userShares == 0 && userAccount.shares[0] != 0) {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userShares = userAccount.shares[0] * _weighting(weights[streamId], schedules[streamId].time[0]);
+            userShares =
+                userAccount.shares[0] *
+                _weighting(weights[streamId], schedules[streamId].time[0]);
         }
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
