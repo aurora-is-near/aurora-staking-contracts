@@ -180,17 +180,22 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     }
 
     /// @dev removes a stream (only admin role)
-    /// @param stream contract address
-    /// @param streamOwner address where it recieve the avialable tokens in this stream if there is any.
-    function removeStream(address stream, address streamOwner)
+    /// @param streamId contract address
+    /// @param streamFundReceiver address where it recieve the avialable tokens in this stream if there is any.
+    function removeStream(uint256 streamId, address streamFundReceiver)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(streamId != 0, "INVALID_STREAM_ID");
+        require(
+            streamFundReceiver != address(0),
+            "INVALID_STREAM_FUND_RECEIVER"
+        );
         _before();
         //TODO: move all the total reward to the treasury for future distributions
         //TODO: move the rest of rewards to the stream owner
         //TODO: set the stream status to deactivated
-        emit StreamDeactivated(stream, streamToIndex[stream], block.timestamp);
+        emit StreamDeactivated(streams[streamId], streamId, block.timestamp);
     }
 
     /// @notice updates treasury account
@@ -464,8 +469,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         view
         returns (uint256)
     {
-        if (totalShares[streamId] == 0) return 0;
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
+        if (totalShares[streamId] == 0) return 0;
         if (touchedAt > schedules[streamId].time[0]) {
             return
                 rps[streamId] +
