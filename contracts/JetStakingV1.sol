@@ -464,7 +464,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         view
         returns (uint256)
     {
-        if(totalShares[streamId] == 0) return 0;
+        if (totalShares[streamId] == 0) return 0;
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         if (touchedAt > schedules[streamId].time[0]) {
             return
