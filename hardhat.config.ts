@@ -6,6 +6,7 @@ import '@nomiclabs/hardhat-waffle';
 import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-deploy';
 import 'solidity-coverage';
+import 'hardhat-docgen';
 
 dotenv.config();
 
@@ -69,6 +70,11 @@ module.exports = {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
     apiKey: ETHERSCAN_API_KEY,
+  },
+  docgen: {
+    path: './docs',
+    clear: true,
+    runOnCompile: true,
   },
   allowUnlimitedContractSize: true,
 };
