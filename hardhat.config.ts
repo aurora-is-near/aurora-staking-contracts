@@ -53,16 +53,16 @@ module.exports = {
     //     accounts: accountsTestnet
     //   }
     // },
-    mainnet: {
-      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: accountsMainnet,
-    },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+    goerli: {
+      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
       accounts: accountsTestnet,
     },
-    aurora: {
+    auroraTestnet: {
       url: `https://testnet.aurora.dev/${AURORA_API_KEY}`,
+      accounts: accountsTestnet
+    },
+    auroraMainnet: {
+      url: `https://mainnet.aurora.dev/${AURORA_API_KEY}`,
       accounts: accountsMainnet
     }
   },
