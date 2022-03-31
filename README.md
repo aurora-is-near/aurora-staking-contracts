@@ -13,10 +13,11 @@ There are a couple of roles that are needed for the contract deployment and mana
 Prerequisites: 
 
 - Node 14+
+- Yarn
 
 Then install the dependencies as follows:
 ```bash
-npm i
+yarn install
 ```
 
 ## Compile
@@ -30,29 +31,29 @@ Update the enviroment variables which will be used in the `hardhat-config.js`.
 
 Then compile the contracts as follows:
 ```bash
-npm run compile
+yarn compile
 ```
 ## Test
 To run the test:
 ```bash
-npm run test
+yarn test
 ```
 To get the test coverage: 
 
 ```
-npm run coverage
+yarn coverage
 ```
 ## Deployment
 
 ```
-npm run deploy:local # default hardhat network
-npm run deploy:testnet # Aurora Testnet
-npm run deploy:mainnet # Ethereum Mainnet
+yarn deploy:local # default hardhat network
+yarn deploy:testnet # Aurora Testnet
+yarn deploy:mainnet # Ethereum Mainnet
 ```
 
 ### Generate docs
 Execute the following command to regenerate the contracts documentation:
 ```
-npm run generate:doc
+yarn generate:doc
 ```
 Then check out the [index.html](docs/index.html).
