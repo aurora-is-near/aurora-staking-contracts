@@ -13,7 +13,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const name = "Jet Staking V1" 
     const symbol = "VOTE"
     const flags = 0
-    const oneYear: number = 31536000
+    const oneYear = 31536000
     const tauPerStream = 1000
     const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
     // TODO: update schedule rewards
