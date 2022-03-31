@@ -49,3 +49,10 @@ npm run deploy:local # default hardhat network
 npm run deploy:testnet # Aurora Testnet
 npm run deploy:mainnet # Ethereum Mainnet
 ```
+
+### Generate docs
+Execute the following command to regenerate the contracts documentation:
+```
+npm run generate:doc
+```
+Then check out the [index.html](docs/index.html).

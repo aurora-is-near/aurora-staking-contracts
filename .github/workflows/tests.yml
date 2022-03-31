@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Clone the repository
         uses: actions/checkout@v2
-      - run: npm install
-      - run: npm run lint
-      - run: npm run compile
-      - run: npm run coverage
+      - run: yarn install --force
+      - run: yarn lint
+      - run: yarn compile
+      - run: yarn coverage
