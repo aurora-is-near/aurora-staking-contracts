@@ -9,7 +9,7 @@ on:
 name: jet-contracts
 jobs:
   tests:
-    name: Unit Testing
+    name: Static Analysis (Check This Report Before Merging)
     runs-on: [self-hosted, light]
     env:
       INFURA_KEY: ${{secrets.INFURA_KEY}}
@@ -21,7 +21,6 @@ jobs:
     steps:
       - name: Clone the repository
         uses: actions/checkout@v2
-      - run: yarn install --force
-      - run: yarn lint
-      - run: yarn compile
-      - run: yarn coverage
+      - run: pip install slither-analyzer==0.8.2
+      - run: npm install
+      - run: slither .
