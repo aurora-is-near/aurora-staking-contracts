@@ -9,7 +9,7 @@ on:
 name: jet-contracts
 jobs:
   tests:
-    name: Tests
+    name: Unit Testing
     runs-on: [self-hosted, light]
     env:
       INFURA_KEY: ${{secrets.INFURA_KEY}}
