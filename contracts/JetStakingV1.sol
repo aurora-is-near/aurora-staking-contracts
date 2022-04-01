@@ -163,7 +163,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) onlyValidSchedule {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        //TODO: validate stream parameters
         require(stream != address(0), "INVALID_ADDRESS");
         require(
             streamToIndex[stream] == 0 && streams.length > 0,
@@ -396,10 +397,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// staked tokens based on the amount of shares, moves them to pending withdrawl,
     /// then restake the (total user staked amount - shares value) if there is any.
     function unstake(uint256 shares) external {
-        //TODO: allow unstaking after schedule end
-        // this edge case does not allow users to unstake
-        // if the schedules end becaues it reverts with
-        // INVALID_SCHEDULE_PARAMETERS
         // Also no restaking after ending of schedule
         User storage userAccount = users[msg.sender];
         _before();
@@ -579,9 +576,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         Schedule storage schedule = schedules[streamId];
         require(schedule.time.length > 0, "NO_SCHEDULE");
         require(
-            end > start &&
-                start >= schedule.time[0] &&
-                end <= schedule.time[schedule.time.length - 1],
+            end > start && start >= schedule.time[0],
             "INVALID_SCHEDULE_PARAMETERS"
         );
         // find start index and end index
@@ -591,11 +586,14 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
                 break;
             }
         }
-
-        for (uint256 i = schedule.time.length - 1; i > 0; i--) {
-            if (end >= schedule.time[i]) {
-                endIndex = i;
-                break;
+        if (end > schedule.time[schedule.time.length - 1]) {
+            endIndex = schedule.time.length - 2;
+        } else {
+            for (uint256 i = schedule.time.length - 1; i > 0; i--) {
+                if (end >= schedule.time[i]) {
+                    endIndex = i;
+                    break;
+                }
             }
         }
     }

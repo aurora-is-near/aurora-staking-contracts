@@ -833,6 +833,32 @@ describe("JetStakingV1", function () {
             parseInt(pending.toString())
         )
     })
+    it('should be able to unstake and withdraw even if after the schedule ends', async () => {
+        // stake 
+        const amount = ethers.utils.parseUnits("1000", 18)
+        const user1BalanceBefore = parseInt(await auroraToken.balanceOf(user1.address))
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        // unstake
+        await network.provider.send("evm_increaseTime", [5 * oneYear])
+        await network.provider.send("evm_mine")
+        const shares = amount
+        await jet.connect(user1).unstake(shares)
+        // withdraw
+        await network.provider.send("evm_increaseTime", [tauPerStream + 1])
+        await network.provider.send("evm_mine")
+        const streamId = 0 // main aurora rewards
+        await jet.connect(user1).withdraw(streamId)
+        const user1BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
+        expect(user1BalanceAfter).to.be.greaterThan(user1BalanceBefore)
+    })
+    it('should not stake after the schedule end', async () => {
+        await network.provider.send("evm_increaseTime", [5 * oneYear])
+        await network.provider.send("evm_mine")
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await expect(jet.connect(user1).stake(amount)).to.be.revertedWith('INVALID_SCHEDULE')
+    })
     it('should only admin update the treasury address', async () => {
         // deploy new treasury contract
         const Treasury = await ethers.getContractFactory("Treasury")
