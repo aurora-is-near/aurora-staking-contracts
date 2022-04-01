@@ -22,5 +22,5 @@ jobs:
       - name: Clone the repository
         uses: actions/checkout@v2
       - run: pip install slither-analyzer==0.8.2
-      - run: npm install
+      - run: yarn install
       - run: slither .
