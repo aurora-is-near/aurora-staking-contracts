@@ -137,6 +137,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         _;
     }
 
+    modifier onlyActiveStream(uint256 streamId) {
+        require(streams[streamId].isActive, "INACTIVE_STREAM");
+        _;
+    }
+
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @param aurora token contract address
     /// @param scheduleTimes init the schedule time
@@ -183,6 +188,21 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         tau.push(tauAuroraStream);
         decayGracePeriod = _decayGracePeriod;
         burnGracePeriod = _burnGracePeriod;
+        //init AURORA default stream
+        uint256 streamId = 0;
+        streams.push();
+        Stream storage stream = streams[streamId];
+        stream.streamOwner = msg.sender;
+        stream.rewardToken = aurora;
+        stream.auroraDepositAmount = 0;
+        stream.maxDepositAmount = 0;
+        stream.rewardDepositAmount = 0;
+        stream.claimedAuroraAmount = 0;
+        stream.expiresAt = scheduleTimes[scheduleTimes.length - 1];
+        stream.isProposed = true;
+        stream.isActive = true;
+        emit StreamProposed(streamId, msg.sender, block.timestamp);
+        emit StreamCreated(streamId, msg.sender, block.timestamp);
     }
 
     /// @notice updates decay grace period
@@ -241,6 +261,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             scheduleRewards,
             tauPerStream
         );
+        totalShares.push(totalShares[0] * _weighting(block.timestamp));
+        tau.push(tauPerStream);
+        schedules.push(Schedule(scheduleTimes, scheduleRewards));
         uint256 streamId = streams.length;
         streams.push();
         Stream storage stream = streams[streamId];
@@ -253,12 +276,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.expiresAt = expiresAt;
         stream.isProposed = true;
         stream.isActive = false;
+        emit StreamProposed(streamId, streamOwner, block.timestamp);
         IERC20Upgradeable(auroraToken).transferFrom(
             msg.sender,
             address(this),
             auroraDepositAmount
         );
-        emit StreamProposed(streamId, streamOwner, block.timestamp);
     }
 
     /// @dev create new stream (only stream owner)
@@ -286,24 +309,23 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         }
 
         streams[streamId].rewardDepositAmount = rewardTokenAmount;
+        emit StreamCreated(streamId, msg.sender, block.timestamp);
         // move Aurora tokens to treasury
         IERC20Upgradeable(auroraToken).transfer(
             address(treasury),
             streams[streamId].auroraDepositAmount
         );
         // move reward tokens to treasury
-        IERC20Upgradeable(auroraToken).transferFrom(
+        IERC20Upgradeable(streams[streamId].rewardToken).transferFrom(
             msg.sender,
             address(treasury),
             rewardTokenAmount
         );
-        emit StreamCreated(streamId, msg.sender, block.timestamp);
     }
 
     /// @dev removes a stream (only admin role)
     /// @param streamId contract address
-    /// @param streamFundReceiver address where it recieve the avialable tokens in this stream if there is any.
-    function removeStream(uint256 streamId, address streamFundReceiver)
+    function removeStream(uint256 streamId)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -487,7 +509,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// It will require a waiting time untill it get released. Users call
     /// this in function in order to claim rewards.
     /// @param streamId stream index
-    function moveRewardsToPending(uint256 streamId) external {
+    function moveRewardsToPending(uint256 streamId)
+        external
+        onlyActiveStream(streamId)
+    {
+        //TODO: check active stream
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
@@ -528,6 +554,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
         uint256 pendingAmount = userAccount.pendings[streamId];
         userAccount.pendings[streamId] = 0;
+        //TODO: check treasury balance before moving funds
         ITreasury(treasury).payRewards(
             msg.sender,
             streams[streamId].rewardToken,
@@ -895,7 +922,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param account is the staker address
     function _moveAllRewardsToPending(address account) private {
         for (uint256 i = 1; i < streams.length; i++) {
-            _moveRewardsToPending(account, i);
+            if (streams[i].isActive) _moveRewardsToPending(account, i);
         }
     }
 
