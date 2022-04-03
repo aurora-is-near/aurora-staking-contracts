@@ -63,7 +63,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 auroraDepositAmount;
         uint256 rewardDepositAmount;
         uint256 maxDepositAmount;
-        uint256 claimedAuroraAmount;
+        uint256 ownerClaimableAuroraAmount;
         uint256 expiresAt;
         bool isProposed;
         bool isActive;
@@ -197,7 +197,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.auroraDepositAmount = 0;
         stream.maxDepositAmount = 0;
         stream.rewardDepositAmount = 0;
-        stream.claimedAuroraAmount = 0;
+        stream.ownerClaimableAuroraAmount = 0;
         stream.expiresAt = scheduleTimes[scheduleTimes.length - 1];
         stream.isProposed = true;
         stream.isActive = true;
@@ -272,7 +272,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.auroraDepositAmount = auroraDepositAmount;
         stream.maxDepositAmount = maxDepositAmount;
         stream.rewardDepositAmount = 0;
-        stream.claimedAuroraAmount = 0;
+        stream.ownerClaimableAuroraAmount = 0;
         stream.expiresAt = expiresAt;
         stream.isProposed = true;
         stream.isActive = false;
@@ -297,6 +297,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
         require(!streams[streamId].isActive, "STREAM_ALREADY_EXISTS");
         streams[streamId].isActive = true;
+        emit StreamCreated(streamId, msg.sender, block.timestamp);
         if (rewardTokenAmount < streams[streamId].maxDepositAmount) {
             // refund staking admin if deposited reward tokens less than the upper limit of deposit
             uint256 refundAuroraAmount = ((streams[streamId].maxDepositAmount -
@@ -309,7 +310,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         }
 
         streams[streamId].rewardDepositAmount = rewardTokenAmount;
-        emit StreamCreated(streamId, msg.sender, block.timestamp);
         // move Aurora tokens to treasury
         IERC20Upgradeable(auroraToken).transfer(
             address(treasury),
@@ -332,6 +332,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         require(streams[streamId].isActive, "STREAM_ALREADY_REMOVED");
         streams[streamId].isActive = false;
         streams[streamId].isProposed = false;
+        emit StreamRemoved(
+            streamId,
+            streams[streamId].streamOwner,
+            block.timestamp
+        );
         // move aurora to the admin
         ITreasury(treasury).payRewards(
             admin,
@@ -343,11 +348,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             streams[streamId].streamOwner,
             streams[streamId].rewardToken,
             streams[streamId].rewardDepositAmount
-        );
-        emit StreamRemoved(
-            streamId,
-            streams[streamId].streamOwner,
-            block.timestamp
         );
     }
 
@@ -513,7 +513,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         external
         onlyActiveStream(streamId)
     {
-        //TODO: check active stream
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
@@ -907,6 +906,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         }
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) *
             userAccount.shares[streamId]) / RPS_MULTIPLIER;
+        _releaseAuroraRewardToStreamOwner(streamId, reward);
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
@@ -991,6 +991,18 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function _deactivateStream(uint256 streamId) private returns (bool) {
         ///TODO
         return true;
+    }
+
+    function _releaseAuroraRewardToStreamOwner(
+        uint256 streamId,
+        uint256 userClaimedStreamReward
+    ) private {
+        uint256 auroraStreamOwnerReward = (userClaimedStreamReward *
+            streams[streamId].auroraDepositAmount) /
+            streams[streamId].rewardDepositAmount;
+        streams[streamId].auroraDepositAmount -= auroraStreamOwnerReward;
+        streams[streamId].rewardDepositAmount -= userClaimedStreamReward;
+        streams[streamId].ownerClaimableAuroraAmount += auroraStreamOwnerReward;
     }
 
     function _updateStreamRewardSchedules(

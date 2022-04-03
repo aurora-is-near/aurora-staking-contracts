@@ -184,6 +184,45 @@ describe("JetStakingV1", function () {
         expect(owner).to.be.eq(user1.address)
         expect(streamId.toNumber()).to.be.eq(id)
     })
+    it('should create stream and retfund staking admin if deposit reward is less than the upper amount', async () => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes[scheduleTimes.length - 1],
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens (50% of the max reward proposal amount for a stream)
+        const RewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        await streamToken1.connect(user1).approve(jet.address, RewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, RewardProposalAmountForAStream)
+        const stream = await jet.getStream(id)
+        expect(stream.rewardDepositAmount).to.be.eq(
+            RewardProposalAmountForAStream
+        )
+        expect(
+            parseInt(ethers.utils.formatEther(maxRewardProposalAmountForAStream))
+        ).to.be.greaterThan(
+            parseInt(ethers.utils.formatEther(stream.rewardDepositAmount))
+        )
+        const expectedAuroraDeposit = parseInt(ethers.utils.formatEther(stream.rewardDepositAmount)) * parseInt(ethers.utils.formatEther(auroraProposalAmountForAStream)) / parseInt(ethers.utils.formatEther(maxRewardProposalAmountForAStream))
+        expect(
+            parseInt(ethers.utils.formatEther(auroraProposalAmountForAStream))
+        ).to.be.greaterThan(
+            parseInt(ethers.utils.formatEther(stream.auroraDepositAmount))
+        )
+        expect(expectedAuroraDeposit).to.be.eq(parseInt(ethers.utils.formatEther(stream.auroraDepositAmount)))
+    })
     it('should stake aurora tokens', async () => {
         const amountStaked = ethers.utils.parseUnits("10", 18)
         await auroraToken.connect(user1).approve(jet.address, amountStaked)
@@ -1028,5 +1067,19 @@ describe("JetStakingV1", function () {
         // create a stream
         await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         await jet.connect(stakingAdmin).removeStream(id)
+    })
+    it('should admin able to update decay grace period', async () => {
+        const newDecayGracePeriod = 2 * oneDay
+        await jet.connect(stakingAdmin).updateDecayGracePeriod(newDecayGracePeriod)
+        expect(newDecayGracePeriod).to.be.eq(
+            parseInt(await jet.decayGracePeriod())
+        )
+    })
+    it('should admin able to update burn grace period', async () => {
+        const newBurnGracePeriod = 2 * oneDay
+        await jet.connect(stakingAdmin).updateBurnGracePeriod(newBurnGracePeriod)
+        expect(newBurnGracePeriod).to.be.eq(
+            parseInt(await jet.burnGracePeriod())
+        )
     })
 });
