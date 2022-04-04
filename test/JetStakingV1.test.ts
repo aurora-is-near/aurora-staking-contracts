@@ -71,7 +71,8 @@ describe("JetStakingV1", function () {
             ethers.utils.parseUnits("100000000", 18), // 50M 
             ethers.utils.parseUnits("50000000", 18),  // 25M
             ethers.utils.parseUnits("25000000", 18),  // 25M
-            ethers.utils.parseUnits("12500000", 18),  // 0 
+            // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
+            ethers.utils.parseUnits("0", 18),  // 0
         ]
         jet = await upgrades.deployProxy(
             JetStakingV1,
@@ -726,20 +727,6 @@ describe("JetStakingV1", function () {
     it('should return zero total aurora staked if touchedAt equals zero', async () => {
         expect(
             await jet.getTotalAmountOfStakedAurora()
-        ).to.be.eq(0)
-    })
-    it('should return zero latest reward per share', async () => {
-        // deploy stream
-         const streamId = 1
-         await jet.connect(stakingAdmin).deployStream(
-            streamToken1.address,
-            10,
-            scheduleTimes,
-            scheduleRewards,
-            tauPerStream
-        )
-        expect(
-            await jet.getLatestRewardPerShare(streamId)
         ).to.be.eq(0)
     })
     it('should release rewards from stream start', async () => {

@@ -461,6 +461,33 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         return rps[streamId];
     }
 
+    /// @dev calculates and gets the latest released rewards.
+    /// @param streamId stream index
+    /// @return rewards released since last update.
+    function getRewardsAmount(uint256 streamId) public view returns (uint256) {
+        uint256 streamStart = schedules[streamId].time[0];
+        if (block.timestamp <= streamStart) return 0; // Stream didn't start
+        uint256 streamEnd = schedules[streamId].time[
+            schedules[streamId].time.length - 1
+        ];
+        if (touchedAt >= streamEnd) return 0; // Stream schedule ended, all rewards released
+        uint256 start;
+        uint256 end;
+        if (touchedAt > streamStart) {
+            start = touchedAt;
+        } else {
+            // Release rewards from stream start.
+            start = schedules[streamId].time[0];
+        }
+        if (block.timestamp < streamEnd) {
+            end = block.timestamp;
+        } else {
+            // The stream already finished between the last update and now.
+            end = streamEnd;
+        }
+        return rewardsSchedule(streamId, start, end);
+    }
+
     /// @dev calculates and gets the latest reward per share (RPS) for a stream
     /// @param streamId stream index
     /// @return rps[streamId] + scheduled reward up till now
@@ -470,25 +497,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         returns (uint256)
     {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
-        if (totalShares[streamId] == 0) return 0;
-        if (touchedAt > schedules[streamId].time[0]) {
-            return
-                rps[streamId] +
-                (rewardsSchedule(streamId, touchedAt, block.timestamp) *
-                    RPS_MULTIPLIER) /
-                totalShares[streamId];
-        } else if (block.timestamp > schedules[streamId].time[0]) {
-            // Release rewards from stream start.
-            return
-                rps[streamId] +
-                (rewardsSchedule(
-                    streamId,
-                    schedules[streamId].time[0],
-                    block.timestamp
-                ) * RPS_MULTIPLIER) /
-                totalShares[streamId];
-        }
-        return 0;
+        require(totalShares[streamId] != 0, "ZERO_STREAM_SHARES");
+        return
+            rps[streamId] +
+            (getRewardsAmount(streamId) * RPS_MULTIPLIER) /
+            totalShares[streamId];
     }
 
     /// @dev gets the user's reward per share (RPS) for a stream
@@ -510,6 +523,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         view
         returns (uint256)
     {
+        if (totalShares[streamId] == 0) return 0;
         uint256 latestRps = getLatestRewardPerShare(streamId);
         User storage userAccount = users[account];
         uint256 userRps = userAccount.rps[streamId];
@@ -655,33 +669,15 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     /// @dev called before touching the contract reserves (stake/unstake)
     function _before() internal {
-        // release rewards once per block after 1st stake
-        if (touchedAt != 0 && touchedAt != block.timestamp) {
-            totalAmountOfStakedAurora += rewardsSchedule(
-                0,
-                touchedAt,
-                block.timestamp
-            );
+        if (touchedAt == block.timestamp) return; // Already updated by previous tx in same block.
+        if (totalShares[0] != 0) {
+            // Don't release rewards if there are no stakers.
+            totalAmountOfStakedAurora += getRewardsAmount(0);
             for (uint256 i = 1; i < streams.length; i++) {
-                if (touchedAt > schedules[i].time[0]) {
-                    rps[i] +=
-                        (rewardsSchedule(i, touchedAt, block.timestamp) *
-                            RPS_MULTIPLIER) /
-                        totalShares[i];
-                } else if (block.timestamp > schedules[i].time[0]) {
-                    // Release rewards from stream start.
-                    rps[i] +=
-                        (rewardsSchedule(
-                            i,
-                            schedules[i].time[0],
-                            block.timestamp
-                        ) * RPS_MULTIPLIER) /
-                        totalShares[i];
-                }
-                //TODO: deactivate stream if needed and only distribute rewards if stream is active !
+                rps[i] = getLatestRewardPerShare(i);
             }
-            touchedAt = block.timestamp;
         }
+        touchedAt = block.timestamp;
     }
 
     /// @dev internal function for airdropping Aurora users
@@ -722,6 +718,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         }
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) *
             userAccount.shares[streamId]) / RPS_MULTIPLIER;
+        require(reward != 0, "ZERO_REWARD");
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
@@ -750,8 +747,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         if (totalShares[0] == 0) {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
             _amountOfShares = amount;
-            // start rewards release
-            touchedAt = block.timestamp;
         } else {
             // Round up (+1) so users don't get less sharesValue than their staked amount
             _amountOfShares =
