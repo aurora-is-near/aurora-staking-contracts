@@ -729,20 +729,6 @@ describe("JetStakingV1", function () {
             await jet.getTotalAmountOfStakedAurora()
         ).to.be.eq(0)
     })
-    it('should return zero latest reward per share', async () => {
-        // deploy stream
-         const streamId = 1
-         await jet.connect(stakingAdmin).deployStream(
-            streamToken1.address,
-            10,
-            scheduleTimes,
-            scheduleRewards,
-            tauPerStream
-        )
-        expect(
-            await jet.getLatestRewardPerShare(streamId)
-        ).to.be.eq(0)
-    })
     it('should release rewards from stream start', async () => {
         // release rewards from stream start if user staked before 
         // deploying a stream
