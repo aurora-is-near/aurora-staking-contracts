@@ -71,7 +71,8 @@ describe("JetStakingV1", function () {
             ethers.utils.parseUnits("100000000", 18), // 50M 
             ethers.utils.parseUnits("50000000", 18),  // 25M
             ethers.utils.parseUnits("25000000", 18),  // 25M
-            ethers.utils.parseUnits("12500000", 18),  // 0 
+            // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
+            ethers.utils.parseUnits("0", 18),  // 0
         ]
         jet = await upgrades.deployProxy(
             JetStakingV1,
