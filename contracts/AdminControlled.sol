@@ -6,28 +6,38 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 
 contract AdminControlled is AccessControlUpgradeable {
     address public admin;
-    uint public paused;
+    uint256 public paused;
 
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
-    modifier pausable(uint flag) {
-        require((paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Paused");
+    modifier pausable(uint256 flag) {
+        require(
+            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            "Paused"
+        );
         _;
     }
 
-    function __AdminControlled_init(uint _flags) public initializer {
+    function __AdminControlled_init(uint256 _flags) public initializer {
         __AccessControl_init();
         paused = _flags;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSE_ROLE, msg.sender);
     }
 
-    function adminPause(uint flags) external onlyRole(PAUSE_ROLE) {
+    function adminPause(uint256 flags) external onlyRole(PAUSE_ROLE) {
         paused = flags;
     }
 
-    function transferOwnership(address newAdmin) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newAdmin != address(0), "Ownable: new owner is the zero address");
+    function transferOwnership(address newAdmin)
+        external
+        virtual
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(
+            newAdmin != address(0),
+            "Ownable: new owner is the zero address"
+        );
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         _grantRole(PAUSE_ROLE, newAdmin);
         admin = newAdmin;
@@ -37,16 +47,19 @@ contract AdminControlled is AccessControlUpgradeable {
         emit OwnershipTransferred(_msgSender(), newAdmin);
     }
 
-    function adminSstore(uint key, uint value) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminSstore(uint256 key, uint256 value)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         assembly {
             sstore(key, value)
         }
     }
 
     function adminSstoreWithMask(
-        uint key,
-        uint value,
-        uint mask
+        uint256 key,
+        uint256 value,
+        uint256 mask
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         assembly {
             let oldval := sload(key)
@@ -54,7 +67,10 @@ contract AdminControlled is AccessControlUpgradeable {
         }
     }
 
-    function adminSendEth(address payable destination, uint amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminSendEth(address payable destination, uint256 amount)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         destination.transfer(amount);
     }
 
