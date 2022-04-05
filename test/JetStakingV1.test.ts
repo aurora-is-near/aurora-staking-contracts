@@ -37,7 +37,7 @@ describe("JetStakingV1", function () {
         // random example for other reward token contracts
         streamToken1 = await Token.connect(user1).deploy(supply, "StreamToken1", "ST1")
         streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
-
+        const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
         treasury = await upgrades.deployProxy(
             Treasury, 
@@ -47,13 +47,13 @@ describe("JetStakingV1", function () {
                     auroraToken.address,
                     streamToken1.address,
                     streamToken2.address
-                ]
+                ],
+                flags
             ]
         )
 
         name = "Jet Staking V1" 
         symbol = "VOTE"
-        const flags = 0
         oneYear = 31556926
         tauPerStream = 10
 
@@ -1052,7 +1052,8 @@ describe("JetStakingV1", function () {
                     auroraToken.address,
                     streamToken1.address,
                     streamToken2.address
-                ]
+                ],
+                0 // flags
             ]
         )
         await jet.connect(stakingAdmin).updateTreasury(newTreasury.address)

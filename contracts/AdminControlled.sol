@@ -71,6 +71,7 @@ contract AdminControlled is AccessControlUpgradeable {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        //slither-disable-next-line arbitrary-send
         destination.transfer(amount);
     }
 

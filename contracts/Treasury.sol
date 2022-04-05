@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./ITreasury.sol";
+import "./AdminControlled.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "./ITreasury.sol";
 
-contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
+contract Treasury is ITreasury, AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    //TODO: use pausable from AdminControlled
     mapping(address => bool) public isSupportedToken;
     mapping(address => bool) public isManager;
-
-    bool public paused;
-
+    //events
     event ManagerAdded(
         address indexed manager,
         address indexed addedBy,
@@ -38,13 +34,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
 
     /// @dev Throws if called by any account other than the owner
     modifier onlyManager() {
-        require(isManager[msg.sender], "Sender is not a manager");
-        _;
-    }
-
-    /// @dev Throws if called when contract is paused
-    modifier isActive() {
-        require(!paused, "Pausable: Treasury paused");
+        require(isManager[msg.sender], "SENDER_IS_NOT_MANAGER");
         _;
     }
 
@@ -53,17 +43,19 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     /// @param _supportedTokens list of supported tokens
     function initialize(
         address[] memory _managers,
-        address[] memory _supportedTokens
+        address[] memory _supportedTokens,
+        uint256 _flags
     ) public initializer {
-        __Ownable_init();
-
         for (uint256 i = 0; i < _managers.length; i++) {
+            require(_managers[i] != address(0), "INVALID_MANAGER_ADDRESS");
             isManager[_managers[i]] = true;
         }
 
         for (uint256 i = 0; i < _supportedTokens.length; i++) {
+            require(_supportedTokens[i] != address(0), "INVALID_TOKEN_ADDRESS");
             isSupportedToken[_supportedTokens[i]] = true;
         }
+        __AdminControlled_init(_flags);
     }
 
     /// @notice allows operator to transfer supported tokens on befalf of Treasury
@@ -77,7 +69,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     ) public onlyManager {
         require(
             _amounts.length == _supportedTokens.length,
-            "Treasury: Invalid approve tokens paramerters"
+            "INVALID_APPROVE_TOKEN_PARAMETERS"
         );
         for (uint256 i = 0; i < _supportedTokens.length; i++) {
             IERC20Upgradeable(_supportedTokens[i]).safeIncreaseAllowance(
@@ -96,15 +88,15 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
         address _user,
         address _token,
         uint256 _amount
-    ) external isActive onlyOwner {
-        require(isSupportedToken[_token], "Token is not supported");
-        IERC20Upgradeable(_token).transfer(_user, _amount);
+    ) external pausable(1) onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(isSupportedToken[_token], "TOKEN_IS_NOT_SUPPORTED");
+        IERC20Upgradeable(_token).safeTransfer(_user, _amount);
     }
 
     /// @notice adds token as a supproted rewards token by Treasury
     /// @param _token ERC20 token address
     function addSupportedToken(address _token) external onlyManager {
-        require(!isSupportedToken[_token], "Token already exists");
+        require(!isSupportedToken[_token], "TOKEN_ALREADY_EXISTS");
         isSupportedToken[_token] = true;
         emit TokenAdded(_token, msg.sender, block.timestamp);
     }
@@ -112,7 +104,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     /// @notice removed token as a supproted rewards token by Treasury
     /// @param _token ERC20 token address
     function removeSupportedToken(address _token) external onlyManager {
-        require(isSupportedToken[_token], "Token does not exist");
+        require(isSupportedToken[_token], "TOKEN_DOES_NOT_EXIST");
         isSupportedToken[_token] = false;
         emit TokenRemoved(_token, msg.sender, block.timestamp);
     }
@@ -120,7 +112,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     /// @notice adds address to list of owners
     /// @param _manager any ethereum account
     function addManager(address _manager) external onlyManager {
-        require(!isManager[_manager], "Manager already exists");
+        require(!isManager[_manager], "MANAGER_ALREADY_EXISTS");
         isManager[_manager] = true;
         emit ManagerAdded(_manager, msg.sender, block.timestamp);
     }
@@ -128,7 +120,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     /// @notice removes address from list of owners
     /// @param _manager any active manager
     function removeManager(address _manager) external onlyManager {
-        require(isManager[_manager], "Manager does not exist");
+        require(isManager[_manager], "MANAGER_DOES_NOT_EXIST");
         isManager[_manager] = false;
         emit ManagerRemoved(_manager, msg.sender, block.timestamp);
     }

@@ -5,6 +5,7 @@ import "./ITreasury.sol";
 import "./AdminControlled.sol";
 import "./VotingERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 /**
  * @title JetStakingV1
@@ -30,6 +31,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
  *      hopfully it be governed by a community wallet.
  */
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     uint256 constant DENOMINATOR = 31556926; //1Year
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
@@ -284,7 +286,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.isProposed = true;
         stream.isActive = false;
         emit StreamProposed(streamId, streamOwner, block.timestamp);
-        IERC20Upgradeable(auroraToken).transferFrom(
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(this),
             auroraDepositAmount
@@ -311,7 +313,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             uint256 refundAuroraAmount = ((streams[streamId].maxDepositAmount -
                 rewardTokenAmount) * streams[streamId].auroraDepositAmount) /
                 streams[streamId].maxDepositAmount;
-            IERC20Upgradeable(auroraToken).transfer(admin, refundAuroraAmount);
+            IERC20Upgradeable(auroraToken).safeTransfer(
+                admin,
+                refundAuroraAmount
+            );
             streams[streamId].auroraDepositAmount -= refundAuroraAmount;
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
@@ -319,12 +324,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
         streams[streamId].rewardDepositAmount = rewardTokenAmount;
         // move Aurora tokens to treasury
-        IERC20Upgradeable(auroraToken).transfer(
+        IERC20Upgradeable(auroraToken).safeTransfer(
             address(treasury),
             streams[streamId].auroraDepositAmount
         );
         // move reward tokens to treasury
-        IERC20Upgradeable(streams[streamId].rewardToken).transferFrom(
+        IERC20Upgradeable(streams[streamId].rewardToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             rewardTokenAmount
@@ -514,7 +519,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             //TODO: mint voting tokens
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
-        IERC20Upgradeable(auroraToken).transferFrom(
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             batchAmount
@@ -531,7 +536,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         _stakeOnBehalfOfAnotherUser(account, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
-        IERC20Upgradeable(auroraToken).transferFrom(
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             amount
@@ -568,7 +573,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         //TODO: mint voting tokens
         _balances[msg.sender] += userAccount.shares[0];
         //TODO: change the pay reward by calling the treasury.
-        IERC20Upgradeable(auroraToken).transferFrom(
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             amount
