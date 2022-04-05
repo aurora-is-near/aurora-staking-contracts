@@ -1027,6 +1027,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         for (uint256 i = 0; i < schedules[streamId].reward.length; i++) {
             if (i == 0) {
                 schedules[streamId].reward[i] = rewardTokenAmount;
+            } else if (i == schedules[streamId].reward.length - 1) {
+                schedules[streamId].reward[i] = 0;
             } else {
                 schedules[streamId].reward[i] =
                     schedules[streamId].reward[i - 1] /

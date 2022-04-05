@@ -226,7 +226,8 @@ describe("JetStakingV1", function () {
         expect(expectedAuroraDeposit).to.be.eq(parseInt(ethers.utils.formatEther(stream.auroraDepositAmount)))
         const rewardSchedule = await jet.getSchedule(id)
         for (let i = 0; i < rewardSchedule[1].length; i++) {
-            expect(parseInt(ethers.utils.formatEther(scheduleRewards[i]))/2).to.be.eq(parseInt(ethers.utils.formatEther(rewardSchedule[1][i])))
+            i != rewardSchedule[1].length - 1 ? expect(parseInt(ethers.utils.formatEther(rewardSchedule[1][i]))).to.be.eq(parseInt(ethers.utils.formatEther(scheduleRewards[i]))/2) :
+            expect(parseInt(ethers.utils.formatEther(rewardSchedule[1][i]))).to.be.eq(0)
         }
     })
     it('should release aurora rewards to stream owner', async () => {
@@ -885,31 +886,6 @@ describe("JetStakingV1", function () {
     it('should return zero total aurora staked if touchedAt equals zero', async () => {
         expect(
             await jet.getTotalAmountOfStakedAurora()
-        ).to.be.eq(0)
-    })
-    it('should return zero latest reward per share', async () => {
-        const id = 1
-        // approve aurora tokens to the stream proposal
-        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
-        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
-        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
-        // propose a stream
-        await jet.connect(stakingAdmin).proposeStream(
-            user1.address,
-            streamToken1.address,
-            auroraProposalAmountForAStream,
-            maxRewardProposalAmountForAStream,
-            scheduleTimes[scheduleTimes.length - 1],
-            scheduleTimes,
-            scheduleRewards,
-            tauPerStream
-        )
-        // approve reward tokens
-        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
-        // create a stream
-        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
-        expect(
-            await jet.getLatestRewardPerShare(id)
         ).to.be.eq(0)
     })
     it('should release rewards from stream start', async () => {
