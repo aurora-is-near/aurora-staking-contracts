@@ -69,7 +69,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 rewardClaimedAmount;
         uint256 maxDepositAmount;
         uint256 lastClaimedTime;
-        uint256 expiresAt;
+        uint256 proposalExpiresAt;
         bool isProposed;
         bool isActive;
     }
@@ -205,7 +205,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.rewardDepositAmount = 0;
         stream.rewardClaimedAmount = 0;
         stream.lastClaimedTime = 0;
-        stream.expiresAt = scheduleTimes[scheduleTimes.length - 1];
+        stream.proposalExpiresAt = 0;
         stream.isProposed = true;
         stream.isActive = true;
         emit StreamProposed(streamId, msg.sender, block.timestamp);
@@ -282,7 +282,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.rewardDepositAmount = 0;
         stream.rewardClaimedAmount = 0;
         stream.lastClaimedTime = schedules[streamId].time[0];
-        stream.expiresAt = expiresAt;
+        stream.proposalExpiresAt = expiresAt;
         stream.isProposed = true;
         stream.isActive = false;
         emit StreamProposed(streamId, streamOwner, block.timestamp);
@@ -299,37 +299,39 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function createStream(uint256 streamId, uint256 rewardTokenAmount)
         external
     {
-        require(streams[streamId].isProposed, "STREAM_NOT_PROPOSED");
+        Stream storage stream = streams[streamId];
+        require(stream.isProposed, "STREAM_NOT_PROPOSED");
+        require(stream.streamOwner == msg.sender, "INVALID_STREAM_OWNER");
+        require(!stream.isActive, "STREAM_ALREADY_EXISTS");
         require(
-            streams[streamId].streamOwner == msg.sender,
-            "INVALID_STREAM_OWNER"
+            stream.proposalExpiresAt >= block.timestamp,
+            "STREAM_PROPOSAL_EXPIRED"
         );
-        require(!streams[streamId].isActive, "STREAM_ALREADY_EXISTS");
-        streams[streamId].isActive = true;
+        stream.isActive = true;
         streamsCount++;
         emit StreamCreated(streamId, msg.sender, block.timestamp);
-        if (rewardTokenAmount < streams[streamId].maxDepositAmount) {
+        if (rewardTokenAmount < stream.maxDepositAmount) {
             // refund staking admin if deposited reward tokens less than the upper limit of deposit
-            uint256 refundAuroraAmount = ((streams[streamId].maxDepositAmount -
-                rewardTokenAmount) * streams[streamId].auroraDepositAmount) /
-                streams[streamId].maxDepositAmount;
+            uint256 refundAuroraAmount = ((stream.maxDepositAmount -
+                rewardTokenAmount) * stream.auroraDepositAmount) /
+                stream.maxDepositAmount;
             IERC20Upgradeable(auroraToken).safeTransfer(
                 admin,
                 refundAuroraAmount
             );
-            streams[streamId].auroraDepositAmount -= refundAuroraAmount;
+            stream.auroraDepositAmount -= refundAuroraAmount;
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
         }
 
-        streams[streamId].rewardDepositAmount = rewardTokenAmount;
+        stream.rewardDepositAmount = rewardTokenAmount;
         // move Aurora tokens to treasury
         IERC20Upgradeable(auroraToken).safeTransfer(
             address(treasury),
-            streams[streamId].auroraDepositAmount
+            stream.auroraDepositAmount
         );
         // move reward tokens to treasury
-        IERC20Upgradeable(streams[streamId].rewardToken).safeTransferFrom(
+        IERC20Upgradeable(stream.rewardToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             rewardTokenAmount
@@ -342,25 +344,24 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(streams[streamId].isActive, "STREAM_ALREADY_REMOVED");
-        streams[streamId].isActive = false;
-        streams[streamId].isProposed = false;
-        emit StreamRemoved(
-            streamId,
-            streams[streamId].streamOwner,
-            block.timestamp
-        );
-        uint256 releaseAuroraAmount = streams[streamId].auroraDepositAmount -
-            streams[streamId].auroraClaimedAmount;
-        uint256 releaseRewardAmount = streams[streamId].rewardDepositAmount -
-            streams[streamId].rewardClaimedAmount;
-        //TODO: check enough treasury balance
+        Stream storage stream = streams[streamId];
+        require(stream.isActive, "STREAM_ALREADY_REMOVED");
+        stream.isActive = false;
+        stream.isProposed = false;
+        emit StreamRemoved(streamId, stream.streamOwner, block.timestamp);
+        uint256 releaseAuroraAmount = stream.auroraDepositAmount -
+            stream.auroraClaimedAmount;
+        uint256 releaseRewardAmount = stream.rewardDepositAmount -
+            stream.rewardClaimedAmount;
+        // check enough treasury balance
+        _checkTreasuryBalance(auroraToken, releaseAuroraAmount);
+        _checkTreasuryBalance(stream.rewardToken, releaseRewardAmount);
         // move rest of the unclaimed aurora to the admin
         ITreasury(treasury).payRewards(admin, auroraToken, releaseAuroraAmount);
         // move the rest of rewards to the stream owner
         ITreasury(treasury).payRewards(
-            streams[streamId].streamOwner,
-            streams[streamId].rewardToken,
+            stream.streamOwner,
+            stream.rewardToken,
             releaseRewardAmount
         );
     }
@@ -371,30 +372,30 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// called by the stream owner
     /// @param streamId the stream index
     function releaseAuroraRewardsToStreamOwner(uint256 streamId) public {
-        require(
-            msg.sender == streams[streamId].streamOwner,
-            "INVALID_STREAM_OWNER"
-        );
-        require(streams[streamId].isActive, "INACTIVE_STREAM");
+        Stream storage stream = streams[streamId];
+        require(msg.sender == stream.streamOwner, "INVALID_STREAM_OWNER");
+        require(stream.isActive, "INACTIVE_STREAM");
         uint256 scheduledReward = rewardsSchedule(
             streamId,
-            streams[streamId].lastClaimedTime,
+            stream.lastClaimedTime,
             block.timestamp
         );
         uint256 auroraStreamOwnerReward = (scheduledReward *
-            streams[streamId].auroraDepositAmount) /
-            streams[streamId].rewardDepositAmount;
-        streams[streamId].lastClaimedTime = block.timestamp;
-        streams[streamId].auroraClaimedAmount += auroraStreamOwnerReward;
-        streams[streamId].rewardClaimedAmount += scheduledReward;
-        //TODO: check engouth treasury balance
+            stream.auroraDepositAmount) / stream.rewardDepositAmount;
+        stream.lastClaimedTime = block.timestamp;
+        stream.auroraClaimedAmount += auroraStreamOwnerReward;
+        stream.rewardClaimedAmount += scheduledReward;
+        // check enough treasury balance
+        _checkTreasuryBalance(auroraToken, auroraStreamOwnerReward);
         ITreasury(treasury).payRewards(
-            streams[streamId].streamOwner,
+            stream.streamOwner,
             auroraToken,
             auroraStreamOwnerReward
         );
     }
 
+    /// @dev get the stream data
+    /// @param streamId the stream index
     function getStream(uint256 streamId)
         public
         view
@@ -416,7 +417,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             stream.auroraDepositAmount,
             stream.rewardDepositAmount,
             stream.maxDepositAmount,
-            stream.expiresAt,
+            stream.proposalExpiresAt,
             stream.isProposed,
             stream.isActive
         );
@@ -572,7 +573,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
         _balances[msg.sender] += userAccount.shares[0];
-        //TODO: change the pay reward by calling the treasury.
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
@@ -591,7 +591,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
         uint256 pendingAmount = userAccount.pendings[streamId];
         userAccount.pendings[streamId] = 0;
-        //TODO: check treasury balance before moving funds
+        // check treasury balance before moving funds
+        _checkTreasuryBalance(streams[streamId].rewardToken, pendingAmount);
         ITreasury(treasury).payRewards(
             msg.sender,
             streams[streamId].rewardToken,
@@ -996,6 +997,15 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         emit Staked(account, amount, _amountOfShares, block.timestamp);
     }
 
+    /// @dev validates the stream parameters prior proposing it.
+    /// @param streamOwner stream owner address
+    /// @param rewardToken stream reward token address
+    /// @param auroraDepositAmount the amount of Aurora token deposit by the admi.
+    /// @param maxDepositAmount the max reward token deposit
+    /// @param expiresAt the streams expiry date.
+    /// @param scheduleTimes the stream schedule time list
+    /// @param scheduleRewards the stream schedule reward list
+    /// @param tauPerStream the tau per stream for this stream (e.g one day)
     function _validateStreamParameters(
         address streamOwner,
         address rewardToken,
@@ -1020,11 +1030,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         require(tauPerStream != 0, "INVALID_TAU_PERIOD");
     }
 
-    function _deactivateStream(uint256 streamId) private returns (bool) {
-        ///TODO
-        return true;
-    }
-
+    /// @dev updates the stream reward schedule if the reward token amount is less than
+    /// the max deposit amount.
+    /// @param streamId the stream index
+    /// @param rewardTokenAmount the stream reward token amount
     function _updateStreamRewardSchedules(
         uint256 streamId,
         uint256 rewardTokenAmount
@@ -1040,5 +1049,15 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
                     2;
             }
         }
+    }
+
+    /// @dev check whether the treasury contract has enough funds
+    /// @param token the token address
+    /// @param amount the amount of tokens
+    function _checkTreasuryBalance(address token, uint256 amount) private {
+        require(
+            IERC20Upgradeable(token).balanceOf(treasury) >= amount,
+            "INSUFFICIENT_FUNDS"
+        );
     }
 }
