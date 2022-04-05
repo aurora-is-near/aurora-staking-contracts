@@ -8,15 +8,22 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const startTime = Math.floor(Date.now()/ 1000) + 60 // starts after 60 seconds from now.
     const treasury = (await hre.ethers.getContract("Treasury")).address
     const aurora = (await hre.ethers.getContract("Token")).address
-    const admin = owner
 
     const name = "Jet Staking V1" 
     const symbol = "VOTE"
     const flags = 0
-    const oneYear: number = 31536000
+    const oneYear = 31536000
     const tauPerStream = 1000
     const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
-    const scheduleRewards = [0, 100, 50, 25, 25]
+    // TODO: update schedule rewards
+    const scheduleRewards = [
+        hre.ethers.utils.parseUnits("200000000", 18),// 100M
+        hre.ethers.utils.parseUnits("100000000", 18), // 50M
+        hre.ethers.utils.parseUnits("50000000", 18), // 25M
+        hre.ethers.utils.parseUnits("25000000", 18), // 25M
+        // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
+        hre.ethers.utils.parseUnits("0", 18), // 0M
+    ]
 
     await deploy('JetStakingV1', {
         log: true,

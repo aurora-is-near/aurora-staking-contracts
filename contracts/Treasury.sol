@@ -15,10 +15,26 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
 
     bool public paused;
 
-    event ManagerAdded(address indexed manager, address indexed addedBy, uint256 timestamp);
-    event ManagerRemoved(address indexed manager, address indexed removedBy, uint256 timestamp);
-    event TokenAdded(address indexed token, address indexed addedBy, uint256 timestamp);
-    event TokenRemoved(address indexed token, address indexed addedBy, uint256 timestamp);
+    event ManagerAdded(
+        address indexed manager,
+        address indexed addedBy,
+        uint256 timestamp
+    );
+    event ManagerRemoved(
+        address indexed manager,
+        address indexed removedBy,
+        uint256 timestamp
+    );
+    event TokenAdded(
+        address indexed token,
+        address indexed addedBy,
+        uint256 timestamp
+    );
+    event TokenRemoved(
+        address indexed token,
+        address indexed addedBy,
+        uint256 timestamp
+    );
 
     /// @dev Throws if called by any account other than the owner
     modifier onlyManager() {
@@ -61,7 +77,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     ) public onlyManager {
         require(
             _amounts.length == _supportedTokens.length,
-            'Treasury: Invalid approve tokens paramerters'
+            "Treasury: Invalid approve tokens paramerters"
         );
         for (uint256 i = 0; i < _supportedTokens.length; i++) {
             IERC20Upgradeable(_supportedTokens[i]).safeIncreaseAllowance(
