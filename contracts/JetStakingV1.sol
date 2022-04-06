@@ -69,7 +69,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 rewardClaimedAmount;
         uint256 maxDepositAmount;
         uint256 lastClaimedTime;
-        uint256 proposalExpiresAt;
         bool isProposed;
         bool isActive;
     }
@@ -211,7 +210,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.rewardDepositAmount = 0;
         stream.rewardClaimedAmount = 0;
         stream.lastClaimedTime = 0;
-        stream.proposalExpiresAt = 0;
         stream.isProposed = true;
         stream.isActive = true;
         emit StreamProposed(streamId, msg.sender, block.timestamp);
@@ -250,7 +248,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param rewardToken the address of the ERC-20 tokens to be deposited in the stream
     /// @param auroraDepositAmount Amount of the AURORA deposited by the Admin.
     /// @param maxDepositAmount The upper amount of the tokens that should be deposited by the stream owner
-    /// @param expiresAt max block height, until which the option to create the stream is active
     /// @param scheduleTimes array of block heights for each schedule time
     /// @param scheduleRewards array of reward amounts that are kept on the staking contract at each block height
     /// @param tauPerStream a constant release time per stream (e.g 1 day in seconds)
@@ -259,7 +256,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         address rewardToken,
         uint256 auroraDepositAmount,
         uint256 maxDepositAmount,
-        uint256 expiresAt,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
@@ -269,7 +265,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             rewardToken,
             auroraDepositAmount,
             maxDepositAmount,
-            expiresAt,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -288,7 +283,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.rewardDepositAmount = 0;
         stream.rewardClaimedAmount = 0;
         stream.lastClaimedTime = schedules[streamId].time[0];
-        stream.proposalExpiresAt = expiresAt;
         stream.isProposed = true;
         stream.isActive = false;
         emit StreamProposed(streamId, streamOwner, block.timestamp);
@@ -308,7 +302,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     {
         Stream storage stream = streams[streamId];
         require(
-            stream.proposalExpiresAt < block.timestamp && stream.isProposed,
+            schedules[streamId].time[0] < block.timestamp && stream.isProposed,
             "STREAM_DID_NOT_EXPIRE"
         );
         // cancel the proposal
@@ -335,7 +329,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         require(stream.streamOwner == msg.sender, "INVALID_STREAM_OWNER");
         require(!stream.isActive, "STREAM_ALREADY_EXISTS");
         require(
-            stream.proposalExpiresAt >= block.timestamp,
+            schedules[streamId].time[0] >= block.timestamp,
             "STREAM_PROPOSAL_EXPIRED"
         );
         stream.isActive = true;
@@ -465,7 +459,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             uint256 auroraDepositAmount,
             uint256 rewardDepositAmount,
             uint256 maxDepositAmount,
-            uint256 expiresAt,
             bool isProposed,
             bool isActive
         )
@@ -477,7 +470,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             stream.auroraDepositAmount,
             stream.rewardDepositAmount,
             stream.maxDepositAmount,
-            stream.proposalExpiresAt,
             stream.isProposed,
             stream.isActive
         );
@@ -958,9 +950,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // Don't release rewards if there are no stakers.
             totalAmountOfStakedAurora += getRewardsAmount(0);
             for (uint256 i = 1; i < streams.length; i++) {
-                if (streams[i].isProposed) {
-                    // If stream becomes active after schedule start,
-                    // rewards are claimable from stream start (not activation time).
+                if (streams[i].isActive) {
                     // If stream becomes blacklisted, no more rewards are released.
                     rps[i] = getLatestRewardPerShare(i);
                 }
@@ -1069,7 +1059,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param rewardToken stream reward token address
     /// @param auroraDepositAmount the amount of Aurora token deposit by the admi.
     /// @param maxDepositAmount the max reward token deposit
-    /// @param expiresAt the streams expiry date.
     /// @param scheduleTimes the stream schedule time list
     /// @param scheduleRewards the stream schedule reward list
     /// @param tauPerStream the tau per stream for this stream (e.g one day)
@@ -1078,7 +1067,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         address rewardToken,
         uint256 auroraDepositAmount,
         uint256 maxDepositAmount,
-        uint256 expiresAt,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
@@ -1089,7 +1077,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             auroraDepositAmount <= maxDepositAmount,
             "INVALID_DEPOSITED_AURORA_PARAMETERS"
         );
-        require(expiresAt > block.timestamp, "INVALID_STREAM_EXPIRATION_DATE");
+        // scheduleTimes[0] == proposal expiration time
+        require(
+            scheduleTimes[0] > block.timestamp,
+            "INVALID_STREAM_EXPIRATION_DATE"
+        );
         require(
             scheduleTimes.length == scheduleRewards.length,
             "INVALID_SCHEDULE_VALUES"
