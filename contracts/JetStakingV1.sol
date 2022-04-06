@@ -390,7 +390,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         returns (uint256)
     {
         Stream storage stream = streams[streamId];
-        if(!stream.isActive) return 0;
+        if (!stream.isActive) return 0;
         uint256 scheduledReward = rewardsSchedule(
             streamId,
             stream.lastClaimedTime,
