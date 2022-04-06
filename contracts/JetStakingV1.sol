@@ -344,6 +344,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(streamId != 0, "AURORA_NOT_REMOVABLE");
         Stream storage stream = streams[streamId];
         require(stream.isActive, "STREAM_ALREADY_REMOVED");
         stream.isActive = false;
@@ -366,6 +367,24 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
     }
 
+    /// @dev Stream owner claimable AURORA.
+    /// @param streamId the stream index
+    function getStreamOwnerClaimableAmount(uint256 streamId)
+        public
+        view
+        returns (uint256)
+    {
+        Stream storage stream = streams[streamId];
+        uint256 scheduledReward = rewardsSchedule(
+            streamId,
+            stream.lastClaimedTime,
+            block.timestamp
+        );
+        return
+            (scheduledReward * stream.auroraDepositAmount) /
+            stream.rewardDepositAmount;
+    }
+
     /// @dev the release of AURORA tokens to the stream creator is subjected to the same schedule as rewards.
     /// Thus if for a specific moment in time 30% of the rewards are distributed, then it means that 30% of
     /// the AURORA deposit can be withdrawn by the stream creator too.
@@ -375,13 +394,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         Stream storage stream = streams[streamId];
         require(msg.sender == stream.streamOwner, "INVALID_STREAM_OWNER");
         require(stream.isActive, "INACTIVE_STREAM");
-        uint256 scheduledReward = rewardsSchedule(
-            streamId,
-            stream.lastClaimedTime,
-            block.timestamp
+        uint256 auroraStreamOwnerReward = getStreamOwnerClaimableAmount(
+            streamId
         );
-        uint256 auroraStreamOwnerReward = (scheduledReward *
-            stream.auroraDepositAmount) / stream.rewardDepositAmount;
         stream.lastClaimedTime = block.timestamp;
         stream.auroraClaimedAmount += auroraStreamOwnerReward;
         // check enough treasury balance

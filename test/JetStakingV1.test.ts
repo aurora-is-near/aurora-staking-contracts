@@ -255,12 +255,16 @@ describe("JetStakingV1", function () {
         // release aurora reward after ~ 1 year
         await network.provider.send("evm_increaseTime", [365 * oneDay])
         await network.provider.send("evm_mine")
+        const claimableBefore = await jet.getStreamOwnerClaimableAmount(id)
         await jet.connect(user1).releaseAuroraRewardsToStreamOwner(id)
         const user1BalanceAfter = parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
         expect(user1BalanceBefore).to.be.lessThanOrEqual(user1BalanceAfter)
         const actualReward = user1BalanceAfter - user1BalanceBefore
         const expectedReward = parseInt(ethers.utils.formatEther(auroraProposalAmountForAStream)) * 0.5
         expect(actualReward).to.be.within(expectedReward - 10, expectedReward + 10)
+        await network.provider.send("evm_mine") // Prevent RangeError: Maximum call stack size exceeded
+        const claimableAfter = await jet.getStreamOwnerClaimableAmount(id)
+        expect(claimableAfter).to.be.lt(claimableBefore)
     })
     it('should stake aurora tokens', async () => {
         const amountStaked = ethers.utils.parseUnits("10", 18)
