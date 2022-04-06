@@ -552,6 +552,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         external
         onlyActiveStream(streamId)
     {
+        require(streams[streamId].isActive, "STREAM_NOT_ACTIVE");
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
@@ -559,6 +560,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @dev moves all the user rewards to pending reward.
     function moveAllRewardsToPending() external {
         _before();
+        // Claim all streams while skipping inactive streams.
         _moveAllRewardsToPending(msg.sender);
     }
 
@@ -897,6 +899,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // Don't release rewards if there are no stakers.
             totalAmountOfStakedAurora += getRewardsAmount(0);
             for (uint256 i = 1; i < streams.length; i++) {
+                // If stream becomes active after schedule start,
+                // rewards are claimable from stream start (not activation time).
                 rps[i] = getLatestRewardPerShare(i);
             }
         }
