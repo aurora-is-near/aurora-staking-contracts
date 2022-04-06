@@ -384,7 +384,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             stream.auroraDepositAmount) / stream.rewardDepositAmount;
         stream.lastClaimedTime = block.timestamp;
         stream.auroraClaimedAmount += auroraStreamOwnerReward;
-        stream.rewardClaimedAmount += scheduledReward;
         // check enough treasury balance
         _checkTreasuryBalance(auroraToken, auroraStreamOwnerReward);
         ITreasury(treasury).payRewards(
@@ -951,6 +950,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
+        // If the stream is blacklisted, remaining unclaimed rewards will be transfered out.
+        streams[streamId].rewardClaimedAmount += reward;
         emit Pending(
             streamId,
             account,
