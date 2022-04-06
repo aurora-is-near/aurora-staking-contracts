@@ -899,9 +899,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // Don't release rewards if there are no stakers.
             totalAmountOfStakedAurora += getRewardsAmount(0);
             for (uint256 i = 1; i < streams.length; i++) {
-                // If stream becomes active after schedule start,
-                // rewards are claimable from stream start (not activation time).
-                rps[i] = getLatestRewardPerShare(i);
+                if (streams[i].isProposed) {
+                    // If stream becomes active after schedule start,
+                    // rewards are claimable from stream start (not activation time).
+                    // If stream becomes blacklisted, no more rewards are released.
+                    rps[i] = getLatestRewardPerShare(i);
+                }
             }
         }
         touchedAt = block.timestamp;
