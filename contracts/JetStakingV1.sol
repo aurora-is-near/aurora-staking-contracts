@@ -340,7 +340,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     /// @dev removes a stream (only admin role)
     /// @param streamId contract address
-    function removeStream(uint256 streamId)
+    /// @param streamFundReceiver receives the rest of the reward tokens in the stream
+    function removeStream(uint256 streamId, address streamFundReceiver)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -361,7 +362,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         ITreasury(treasury).payRewards(admin, auroraToken, releaseAuroraAmount);
         // move the rest of rewards to the stream owner
         ITreasury(treasury).payRewards(
-            stream.streamOwner,
+            streamFundReceiver,
             stream.rewardToken,
             releaseRewardAmount
         );

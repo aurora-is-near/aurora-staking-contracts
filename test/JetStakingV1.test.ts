@@ -1085,7 +1085,8 @@ describe("JetStakingV1", function () {
         await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
         // create a stream
         await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
-        await jet.connect(stakingAdmin).removeStream(id)
+        await jet.connect(stakingAdmin).removeStream(id, user5.address)
+        expect(await streamToken1.balanceOf(user5.address)).to.be.eq(maxRewardProposalAmountForAStream)
     })
     it('should admin able to update decay grace period', async () => {
         const newDecayGracePeriod = 2 * oneDay
