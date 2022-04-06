@@ -338,6 +338,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
     }
 
+    /// @dev Get the treasury balance
+    /// @param token the token address
+    function getTreasuryBalance(address token) public returns (uint256) {
+        return IERC20Upgradeable(token).balanceOf(treasury);
+    }
+
     /// @dev removes a stream (only admin role)
     /// @param streamId contract address
     /// @param streamFundReceiver receives the rest of the reward tokens in the stream
@@ -356,15 +362,23 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 releaseRewardAmount = stream.rewardDepositAmount -
             stream.rewardClaimedAmount;
         // check enough treasury balance
-        _checkTreasuryBalance(auroraToken, releaseAuroraAmount);
-        _checkTreasuryBalance(stream.rewardToken, releaseRewardAmount);
+        uint256 auroraTreasury = getTreasuryBalance(auroraToken);
+        uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
         // move rest of the unclaimed aurora to the admin
-        ITreasury(treasury).payRewards(admin, auroraToken, releaseAuroraAmount);
+        ITreasury(treasury).payRewards(
+            admin,
+            auroraToken,
+            releaseAuroraAmount <= auroraTreasury
+                ? releaseAuroraAmount
+                : auroraTreasury // should not happen
+        );
         // move the rest of rewards to the stream owner
         ITreasury(treasury).payRewards(
             streamFundReceiver,
             stream.rewardToken,
-            releaseRewardAmount
+            releaseRewardAmount <= rewardTreasury
+                ? releaseRewardAmount
+                : rewardTreasury // should not happen
         );
     }
 
@@ -401,7 +415,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.lastClaimedTime = block.timestamp;
         stream.auroraClaimedAmount += auroraStreamOwnerReward;
         // check enough treasury balance
-        _checkTreasuryBalance(auroraToken, auroraStreamOwnerReward);
         ITreasury(treasury).payRewards(
             stream.streamOwner,
             auroraToken,
@@ -609,7 +622,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 pendingAmount = userAccount.pendings[streamId];
         userAccount.pendings[streamId] = 0;
         // check treasury balance before moving funds
-        _checkTreasuryBalance(streams[streamId].rewardToken, pendingAmount);
         ITreasury(treasury).payRewards(
             msg.sender,
             streams[streamId].rewardToken,
@@ -1072,15 +1084,5 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
                     2;
             }
         }
-    }
-
-    /// @dev check whether the treasury contract has enough funds
-    /// @param token the token address
-    /// @param amount the amount of tokens
-    function _checkTreasuryBalance(address token, uint256 amount) private {
-        require(
-            IERC20Upgradeable(token).balanceOf(treasury) >= amount,
-            "INSUFFICIENT_FUNDS"
-        );
     }
 }
