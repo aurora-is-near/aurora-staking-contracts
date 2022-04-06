@@ -116,6 +116,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 timestamp
     );
 
+    event StreamProposalCancelled(
+        uint256 indexed streamId,
+        address indexed owner,
+        uint256 timestamp
+    );
+
     event StreamCreated(
         uint256 indexed streamId,
         address indexed owner,
@@ -257,7 +263,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _validateStreamParameters(
             streamOwner,
             rewardToken,
@@ -291,6 +297,31 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             address(this),
             auroraDepositAmount
         );
+    }
+
+    /// @dev cancelStreamProposal should only called if the stream owner
+    /// never created the stream after the proposal expiry date.
+    /// @param streamId the stream index
+    function cancelStreamProposal(uint256 streamId)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        Stream storage stream = streams[streamId];
+        require(
+            stream.proposalExpiresAt < block.timestamp && stream.isProposed,
+            "STREAM_DID_NOT_EXPIRE"
+        );
+        // cancel the proposal
+        stream.isProposed = false;
+        uint256 refundAmount = stream.auroraDepositAmount;
+        stream.auroraDepositAmount = 0;
+        emit StreamProposalCancelled(
+            streamId,
+            stream.streamOwner,
+            block.timestamp
+        );
+        // refund admin wallet with the stream aurora deposit
+        IERC20Upgradeable(auroraToken).safeTransfer(admin, refundAmount);
     }
 
     /// @dev create new stream (only stream owner)

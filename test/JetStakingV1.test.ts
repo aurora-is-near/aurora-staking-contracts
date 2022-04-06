@@ -1063,8 +1063,7 @@ describe("JetStakingV1", function () {
         await jet.connect(stakingAdmin).updateTreasury(newTreasury.address)
         expect(newTreasury.address).to.be.eq(await jet.treasury())
     })
-    it('should remove stream', async () => {
-        //TODO update the contract and the test
+    it('should admin remove stream', async () => {
         const id = 1
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
@@ -1087,6 +1086,31 @@ describe("JetStakingV1", function () {
         await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         await jet.connect(stakingAdmin).removeStream(id, user5.address)
         expect(await streamToken1.balanceOf(user5.address)).to.be.eq(maxRewardProposalAmountForAStream)
+    })
+    it('should admin cancel stream proposal after expiry date', async() => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            (await ethers.provider.getBlock("latest")).timestamp + 100,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // wait for the expiry date
+        await network.provider.send("evm_increaseTime", [oneDay])
+        await network.provider.send("evm_mine")
+        // cancel stream proposal
+        await jet.connect(stakingAdmin).cancelStreamProposal(id)
+        const stream = await jet.getStream(id)
+        expect(stream.isProposed).to.be.eq(false)
     })
     it('should admin able to update decay grace period', async () => {
         const newDecayGracePeriod = 2 * oneDay
