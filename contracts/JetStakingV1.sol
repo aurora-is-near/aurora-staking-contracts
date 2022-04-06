@@ -816,7 +816,9 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         Schedule storage schedule = schedules[streamId];
         require(schedule.time.length > 0, "NO_SCHEDULE");
         require(
-            end > start && start >= schedule.time[0],
+            end > start &&
+                start >= schedule.time[0] &&
+                end <= schedule.time[schedule.time.length - 1],
             "INVALID_SCHEDULE_PARAMETERS"
         );
         // find start index and end index
@@ -826,14 +828,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
                 break;
             }
         }
-        if (end > schedule.time[schedule.time.length - 1]) {
-            endIndex = schedule.time.length - 2;
-        } else {
-            for (uint256 i = schedule.time.length - 1; i > 0; i--) {
-                if (end >= schedule.time[i]) {
-                    endIndex = i;
-                    break;
-                }
+
+        for (uint256 i = schedule.time.length - 1; i > 0; i--) {
+            if (end >= schedule.time[i]) {
+                endIndex = i;
+                break;
             }
         }
     }
