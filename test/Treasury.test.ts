@@ -21,6 +21,7 @@ describe("Treasury", function () {
         [auroraOwner, newOwner, user1, user2, user3, user4, manager1, manager2, user5] = await ethers.getSigners()
         const supply = ethers.utils.parseUnits("1000000000", 18)
         const Token = await ethers.getContractFactory("Token")
+        const flags = 0
         auroraToken = await Token.connect(auroraOwner).deploy(supply, "AuroraToken", "AURORA")
         // random example for other reward token contracts
         streamToken1 = await Token.connect(user1).deploy(supply, "StreamToken1", "ST1")
@@ -34,7 +35,8 @@ describe("Treasury", function () {
                 [
                     auroraToken.address,
                     streamToken1.address
-                ]
+                ],
+                flags
             ]
         )
         await auroraToken.connect(auroraOwner).transfer(user1.address, ethers.utils.parseUnits("10000", 18))
@@ -48,7 +50,7 @@ describe("Treasury", function () {
 
     it('should allow transfer ownership', async () => {
         await treasury.connect(auroraOwner).transferOwnership(newOwner.address)
-        expect(await treasury.owner()).to.be.eq(newOwner.address)
+        expect(await treasury.admin()).to.be.eq(newOwner.address)
     })
 
     it('should only manager approve tokens to', async () => {
@@ -88,7 +90,7 @@ describe("Treasury", function () {
     })
 
     it('should allow only manager to add a new manager', async () => {
-        expect(treasury.connect(manager2).addManager(user2.address)).to.be.revertedWith("Sender is not a manager")
+        await expect(treasury.connect(manager2).addManager(user2.address)).to.be.revertedWith("SENDER_IS_NOT_MANAGER")
         await treasury.connect(manager1).addManager(manager2.address)
         expect(await treasury.isManager(manager2.address)).to.be.eq(true)
     })

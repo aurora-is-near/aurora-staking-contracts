@@ -1,5 +1,4 @@
 import { expect, use } from "chai";
-import { time } from "console";
 import { ethers, network, deployments, upgrades } from "hardhat";
 import * as constants from './constants'
 import { getEventLogs } from "./testHelper";
@@ -16,6 +15,7 @@ describe("JetStakingV1", function () {
     let user4: any
     let user5: any
     let spender: any
+    let streamOwner: any
     let treasury: any
     let jet: any
     let name: string
@@ -26,10 +26,10 @@ describe("JetStakingV1", function () {
     let scheduleRewards: any
     let oneDay: any
     let startTime: any
-
+    
     before(async () => {
         // deploys all the contracts
-        [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5, spender] = await ethers.getSigners()
+        [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5, spender, streamOwner] = await ethers.getSigners()
         const supply = ethers.utils.parseUnits("1000000000", 18)
         oneDay = 86400
         const Token = await ethers.getContractFactory("Token")
@@ -37,7 +37,7 @@ describe("JetStakingV1", function () {
         // random example for other reward token contracts
         streamToken1 = await Token.connect(user1).deploy(supply, "StreamToken1", "ST1")
         streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
-
+        const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
         treasury = await upgrades.deployProxy(
             Treasury, 
@@ -47,13 +47,13 @@ describe("JetStakingV1", function () {
                     auroraToken.address,
                     streamToken1.address,
                     streamToken2.address
-                ]
+                ],
+                flags
             ]
         )
 
         name = "Jet Staking V1" 
         symbol = "VOTE"
-        const flags = 0
         oneYear = 31556926
         tauPerStream = 10
 
@@ -84,7 +84,10 @@ describe("JetStakingV1", function () {
                 scheduleRewards,
                 tauPerStream,
                 flags,
-                treasury.address
+                treasury.address,
+                oneDay,
+                oneDay,
+                60 * oneDay
             ]
         )
         await jet.transferOwnership(stakingAdmin.address)
@@ -97,6 +100,7 @@ describe("JetStakingV1", function () {
         await auroraToken.connect(auroraOwner).transfer(user2.address, ethers.utils.parseUnits("10000", 18))
         await auroraToken.connect(auroraOwner).transfer(user3.address, ethers.utils.parseUnits("10000", 18))
         await auroraToken.connect(auroraOwner).transfer(user4.address, ethers.utils.parseUnits("10000", 18))
+        await auroraToken.connect(auroraOwner).transfer(stakingAdmin.address, ethers.utils.parseUnits("100000000", 18))
         // console.log(balanceOfAurorOwner)
         // transfer 20% of the total supply to the treasury contract
         const twentyPercentOfAuroraTotalSupply = ethers.utils.parseUnits("200000000", 18)
@@ -133,43 +137,171 @@ describe("JetStakingV1", function () {
         expect(await jet.symbol()).to.eq(symbol)
     })
 
-    it('should allow admin to deploy new stream', async () => {
-        const weight = 10
-        const tx = await jet.connect(stakingAdmin).deployStream(
+    it('should allow admin to propose new stream', async () => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        const tx = await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
             streamToken1.address,
-            weight,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
         )
-        const {stream, index, } = await getEventLogs(tx.hash, constants.eventsABI.streamActivated, 0)
-        expect(stream).to.be.eq(streamToken1.address)
-        expect(index).to.be.eq(await jet.streamToIndex(stream))
+        // console.log(tx)
+        const {streamId, owner, } = await getEventLogs(tx.hash, constants.eventsABI.streamProposed, 0)
+        // console.log(streamId, owner)
+        expect(owner).to.be.eq(user1.address)
+        expect(streamId.toNumber()).to.be.eq(id)
     })
-
-    it('should stake aurora tokens', async () => {
-        await jet.connect(stakingAdmin).deployStream(
+    it('should allow stream owner to create a stream', async () => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
             streamToken1.address,
-            10,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
         )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        const tx = await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        const {streamId, owner, } = await getEventLogs(tx.hash, constants.eventsABI.streamCreated, 0)
+        expect(owner).to.be.eq(user1.address)
+        expect(streamId.toNumber()).to.be.eq(id)
+        expect(await jet.streamsCount()).to.be.eq(1)
+    })
+    it('should create stream and refund staking admin if deposit reward is less than the upper amount', async () => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens (50% of the max reward proposal amount for a stream)
+        const RewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        await streamToken1.connect(user1).approve(jet.address, RewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, RewardProposalAmountForAStream)
+        const stream = await jet.getStream(id)
+        expect(stream.rewardDepositAmount).to.be.eq(
+            RewardProposalAmountForAStream
+        )
+        expect(
+            parseInt(ethers.utils.formatEther(maxRewardProposalAmountForAStream))
+        ).to.be.greaterThan(
+            parseInt(ethers.utils.formatEther(stream.rewardDepositAmount))
+        )
+        const expectedAuroraDeposit = parseInt(ethers.utils.formatEther(stream.rewardDepositAmount)) * parseInt(ethers.utils.formatEther(auroraProposalAmountForAStream)) / parseInt(ethers.utils.formatEther(maxRewardProposalAmountForAStream))
+        expect(
+            parseInt(ethers.utils.formatEther(auroraProposalAmountForAStream))
+        ).to.be.greaterThan(
+            parseInt(ethers.utils.formatEther(stream.auroraDepositAmount))
+        )
+        expect(expectedAuroraDeposit).to.be.eq(parseInt(ethers.utils.formatEther(stream.auroraDepositAmount)))
+        const rewardSchedule = await jet.getSchedule(id)
+        for (let i = 0; i < rewardSchedule[1].length; i++) {
+            i != rewardSchedule[1].length - 1 ? expect(parseInt(ethers.utils.formatEther(rewardSchedule[1][i]))).to.be.eq(parseInt(ethers.utils.formatEther(scheduleRewards[i]))/2) :
+            expect(parseInt(ethers.utils.formatEther(rewardSchedule[1][i]))).to.be.eq(0)
+        }
+    })
+    it('should release aurora rewards to stream owner', async () => {
+        const user1BalanceBefore = parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        // release aurora reward after ~ 1 year
+        await network.provider.send("evm_increaseTime", [365 * oneDay])
+        await network.provider.send("evm_mine")
+        const claimableBefore = await jet.getStreamOwnerClaimableAmount(id)
+        await jet.connect(user1).releaseAuroraRewardsToStreamOwner(id)
+        const user1BalanceAfter = parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
+        expect(user1BalanceBefore).to.be.lessThanOrEqual(user1BalanceAfter)
+        const actualReward = user1BalanceAfter - user1BalanceBefore
+        const expectedReward = parseInt(ethers.utils.formatEther(auroraProposalAmountForAStream)) * 0.5
+        expect(actualReward).to.be.within(expectedReward - 10, expectedReward + 10)
+        await network.provider.send("evm_mine") // Prevent RangeError: Maximum call stack size exceeded
+        const claimableAfter = await jet.getStreamOwnerClaimableAmount(id)
+        expect(claimableAfter).to.be.lt(claimableBefore)
+    })
+    it('should stake aurora tokens', async () => {
         const amountStaked = ethers.utils.parseUnits("10", 18)
         await auroraToken.connect(user1).approve(jet.address, amountStaked)
         const tx = await jet.connect(user1).stake(amountStaked)
         const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.staked, 0)
         expect(amount).to.be.eq(amountStaked)
     })
-
     it('user stakes and never claims', async () => {
-        await jet.connect(stakingAdmin).deployStream(
-            streamToken1.address,
-            10,
-            scheduleTimes,
-            scheduleRewards,
-            tauPerStream
-        )
         const amountStaked1 = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amountStaked1)
         await jet.connect(user1).stake(amountStaked1)
@@ -185,7 +317,7 @@ describe("JetStakingV1", function () {
         ((parseInt(scheduleRewards[3]) - parseInt(scheduleRewards[4])) / 1e18) + 
         parseInt(scheduleRewards[4]) / 1e18 +
         parseInt(ethers.utils.formatEther(amountStaked1))
-        expect(parseInt(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))).to.be.eq(
+        expect(parseInt(ethers.utils.formatEther(await jet.totalAmountOfStakedAurora()))).to.be.lessThanOrEqual(
             parseInt(expectedReward.toString())
         )
         expect(parseInt(ethers.utils.formatUnits(amountStaked1, 0))).to.be.eq(
@@ -377,9 +509,9 @@ describe("JetStakingV1", function () {
         const timeDiff = currentTime - startTime
         const expectedScheduledReward = 
             (parseInt(ethers.utils.formatEther(scheduleRewards[0])) - parseInt(ethers.utils.formatEther(scheduleRewards[1]))) * (timeDiff) / oneYear
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.lessThanOrEqual(parseInt(expectedScheduledReward.toString()))
-        expect(parseInt(scheduleCalculated.toNumber())).to.be.lessThanOrEqual(parseInt(expectedScheduledReward.toString()))
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.lessThanOrEqual(parseInt(expectedScheduledReward.toString()))
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(parseInt(expectedScheduledReward.toString()) - 10, parseInt(expectedScheduledReward.toString()) + 10)
+        expect(parseInt(scheduleCalculated.toNumber())).to.be.greaterThanOrEqual(parseInt(expectedScheduledReward.toString()))
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.greaterThanOrEqual(parseInt(expectedScheduledReward.toString()))
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(0)
     })
@@ -395,9 +527,9 @@ describe("JetStakingV1", function () {
             (parseInt(ethers.utils.formatEther(scheduleRewards[0])) - parseInt(ethers.utils.formatEther(scheduleRewards[1])))
         const expectedScheduledReward2 = (parseInt(ethers.utils.formatEther(scheduleRewards[1])) - parseInt(ethers.utils.formatEther(scheduleRewards[2]))) * (timeDiff - oneYear) / oneYear
         const expectedScheduledReward = parseInt(expectedScheduledReward1.toString()) + parseInt(expectedScheduledReward2.toString())
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.lessThanOrEqual(expectedScheduledReward)
-        expect(scheduleCalculated.toNumber()).to.be.lessThanOrEqual(expectedScheduledReward)
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.lessThanOrEqual(expectedScheduledReward)
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.greaterThanOrEqual(expectedScheduledReward)
+        expect(scheduleCalculated.toNumber()).to.be.greaterThanOrEqual(expectedScheduledReward)
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.greaterThanOrEqual(expectedScheduledReward)
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(1)
     })
@@ -414,9 +546,9 @@ describe("JetStakingV1", function () {
             (parseInt(ethers.utils.formatEther(scheduleRewards[1])) - parseInt(ethers.utils.formatEther(scheduleRewards[2])))
         const expectedScheduledReward2 = (parseInt(ethers.utils.formatEther(scheduleRewards[2])) - parseInt(ethers.utils.formatEther(scheduleRewards[3]))) * (timeDiff - 2 * oneYear) / oneYear
         const expectedScheduledReward = parseInt(expectedScheduledReward1.toString()) + parseInt(expectedScheduledReward2.toString())
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.lessThanOrEqual(expectedScheduledReward)
-        expect(scheduleCalculated.toNumber()).to.be.lessThanOrEqual(expectedScheduledReward)
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.lessThanOrEqual(expectedScheduledReward)
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.greaterThanOrEqual(expectedScheduledReward)
+        expect(scheduleCalculated.toNumber()).to.be.greaterThanOrEqual(expectedScheduledReward)
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.greaterThanOrEqual(expectedScheduledReward)
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(2)
     })
@@ -613,13 +745,33 @@ describe("JetStakingV1", function () {
     })
     it('should claim all rewards', async () => {
         // deploy stream
-        await jet.connect(stakingAdmin).deployStream(
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
             streamToken1.address,
-            10,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
         )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         // stake 
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
@@ -627,42 +779,71 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_increaseTime", [oneDay])
         await network.provider.send("evm_mine")
         await jet.connect(user1).moveAllRewardsToPending()
-        const streamId = await jet.streamToIndex(streamToken1.address)
         expect(
-            parseInt(await jet.getPending(streamId, user1.address))
+            parseInt(await jet.getPending(id, user1.address))
         ).to.be.greaterThan(0)
     })
     it('should get reward per share for user', async () => {
-        const streamId = 1
-        expect(parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))).to.be.eq(0)
+        const id = 1
+        expect(parseInt(await jet.getRewardPerShareForUser(id, user1.address))).to.be.eq(0)
          // deploy stream
-         await jet.connect(stakingAdmin).deployStream(
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
             streamToken1.address,
-            10,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
         )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
         await jet.connect(user1).stake(amount)
         expect(amount).to.be.eq(
-            await jet.getAmountOfShares(streamId, user1.address)
+            await jet.getAmountOfShares(id, user1.address)
         )
     })
     it('should get reward per share for a user', async () => {
-        const streamId = 1
-        const user1RPSBefore = parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))
+        const id = 1
+        const user1RPSBefore = parseInt(await jet.getRewardPerShareForUser(id, user1.address))
         expect(user1RPSBefore).to.be.eq(0)
-        expect(parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))).to.be.eq(0)
-         // deploy stream
-         await jet.connect(stakingAdmin).deployStream(
+        expect(parseInt(await jet.getRewardPerShareForUser(id, user1.address))).to.be.eq(0)
+        // deploy stream
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
             streamToken1.address,
-            10,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
         )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
         await jet.connect(user1).stake(amount)
@@ -670,19 +851,37 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_mine")
         await auroraToken.connect(user1).approve(jet.address, amount)
         await jet.connect(user1).stake(amount)
-        const user1RPSAfter = parseInt(await jet.getRewardPerShareForUser(streamId, user1.address))
+        const user1RPSAfter = parseInt(await jet.getRewardPerShareForUser(id, user1.address))
         expect(user1RPSAfter).to.be.greaterThan(user1RPSBefore)
     })
     it('should get claimable amount', async() => {
-         // deploy stream
-         const streamId = 1
-         await jet.connect(stakingAdmin).deployStream(
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
             streamToken1.address,
-            10,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
         )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         // stake 
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
@@ -690,24 +889,43 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_increaseTime", [oneDay])
         await network.provider.send("evm_mine")
         // get stream claimable amount
-        const userRPS = parseInt(ethers.utils.formatEther(await jet.getRewardPerShareForUser(streamId, user1.address)))
-        const latestRPS = parseInt(ethers.utils.formatEther(await jet.getLatestRewardPerShare(streamId)))
+        const userRPS = parseInt(ethers.utils.formatEther(await jet.getRewardPerShareForUser(id, user1.address)))
+        const latestRPS = parseInt(ethers.utils.formatEther(await jet.getLatestRewardPerShare(id)))
         const userShares = parseInt(ethers.utils.formatEther(await jet.getUserShares(user1.address)))
         const expectedClaimableAmount = (latestRPS - userRPS) * userShares / 1e13
         expect(parseInt(
-            ethers.utils.formatEther(await jet.getStreamClaimableAmount(streamId, user1.address))
+            ethers.utils.formatEther(await jet.getStreamClaimableAmount(id, user1.address))
         )).to.be.eq(parseInt(expectedClaimableAmount.toString()))
     })
     it('should restake the rest of aurora tokens', async () => {
         // deploy stream
-        const streamId = 1
-        await jet.connect(stakingAdmin).deployStream(
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
             streamToken1.address,
-            10,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
         )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         // stake 
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user5).approve(jet.address, amount)
@@ -718,8 +936,8 @@ describe("JetStakingV1", function () {
         const fiftyPercentOfShares = ethers.utils.parseUnits("500", 18)
         await jet.connect(user5).unstake(fiftyPercentOfShares)
         // get stream claimable amount
-        const userRPS = parseInt(ethers.utils.formatEther(await jet.getRewardPerShareForUser(streamId, user5.address)))
-        await network.provider.send("evm_increaseTime", [1])
+        const userRPS = parseInt(ethers.utils.formatEther(await jet.getRewardPerShareForUser(id, user5.address)))
+        await network.provider.send("evm_increaseTime", [1000])
         await network.provider.send("evm_mine")
         const userDepositAfter = parseInt(await jet.getUserTotalDeposit(user5.address))
         expect(userDepositBefore).to.be.lessThan(userDepositAfter)
@@ -747,16 +965,37 @@ describe("JetStakingV1", function () {
             startTime + 3 * oneYear, 
             startTime + 4 * oneYear
         ]
-        const streamId = 1
-        await jet.connect(stakingAdmin).deployStream(
-           streamToken1.address,
-           10,
-           scheduleTimes,
-           scheduleRewards,
-           tauPerStream
-       )
-       expect(
-            parseInt(await jet.getLatestRewardPerShare(streamId)) / 1e31
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        await network.provider.send("evm_increaseTime", [100])
+        await network.provider.send("evm_mine")
+        expect(
+            parseInt(await jet.getLatestRewardPerShare(id)) / 1e31
         ).to.be.greaterThan(0)
     })
     it('should calculate stream claimable rewards from stream start', async () => {
@@ -776,16 +1015,37 @@ describe("JetStakingV1", function () {
             startTime + 3 * oneYear, 
             startTime + 4 * oneYear
         ]
-        const streamId = 1
-        await jet.connect(stakingAdmin).deployStream(
-           streamToken1.address,
-           10,
-           scheduleTimes,
-           scheduleRewards,
-           tauPerStream
-       )
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        await network.provider.send("evm_increaseTime", [100])
+        await network.provider.send("evm_mine")
        expect(
-            parseInt(await jet.getStreamClaimableAmount(streamId, user1.address))
+            parseInt(await jet.getStreamClaimableAmount(id, user1.address))
         ).to.be.greaterThan(0)
     })
     it('should claim rewards for a stream even if user staked before stream deployment', async () => {
@@ -796,7 +1056,7 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_increaseTime", [30 * oneDay])
         await network.provider.send("evm_mine")
         // deploy stream
-        startTime = (await ethers.provider.getBlock("latest")).timestamp
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
         scheduleTimes = [
             startTime, 
             startTime + oneYear, 
@@ -804,21 +1064,58 @@ describe("JetStakingV1", function () {
             startTime + 3 * oneYear, 
             startTime + 4 * oneYear
         ]
-        const streamId = 1
-        await jet.connect(stakingAdmin).deployStream(
-           streamToken1.address,
-           10,
-           scheduleTimes,
-           scheduleRewards,
-           tauPerStream
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
         )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         await network.provider.send("evm_increaseTime", [30 * oneDay])
         await network.provider.send("evm_mine")
-        await jet.connect(user1).moveRewardsToPending(streamId)
+        await jet.connect(user1).moveRewardsToPending(id)
         const pending = ((scheduleRewards[0] - scheduleRewards[1])/ 1e18) * (30 * oneDay) / oneYear
-        expect(parseInt(ethers.utils.formatEther(await jet.getPending(streamId, user1.address)))).to.be.greaterThanOrEqual(
+        expect(parseInt(ethers.utils.formatEther(await jet.getPending(id, user1.address)))).to.be.lessThanOrEqual(
             parseInt(pending.toString())
         )
+    })
+    it('should be able to unstake and withdraw even if after the schedule ends', async () => {
+        // stake 
+        const amount = ethers.utils.parseUnits("1000", 18)
+        const user1BalanceBefore = parseInt(await auroraToken.balanceOf(user1.address))
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        // unstake
+        await network.provider.send("evm_increaseTime", [5 * oneYear])
+        await network.provider.send("evm_mine")
+        const shares = amount
+        await jet.connect(user1).unstake(shares)
+        // withdraw
+        await network.provider.send("evm_increaseTime", [tauPerStream + 1])
+        await network.provider.send("evm_mine")
+        const streamId = 0 // main aurora rewards
+        await jet.connect(user1).withdraw(streamId)
+        const user1BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
+        expect(user1BalanceAfter).to.be.greaterThan(user1BalanceBefore)
+    })
+    it('should not stake after the schedule end', async () => {
+        await network.provider.send("evm_increaseTime", [5 * oneYear])
+        await network.provider.send("evm_mine")
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await expect(jet.connect(user1).stake(amount)).to.be.revertedWith('INVALID_SCHEDULE')
     })
     it('should only admin update the treasury address', async () => {
         // deploy new treasury contract
@@ -831,22 +1128,88 @@ describe("JetStakingV1", function () {
                     auroraToken.address,
                     streamToken1.address,
                     streamToken2.address
-                ]
+                ],
+                0 // flags
             ]
         )
         await jet.connect(stakingAdmin).updateTreasury(newTreasury.address)
         expect(newTreasury.address).to.be.eq(await jet.treasury())
     })
-    it('should remove stream', async () => {
-        //TODO update the contract and the test
-        const streamId = 1
-        await jet.connect(stakingAdmin).deployStream(
-           streamToken1.address,
-           10,
-           scheduleTimes,
-           scheduleRewards,
-           tauPerStream
+    it('should admin remove stream', async () => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
         )
-        await jet.connect(stakingAdmin).removeStream(streamId, user2.address)
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        await jet.connect(stakingAdmin).removeStream(id, user5.address)
+        expect(await streamToken1.balanceOf(user5.address)).to.be.eq(maxRewardProposalAmountForAStream)
+    })
+    it('should admin cancel stream proposal after expiry date', async() => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // wait for the expiry date
+        await network.provider.send("evm_increaseTime", [oneDay])
+        await network.provider.send("evm_mine")
+        // cancel stream proposal
+        await jet.connect(stakingAdmin).cancelStreamProposal(id)
+        const stream = await jet.getStream(id)
+        expect(stream.isProposed).to.be.eq(false)
+    })
+    it('should admin able to update decay grace period', async () => {
+        const newDecayGracePeriod = 2 * oneDay
+        await jet.connect(stakingAdmin).updateDecayGracePeriod(newDecayGracePeriod)
+        expect(newDecayGracePeriod).to.be.eq(
+            parseInt(await jet.decayGracePeriod())
+        )
+    })
+    it('should admin able to update burn grace period', async () => {
+        const newBurnGracePeriod = 2 * oneDay
+        await jet.connect(stakingAdmin).updateBurnGracePeriod(newBurnGracePeriod)
+        expect(newBurnGracePeriod).to.be.eq(
+            parseInt(await jet.burnGracePeriod())
+        )
     })
 });

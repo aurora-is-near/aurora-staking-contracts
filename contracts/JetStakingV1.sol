@@ -5,6 +5,7 @@ import "./ITreasury.sol";
 import "./AdminControlled.sol";
 import "./VotingERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 /**
  * @title JetStakingV1
@@ -30,17 +31,21 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
  *      hopfully it be governed by a community wallet.
  */
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     uint256 constant DENOMINATOR = 31556926; //1Year
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
     uint256 constant RPS_MULTIPLIER = 1e31;
     uint256 public totalAmountOfStakedAurora;
     uint256 public touchedAt;
-    uint256[] weights;
     uint256[] public tau;
     uint256[] public totalShares;
-    address[] public streams;
+    uint256 public decayGracePeriod;
+    uint256 public burnGracePeriod;
+    uint256 public seasonDuration;
+    uint256 public streamsCount;
     address public treasury;
+    address public auroraToken;
 
     struct User {
         uint256 deposit;
@@ -55,11 +60,25 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] reward;
     }
 
+    struct Stream {
+        address streamOwner;
+        address rewardToken;
+        uint256 auroraDepositAmount;
+        uint256 auroraClaimedAmount;
+        uint256 rewardDepositAmount;
+        uint256 rewardClaimedAmount;
+        uint256 maxDepositAmount;
+        uint256 lastClaimedTime;
+        bool isProposed;
+        bool isActive;
+    }
+
     mapping(address => User) users;
     mapping(address => uint256) public streamToIndex;
     mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
     mapping(address => bool) public whitelistedContracts;
     Schedule[] schedules;
+    Stream[] streams;
 
     // events
     event Staked(
@@ -90,15 +109,27 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 timestamp
     );
 
-    event StreamActivated(
-        address indexed stream,
-        uint256 index,
+    event StreamProposed(
+        uint256 indexed streamId,
+        address indexed owner,
         uint256 timestamp
     );
 
-    event StreamDeactivated(
-        address indexed stream,
-        uint256 index,
+    event StreamProposalCancelled(
+        uint256 indexed streamId,
+        address indexed owner,
+        uint256 timestamp
+    );
+
+    event StreamCreated(
+        uint256 indexed streamId,
+        address indexed owner,
+        uint256 timestamp
+    );
+
+    event StreamRemoved(
+        uint256 indexed streamId,
+        address indexed owner,
         uint256 timestamp
     );
 
@@ -116,6 +147,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         _;
     }
 
+    modifier onlyActiveStream(uint256 streamId) {
+        require(streams[streamId].isActive, "INACTIVE_STREAM");
+        _;
+    }
+
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @param aurora token contract address
     /// @param scheduleTimes init the schedule time
@@ -123,6 +159,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param tauAuroraStream release time constant per stream (e.g AURORA stream)
     /// @param _flags admin controlled contract flags
     /// @param _treasury the Aurora treasury contract address
+    /// @param _decayGracePeriod period for each season in which vote tokes don't decay
+    /// @param _burnGracePeriod period for each season after which admin is able to burn unused vote tokens
     function initialize(
         address aurora,
         string memory voteTokenName,
@@ -131,7 +169,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] memory scheduleRewards,
         uint256 tauAuroraStream,
         uint256 _flags,
-        address _treasury
+        address _treasury,
+        uint256 _decayGracePeriod,
+        uint256 _burnGracePeriod,
+        uint256 _seasonDuration
     ) public initializer {
         require(
             aurora != address(0) && _treasury != address(0),
@@ -139,63 +180,299 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
         __ERC20_init(voteTokenName, voteTokenSymbol);
         __AdminControlled_init(_flags);
+        require(_seasonDuration > 0, "INVALID_SEASON_DURATION");
+        require(
+            _decayGracePeriod < _seasonDuration,
+            "INVALID_DECAY_GRACE_PERIOD"
+        );
+        require(
+            _burnGracePeriod < _seasonDuration,
+            "INVALID_BURN_GRACE_PERIOD"
+        );
+        seasonDuration = _seasonDuration;
         treasury = _treasury;
-        streams.push(aurora);
-        streamToIndex[aurora] = 0;
+        auroraToken = aurora;
         totalShares.push(0);
-        weights.push(1); //TODO: need to be set
         totalAmountOfStakedAurora = 0;
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
         tau.push(tauAuroraStream);
-        // default stream added (AURORA with an index 0)
-        emit StreamActivated(aurora, streamToIndex[aurora], block.timestamp);
+        decayGracePeriod = _decayGracePeriod;
+        burnGracePeriod = _burnGracePeriod;
+        //init AURORA default stream
+        uint256 streamId = 0;
+        streams.push();
+        Stream storage stream = streams[streamId];
+        stream.streamOwner = msg.sender;
+        stream.rewardToken = aurora;
+        stream.auroraDepositAmount = 0;
+        stream.auroraClaimedAmount = 0;
+        stream.maxDepositAmount = 0;
+        stream.rewardDepositAmount = 0;
+        stream.rewardClaimedAmount = 0;
+        stream.lastClaimedTime = 0;
+        stream.isProposed = true;
+        stream.isActive = true;
+        emit StreamProposed(streamId, msg.sender, block.timestamp);
+        emit StreamCreated(streamId, msg.sender, block.timestamp);
     }
 
-    /// @dev deploys new stream (only admin role)
-    /// @param stream token contract address
-    /// @param weight the stream weight constant
-    /// @param scheduleTimes init the schedule time for a stream
-    /// @param scheduleRewards init the schedule amounts for a stream
-    /// @param tauPerStream release time constant per stream (e.g AURORA stream)
-    function deployStream(
-        address stream,
-        uint256 weight,
+    /// @notice updates decay grace period
+    /// @dev restricted for the admin only
+    /// @param _decayGracePeriod period for each season in which vote tokes don't decay
+    function updateDecayGracePeriod(uint256 _decayGracePeriod)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(_decayGracePeriod < seasonDuration);
+        decayGracePeriod = _decayGracePeriod;
+    }
+
+    /// @notice updates burn grace period
+    /// @dev restricted for the admin only
+    /// @param _burnGracePeriod period for each season in which vote tokes don't decay
+    function updateBurnGracePeriod(uint256 _burnGracePeriod)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(_burnGracePeriod < seasonDuration);
+        burnGracePeriod = _burnGracePeriod;
+    }
+
+    /// @dev An admin of the staking contract can whitelist a stream.
+    ///Whitelisting of the stream provides the option for the stream
+    ///creator (presumably the issuing party of a specific token) to
+    ///deposit some ERC-20 tokens on the staking contract and potentially
+    ///get in return some AURORA tokens. Deposited ERC-20 tokens will be
+    ///distributed to the stakers over some period of time.
+    /// @param streamOwner only this account would be able to create a stream
+    /// @param rewardToken the address of the ERC-20 tokens to be deposited in the stream
+    /// @param auroraDepositAmount Amount of the AURORA deposited by the Admin.
+    /// @param maxDepositAmount The upper amount of the tokens that should be deposited by the stream owner
+    /// @param scheduleTimes array of block heights for each schedule time
+    /// @param scheduleRewards array of reward amounts that are kept on the staking contract at each block height
+    /// @param tauPerStream a constant release time per stream (e.g 1 day in seconds)
+    function proposeStream(
+        address streamOwner,
+        address rewardToken,
+        uint256 auroraDepositAmount,
+        uint256 maxDepositAmount,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) onlyValidSchedule {
-        require(stream != address(0), "INVALID_ADDRESS");
-        require(
-            streamToIndex[stream] == 0 && streams.length > 0,
-            "STREAM_ALREADY_EXISTS"
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _validateStreamParameters(
+            streamOwner,
+            rewardToken,
+            auroraDepositAmount,
+            maxDepositAmount,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
         );
-        streamToIndex[stream] = streams.length;
-        streams.push(stream);
-        // TODO update if weighting calculation changes
-        totalShares.push(totalShares[0] * _weighting(weight, block.timestamp));
-        weights.push(weight);
+        totalShares.push(totalShares[0] * _weighting(block.timestamp));
         tau.push(tauPerStream);
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
-        emit StreamActivated(stream, streamToIndex[stream], block.timestamp);
+        uint256 streamId = streams.length;
+        streams.push();
+        Stream storage stream = streams[streamId];
+        stream.streamOwner = streamOwner;
+        stream.rewardToken = rewardToken;
+        stream.auroraDepositAmount = auroraDepositAmount;
+        stream.auroraClaimedAmount = 0;
+        stream.maxDepositAmount = maxDepositAmount;
+        stream.rewardDepositAmount = 0;
+        stream.rewardClaimedAmount = 0;
+        stream.lastClaimedTime = schedules[streamId].time[0];
+        stream.isProposed = true;
+        stream.isActive = false;
+        emit StreamProposed(streamId, streamOwner, block.timestamp);
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            auroraDepositAmount
+        );
+    }
+
+    /// @dev cancelStreamProposal should only called if the stream owner
+    /// never created the stream after the proposal expiry date.
+    /// @param streamId the stream index
+    function cancelStreamProposal(uint256 streamId)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        Stream storage stream = streams[streamId];
+        require(
+            schedules[streamId].time[0] < block.timestamp && stream.isProposed,
+            "STREAM_DID_NOT_EXPIRE"
+        );
+        // cancel the proposal
+        stream.isProposed = false;
+        uint256 refundAmount = stream.auroraDepositAmount;
+        stream.auroraDepositAmount = 0;
+        emit StreamProposalCancelled(
+            streamId,
+            stream.streamOwner,
+            block.timestamp
+        );
+        // refund admin wallet with the stream aurora deposit
+        IERC20Upgradeable(auroraToken).safeTransfer(admin, refundAmount);
+    }
+
+    /// @dev create new stream (only stream owner)
+    /// stream owner must approve reward tokens to this contract.
+    /// @param streamId stream id
+    function createStream(uint256 streamId, uint256 rewardTokenAmount)
+        external
+    {
+        Stream storage stream = streams[streamId];
+        require(stream.isProposed, "STREAM_NOT_PROPOSED");
+        require(stream.streamOwner == msg.sender, "INVALID_STREAM_OWNER");
+        require(!stream.isActive, "STREAM_ALREADY_EXISTS");
+        require(
+            schedules[streamId].time[0] >= block.timestamp,
+            "STREAM_PROPOSAL_EXPIRED"
+        );
+        stream.isActive = true;
+        streamsCount++;
+        emit StreamCreated(streamId, msg.sender, block.timestamp);
+        if (rewardTokenAmount < stream.maxDepositAmount) {
+            // refund staking admin if deposited reward tokens less than the upper limit of deposit
+            uint256 refundAuroraAmount = ((stream.maxDepositAmount -
+                rewardTokenAmount) * stream.auroraDepositAmount) /
+                stream.maxDepositAmount;
+            IERC20Upgradeable(auroraToken).safeTransfer(
+                admin,
+                refundAuroraAmount
+            );
+            stream.auroraDepositAmount -= refundAuroraAmount;
+            // update stream reward schedules
+            _updateStreamRewardSchedules(streamId, rewardTokenAmount);
+        }
+
+        stream.rewardDepositAmount = rewardTokenAmount;
+        // move Aurora tokens to treasury
+        IERC20Upgradeable(auroraToken).safeTransfer(
+            address(treasury),
+            stream.auroraDepositAmount
+        );
+        // move reward tokens to treasury
+        IERC20Upgradeable(stream.rewardToken).safeTransferFrom(
+            msg.sender,
+            address(treasury),
+            rewardTokenAmount
+        );
+    }
+
+    /// @dev Get the treasury balance
+    /// @param token the token address
+    function getTreasuryBalance(address token) public returns (uint256) {
+        return IERC20Upgradeable(token).balanceOf(treasury);
     }
 
     /// @dev removes a stream (only admin role)
     /// @param streamId contract address
-    /// @param streamFundReceiver address where it recieve the avialable tokens in this stream if there is any.
+    /// @param streamFundReceiver receives the rest of the reward tokens in the stream
     function removeStream(uint256 streamId, address streamFundReceiver)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(streamId != 0, "INVALID_STREAM_ID");
-        require(
-            streamFundReceiver != address(0),
-            "INVALID_STREAM_FUND_RECEIVER"
+        require(streamId != 0, "AURORA_NOT_REMOVABLE");
+        Stream storage stream = streams[streamId];
+        require(stream.isActive, "STREAM_ALREADY_REMOVED");
+        stream.isActive = false;
+        stream.isProposed = false;
+        emit StreamRemoved(streamId, stream.streamOwner, block.timestamp);
+        uint256 releaseAuroraAmount = stream.auroraDepositAmount -
+            stream.auroraClaimedAmount;
+        uint256 releaseRewardAmount = stream.rewardDepositAmount -
+            stream.rewardClaimedAmount;
+        // check enough treasury balance
+        uint256 auroraTreasury = getTreasuryBalance(auroraToken);
+        uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
+        // move rest of the unclaimed aurora to the admin
+        ITreasury(treasury).payRewards(
+            admin,
+            auroraToken,
+            releaseAuroraAmount <= auroraTreasury
+                ? releaseAuroraAmount
+                : auroraTreasury // should not happen
         );
-        _before();
-        //TODO: move all the total reward to the treasury for future distributions
-        //TODO: move the rest of rewards to the stream owner
-        //TODO: set the stream status to deactivated
-        emit StreamDeactivated(streams[streamId], streamId, block.timestamp);
+        // move the rest of rewards to the stream owner
+        ITreasury(treasury).payRewards(
+            streamFundReceiver,
+            stream.rewardToken,
+            releaseRewardAmount <= rewardTreasury
+                ? releaseRewardAmount
+                : rewardTreasury // should not happen
+        );
+    }
+
+    /// @dev Stream owner claimable AURORA.
+    /// @param streamId the stream index
+    function getStreamOwnerClaimableAmount(uint256 streamId)
+        public
+        view
+        returns (uint256)
+    {
+        Stream storage stream = streams[streamId];
+        if (!stream.isActive) return 0;
+        uint256 scheduledReward = rewardsSchedule(
+            streamId,
+            stream.lastClaimedTime,
+            block.timestamp
+        );
+        return
+            (scheduledReward * stream.auroraDepositAmount) /
+            stream.rewardDepositAmount;
+    }
+
+    /// @dev the release of AURORA tokens to the stream creator is subjected to the same schedule as rewards.
+    /// Thus if for a specific moment in time 30% of the rewards are distributed, then it means that 30% of
+    /// the AURORA deposit can be withdrawn by the stream creator too.
+    /// called by the stream owner
+    /// @param streamId the stream index
+    function releaseAuroraRewardsToStreamOwner(uint256 streamId) public {
+        Stream storage stream = streams[streamId];
+        require(msg.sender == stream.streamOwner, "INVALID_STREAM_OWNER");
+        require(stream.isActive, "INACTIVE_STREAM");
+        uint256 auroraStreamOwnerReward = getStreamOwnerClaimableAmount(
+            streamId
+        );
+        stream.lastClaimedTime = block.timestamp;
+        stream.auroraClaimedAmount += auroraStreamOwnerReward;
+        // check enough treasury balance
+        ITreasury(treasury).payRewards(
+            stream.streamOwner,
+            auroraToken,
+            auroraStreamOwnerReward
+        );
+    }
+
+    /// @dev get the stream data
+    /// @param streamId the stream index
+    function getStream(uint256 streamId)
+        public
+        view
+        returns (
+            address streamOwner,
+            address rewardToken,
+            uint256 auroraDepositAmount,
+            uint256 rewardDepositAmount,
+            uint256 maxDepositAmount,
+            bool isProposed,
+            bool isActive
+        )
+    {
+        Stream storage stream = streams[streamId];
+        return (
+            stream.streamOwner,
+            stream.rewardToken,
+            stream.auroraDepositAmount,
+            stream.rewardDepositAmount,
+            stream.maxDepositAmount,
+            stream.isProposed,
+            stream.isActive
+        );
     }
 
     /// @notice updates treasury account
@@ -295,7 +572,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             //TODO: mint voting tokens
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
-        IERC20Upgradeable(streams[0]).transferFrom(
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             batchAmount
@@ -312,7 +589,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         _stakeOnBehalfOfAnotherUser(account, amount);
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
-        IERC20Upgradeable(streams[0]).transferFrom(
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             amount
@@ -323,7 +600,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// It will require a waiting time untill it get released. Users call
     /// this in function in order to claim rewards.
     /// @param streamId stream index
-    function moveRewardsToPending(uint256 streamId) external {
+    function moveRewardsToPending(uint256 streamId)
+        external
+        onlyActiveStream(streamId)
+    {
+        require(streams[streamId].isActive, "STREAM_NOT_ACTIVE");
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
@@ -331,6 +612,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @dev moves all the user rewards to pending reward.
     function moveAllRewardsToPending() external {
         _before();
+        // Claim all streams while skipping inactive streams.
         _moveAllRewardsToPending(msg.sender);
     }
 
@@ -345,8 +627,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // mint and update the user's voting tokens balance
         //TODO: mint voting tokens
         _balances[msg.sender] += userAccount.shares[0];
-        //TODO: change the pay reward by calling the treasury.
-        IERC20Upgradeable(streams[0]).transferFrom(
+        IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
             amount
@@ -364,13 +645,12 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         );
         uint256 pendingAmount = userAccount.pendings[streamId];
         userAccount.pendings[streamId] = 0;
-        //TODO: change the transfer to happen through the treasury contract
+        // check treasury balance before moving funds
         ITreasury(treasury).payRewards(
             msg.sender,
-            streams[streamId],
+            streams[streamId].rewardToken,
             pendingAmount
         );
-        // IERC20Upgradeable(streams[streamId]).transfer(msg.sender, pendingAmount);
         emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
     }
 
@@ -396,10 +676,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// staked tokens based on the amount of shares, moves them to pending withdrawl,
     /// then restake the (total user staked amount - shares value) if there is any.
     function unstake(uint256 shares) external {
-        //TODO: allow unstaking after schedule end
-        // this edge case does not allow users to unstake
-        // if the schedules end becaues it reverts with
-        // INVALID_SCHEDULE_PARAMETERS
         // Also no restaking after ending of schedule
         User storage userAccount = users[msg.sender];
         _before();
@@ -532,7 +808,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
             userShares =
                 userAccount.shares[0] *
-                _weighting(weights[streamId], schedules[streamId].time[0]);
+                _weighting(schedules[streamId].time[0]);
         }
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
@@ -674,7 +950,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // Don't release rewards if there are no stakers.
             totalAmountOfStakedAurora += getRewardsAmount(0);
             for (uint256 i = 1; i < streams.length; i++) {
-                rps[i] = getLatestRewardPerShare(i);
+                if (streams[i].isActive) {
+                    // If stream becomes blacklisted, no more rewards are released.
+                    rps[i] = getLatestRewardPerShare(i);
+                }
             }
         }
         touchedAt = block.timestamp;
@@ -691,9 +970,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     }
 
     /// @dev calculate the weight per stream based on the the timestamp.
-    /// @param weightFactor is the weight constant per stream.
     /// @param timestamp the timestamp refering to the current or older timestamp
-    function _weighting(uint256 weightFactor, uint256 timestamp)
+    function _weighting(uint256 timestamp)
         private
         pure
         returns (uint256 result)
@@ -714,7 +992,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
             userAccount.shares[streamId] =
                 userAccount.shares[0] *
-                _weighting(weights[streamId], schedules[streamId].time[0]);
+                _weighting(schedules[streamId].time[0]);
         }
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) *
             userAccount.shares[streamId]) / RPS_MULTIPLIER;
@@ -722,6 +1000,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
+        // If the stream is blacklisted, remaining unclaimed rewards will be transfered out.
+        streams[streamId].rewardClaimedAmount += reward;
         emit Pending(
             streamId,
             account,
@@ -734,7 +1014,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param account is the staker address
     function _moveAllRewardsToPending(address account) private {
         for (uint256 i = 1; i < streams.length; i++) {
-            _moveRewardsToPending(account, i);
+            if (streams[i].isActive) _moveRewardsToPending(account, i);
         }
     }
 
@@ -766,11 +1046,67 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // Calculate stream shares
         for (uint256 i = 1; i < streams.length; i++) {
             uint256 weightedAmountOfSharesPerStream = _amountOfShares *
-                _weighting(weights[i], block.timestamp);
+                _weighting(block.timestamp);
             userAccount.shares[i] += weightedAmountOfSharesPerStream;
             userAccount.rps[i] = rps[i]; // The new shares should not claim old rewards
             totalShares[i] += weightedAmountOfSharesPerStream;
         }
         emit Staked(account, amount, _amountOfShares, block.timestamp);
+    }
+
+    /// @dev validates the stream parameters prior proposing it.
+    /// @param streamOwner stream owner address
+    /// @param rewardToken stream reward token address
+    /// @param auroraDepositAmount the amount of Aurora token deposit by the admi.
+    /// @param maxDepositAmount the max reward token deposit
+    /// @param scheduleTimes the stream schedule time list
+    /// @param scheduleRewards the stream schedule reward list
+    /// @param tauPerStream the tau per stream for this stream (e.g one day)
+    function _validateStreamParameters(
+        address streamOwner,
+        address rewardToken,
+        uint256 auroraDepositAmount,
+        uint256 maxDepositAmount,
+        uint256[] memory scheduleTimes,
+        uint256[] memory scheduleRewards,
+        uint256 tauPerStream
+    ) private {
+        require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
+        require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
+        require(
+            auroraDepositAmount <= maxDepositAmount,
+            "INVALID_DEPOSITED_AURORA_PARAMETERS"
+        );
+        // scheduleTimes[0] == proposal expiration time
+        require(
+            scheduleTimes[0] > block.timestamp,
+            "INVALID_STREAM_EXPIRATION_DATE"
+        );
+        require(
+            scheduleTimes.length == scheduleRewards.length,
+            "INVALID_SCHEDULE_VALUES"
+        );
+        require(tauPerStream != 0, "INVALID_TAU_PERIOD");
+    }
+
+    /// @dev updates the stream reward schedule if the reward token amount is less than
+    /// the max deposit amount.
+    /// @param streamId the stream index
+    /// @param rewardTokenAmount the stream reward token amount
+    function _updateStreamRewardSchedules(
+        uint256 streamId,
+        uint256 rewardTokenAmount
+    ) private {
+        for (uint256 i = 0; i < schedules[streamId].reward.length; i++) {
+            if (i == 0) {
+                schedules[streamId].reward[i] = rewardTokenAmount;
+            } else if (i == schedules[streamId].reward.length - 1) {
+                schedules[streamId].reward[i] = 0;
+            } else {
+                schedules[streamId].reward[i] =
+                    schedules[streamId].reward[i - 1] /
+                    2;
+            }
+        }
     }
 }
