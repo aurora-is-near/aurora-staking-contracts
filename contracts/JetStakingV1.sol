@@ -139,14 +139,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 _amount
     );
 
-    modifier onlyValidSchedule() {
-        require(
-            block.timestamp < schedules[0].time[schedules[0].time.length - 1],
-            "INVALID_SCHEDULE"
-        );
-        _;
-    }
-
     modifier onlyActiveStream(uint256 streamId) {
         require(streams[streamId].isActive, "INACTIVE_STREAM");
         _;
@@ -562,7 +554,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         address[] memory accounts,
         uint256[] memory amounts,
         uint256 batchAmount
-    ) external onlyValidSchedule {
+    ) external {
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < amounts.length; i++) {
@@ -584,7 +576,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param amount in AURORA tokens
     function stakeOnBehalfOfAnotherUser(address account, uint256 amount)
         public
-        onlyValidSchedule
     {
         _stakeOnBehalfOfAnotherUser(account, amount);
         // mint and update the user's voting tokens balance
@@ -619,7 +610,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
-    function stake(uint256 amount) public onlyValidSchedule {
+    function stake(uint256 amount) public {
         _before();
         _stake(msg.sender, amount);
         User storage userAccount = users[msg.sender];
