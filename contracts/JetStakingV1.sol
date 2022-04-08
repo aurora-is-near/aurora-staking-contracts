@@ -973,9 +973,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 slopeStart = schedules[0].time[0] + ONE_MONTH;
         uint256 end = schedules[0].time[schedules[0].time.length - 1];
         if (timestamp <= slopeStart) return shares * maxWeight;
-        uint256 weightedShares = (shares *
-            maxWeight *
-            (end - block.timestamp)) / (end - slopeStart);
+        uint256 weightedShares = (shares * maxWeight * (end - timestamp)) /
+            (end - slopeStart);
         uint256 minShares = shares * minWeight;
         if (weightedShares < minShares) return minShares;
         return weightedShares;
