@@ -797,7 +797,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 userShares = userAccount.shares[streamId];
         if (userShares == 0 && userAccount.shares[0] != 0) {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userShares = _weightedShares(userAccount.shares[0], schedules[streamId].time[0]);
+            userShares = _weightedShares(
+                userAccount.shares[0],
+                schedules[streamId].time[0]
+            );
         }
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
@@ -968,13 +971,14 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 maxWeight = 100; // TODO
         uint256 minWeight = 25;
         uint256 slopeStart = schedules[0].time[0] + ONE_MONTH;
-        uint256 slopeEnd = schedules[0].time[schedules[0].time.length - 1];
+        uint256 end = schedules[0].time[schedules[0].time.length - 1];
         if (timestamp <= slopeStart) return shares * maxWeight;
-        else if (timestamp > slopeEnd) return shares * minWeight;
-        else
-            return
-                (shares * maxWeight * (slopeEnd - block.timestamp)) /
-                (slopeEnd - slopeStart);
+        uint256 weightedShares = (shares *
+            maxWeight *
+            (end - block.timestamp)) / (end - slopeStart);
+        uint256 minShares = shares * minWeight;
+        if (weightedShares < minShares) return minShares;
+        return weightedShares;
     }
 
     /// @dev allocate the collected reward to the pending tokens
