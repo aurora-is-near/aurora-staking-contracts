@@ -816,7 +816,7 @@ describe("JetStakingV1", function () {
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
         await jet.connect(user1).stake(amount)
-        expect(amount).to.be.eq(
+        expect(amount.mul(100)).to.be.eq(
             await jet.getAmountOfShares(id, user1.address)
         )
     })
@@ -889,13 +889,11 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_increaseTime", [oneDay])
         await network.provider.send("evm_mine")
         // get stream claimable amount
-        const userRPS = parseInt(ethers.utils.formatEther(await jet.getRewardPerShareForUser(id, user1.address)))
-        const latestRPS = parseInt(ethers.utils.formatEther(await jet.getLatestRewardPerShare(id)))
-        const userShares = parseInt(ethers.utils.formatEther(await jet.getUserShares(user1.address)))
-        const expectedClaimableAmount = (latestRPS - userRPS) * userShares / 1e13
-        expect(parseInt(
-            ethers.utils.formatEther(await jet.getStreamClaimableAmount(id, user1.address))
-        )).to.be.eq(parseInt(expectedClaimableAmount.toString()))
+        const userRPS = await jet.getRewardPerShareForUser(id, user1.address)
+        const latestRPS = await jet.getLatestRewardPerShare(id)
+        const userShares = await jet.getAmountOfShares(id, user1.address)
+        const expectedClaimableAmount = (latestRPS.sub(userRPS)).mul(userShares).div("1" + "0".repeat(31))
+        expect(await jet.getStreamClaimableAmount(id, user1.address)).to.be.eq(expectedClaimableAmount)
     })
     it('should restake the rest of aurora tokens', async () => {
         // deploy stream
