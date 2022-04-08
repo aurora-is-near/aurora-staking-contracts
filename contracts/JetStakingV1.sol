@@ -33,6 +33,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     uint256 constant DENOMINATOR = 31556926; //1Year
+    uint256 constant ONE_MONTH = 2629746;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
     uint256 constant RPS_MULTIPLIER = 1e31;
@@ -261,7 +262,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             scheduleRewards,
             tauPerStream
         );
-        totalShares.push(totalShares[0] * _weighting(block.timestamp));
+        totalShares.push(_weightedShares(totalShares[0], block.timestamp));
         tau.push(tauPerStream);
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
         uint256 streamId = streams.length;
@@ -796,9 +797,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 userShares = userAccount.shares[streamId];
         if (userShares == 0 && userAccount.shares[0] != 0) {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userShares =
-                userAccount.shares[0] *
-                _weighting(schedules[streamId].time[0]);
+            userShares = _weightedShares(userAccount.shares[0], schedules[streamId].time[0]);
         }
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
@@ -959,15 +958,23 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         _stake(account, amount);
     }
 
-    /// @dev calculate the weight per stream based on the the timestamp.
+    /// @dev calculate the weighted stream shares at given timeshamp.
     /// @param timestamp the timestamp refering to the current or older timestamp
-    function _weighting(uint256 timestamp)
+    function _weightedShares(uint256 shares, uint256 timestamp)
         private
-        pure
-        returns (uint256 result)
+        view
+        returns (uint256)
     {
-        //TODO: update the weighting function
-        result = 1;
+        uint256 maxWeight = 100; // TODO
+        uint256 minWeight = 25;
+        uint256 slopeStart = schedules[0].time[0] + ONE_MONTH;
+        uint256 slopeEnd = schedules[0].time[schedules[0].time.length - 1];
+        if (timestamp <= slopeStart) return shares * maxWeight;
+        else if (timestamp > slopeEnd) return shares * minWeight;
+        else
+            return
+                (shares * maxWeight * (slopeEnd - block.timestamp)) /
+                (slopeEnd - slopeStart);
     }
 
     /// @dev allocate the collected reward to the pending tokens
@@ -980,9 +987,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         User storage userAccount = users[account];
         if (userAccount.shares[streamId] == 0 && userAccount.shares[0] != 0) {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userAccount.shares[streamId] =
-                userAccount.shares[0] *
-                _weighting(schedules[streamId].time[0]);
+            userAccount.shares[streamId] = _weightedShares(
+                userAccount.shares[0],
+                schedules[streamId].time[0]
+            );
         }
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) *
             userAccount.shares[streamId]) / RPS_MULTIPLIER;
@@ -1035,8 +1043,10 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
         // Calculate stream shares
         for (uint256 i = 1; i < streams.length; i++) {
-            uint256 weightedAmountOfSharesPerStream = _amountOfShares *
-                _weighting(block.timestamp);
+            uint256 weightedAmountOfSharesPerStream = _weightedShares(
+                _amountOfShares,
+                block.timestamp
+            );
             userAccount.shares[i] += weightedAmountOfSharesPerStream;
             userAccount.rps[i] = rps[i]; // The new shares should not claim old rewards
             totalShares[i] += weightedAmountOfSharesPerStream;
