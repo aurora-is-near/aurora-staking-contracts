@@ -271,11 +271,11 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
             tauPerStream
         );
         uint256 streamId = streams.length;
+        schedules.push(Schedule(scheduleTimes, scheduleRewards));
         totalShares.push(
-            (totalShares[0] * _weighting(streamId, block.timestamp)) / 1e20
+            (totalShares[0] * _weighting(streamId, block.timestamp))
         );
         tau.push(tauPerStream);
-        schedules.push(Schedule(scheduleTimes, scheduleRewards));
         streams.push();
         Stream storage stream = streams[streamId];
         stream.streamOwner = streamOwner;
@@ -809,10 +809,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 userShares = userAccount.shares[streamId];
         if (userShares == 0 && userAccount.shares[0] != 0) {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userShares =
-                (userAccount.shares[0] *
-                    _weighting(streamId, schedules[streamId].time[0])) /
-                1e20;
+            userShares = (userAccount.shares[0] *
+                _weighting(streamId, schedules[streamId].time[0]));
         }
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
@@ -980,24 +978,19 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         view
         returns (uint256)
     {
-        uint256 y1 = 1e20;
-        uint256 y2 = 25e18;
+        uint256 x1 = schedules[streamId].time[0] + ONE_MONTH;
+        uint256 x2 = schedules[streamId].time[
+            schedules[streamId].time.length - 1
+        ];
         // return 100 if timestamp <= schedules[i].time[0] + 1 month
-        if (timestamp <= schedules[streamId].time[0] + ONE_MONTH) return y1;
+        if (timestamp <= schedules[streamId].time[0] + ONE_MONTH) return 100;
         // return 25 if timestamp > schedules[i].time[schedules[i].time.length - 1]
         else if (
             timestamp >
             schedules[streamId].time[schedules[streamId].time.length - 1]
-        ) return y2;
-        else {
-            // return downward sloping curve
-            uint256 x = timestamp - (schedules[streamId].time[0] + ONE_MONTH);
-            uint256 x1 = schedules[streamId].time[0] + ONE_MONTH;
-            uint256 x2 = schedules[streamId].time[
-                schedules[streamId].time.length - 1
-            ];
-            return y1 + (x * (y2 - y1)) / (x2 - x1);
-        }
+        ) return 25;
+        // return downward sloping curve
+        else return (100 * (x2 - block.timestamp)) / (x2 - x1);
     }
 
     /// @dev allocate the collected reward to the pending tokens
@@ -1010,10 +1003,8 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         User storage userAccount = users[account];
         if (userAccount.shares[streamId] == 0 && userAccount.shares[0] != 0) {
             // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userAccount.shares[streamId] =
-                (userAccount.shares[0] *
-                    _weighting(streamId, schedules[streamId].time[0])) /
-                1e20;
+            userAccount.shares[streamId] = (userAccount.shares[0] *
+                _weighting(streamId, schedules[streamId].time[0]));
         }
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) *
             userAccount.shares[streamId]) / RPS_MULTIPLIER;
@@ -1067,7 +1058,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         // Calculate stream shares
         for (uint256 i = 1; i < streams.length; i++) {
             uint256 weightedAmountOfSharesPerStream = (_amountOfShares *
-                _weighting(i, block.timestamp)) / 1e20;
+                _weighting(i, block.timestamp));
             userAccount.shares[i] += weightedAmountOfSharesPerStream;
             userAccount.rps[i] = rps[i]; // The new shares should not claim old rewards
             totalShares[i] += weightedAmountOfSharesPerStream;

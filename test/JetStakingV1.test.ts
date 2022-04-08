@@ -816,8 +816,8 @@ describe("JetStakingV1", function () {
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
         await jet.connect(user1).stake(amount)
-        expect(amount).to.be.eq(
-            await jet.getAmountOfShares(id, user1.address)
+        expect(parseInt(amount.toString()) * 100).to.be.eq(
+            parseInt(await jet.getAmountOfShares(id, user1.address))
         )
     })
     it('should get reward per share for a user', async () => {
@@ -895,7 +895,7 @@ describe("JetStakingV1", function () {
         const expectedClaimableAmount = (latestRPS - userRPS) * userShares / 1e13
         expect(parseInt(
             ethers.utils.formatEther(await jet.getStreamClaimableAmount(id, user1.address))
-        )).to.be.eq(parseInt(expectedClaimableAmount.toString()))
+        )).to.be.greaterThanOrEqual(parseInt(expectedClaimableAmount.toString()) * 100) // 100 weighted stream shares
     })
     it('should restake the rest of aurora tokens', async () => {
         // deploy stream
