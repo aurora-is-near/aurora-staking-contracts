@@ -604,7 +604,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         external
         onlyActiveStream(streamId)
     {
-        require(streams[streamId].isActive, "STREAM_NOT_ACTIVE");
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
