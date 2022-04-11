@@ -869,7 +869,9 @@ contract JetStakingV1 is AdminControlled {
         require(reward != 0, "ZERO_REWARD");
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
-        userAccount.releaseTime[streamId] = block.timestamp + streams[streamId].tau;
+        userAccount.releaseTime[streamId] =
+            block.timestamp +
+            streams[streamId].tau;
         // If the stream is blacklisted, remaining unclaimed rewards will be transfered out.
         streams[streamId].rewardClaimedAmount += reward;
         emit Pending(
