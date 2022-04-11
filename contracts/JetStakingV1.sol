@@ -30,8 +30,7 @@ contract JetStakingV1 is AdminControlled {
     uint256 constant RPS_MULTIPLIER = 1e31;
     uint256 public totalAmountOfStakedAurora;
     uint256 public touchedAt;
-    uint256[] public tau;
-    uint256[] public totalShares;
+    uint256[] public totalShares; // TODO refactor: merge stream shares to `uint256 public totalStreamShares`
     uint256 public streamsCount;
     address public treasury;
     address public auroraToken;
