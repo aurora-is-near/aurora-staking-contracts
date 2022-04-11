@@ -9,8 +9,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasury = (await hre.ethers.getContract("Treasury")).address
     const aurora = (await hre.ethers.getContract("Token")).address
     const flags = 0
-    const oneYear = 31536000
-    const tauPerStream = 1000
+    const oneYear = 31556926
+    const tauPerStream = 2629746 // 1 month
     const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
     // TODO: update schedule rewards
     const scheduleRewards = [
