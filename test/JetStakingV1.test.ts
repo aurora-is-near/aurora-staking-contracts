@@ -78,10 +78,7 @@ describe("JetStakingV1", function () {
                 scheduleRewards,
                 tauPerStream,
                 flags,
-                treasury.address,
-                oneDay,
-                oneDay,
-                60 * oneDay
+                treasury.address
             ]
         )
         await jet.transferOwnership(stakingAdmin.address)
@@ -1126,19 +1123,5 @@ describe("JetStakingV1", function () {
         await jet.connect(stakingAdmin).cancelStreamProposal(id)
         const stream = await jet.getStream(id)
         expect(stream.isProposed).to.be.eq(false)
-    })
-    it('should admin able to update decay grace period', async () => {
-        const newDecayGracePeriod = 2 * oneDay
-        await jet.connect(stakingAdmin).updateDecayGracePeriod(newDecayGracePeriod)
-        expect(newDecayGracePeriod).to.be.eq(
-            parseInt(await jet.decayGracePeriod())
-        )
-    })
-    it('should admin able to update burn grace period', async () => {
-        const newBurnGracePeriod = 2 * oneDay
-        await jet.connect(stakingAdmin).updateBurnGracePeriod(newBurnGracePeriod)
-        expect(newBurnGracePeriod).to.be.eq(
-            parseInt(await jet.burnGracePeriod())
-        )
     })
 });

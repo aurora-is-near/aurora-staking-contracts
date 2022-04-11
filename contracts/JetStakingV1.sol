@@ -32,9 +32,6 @@ contract JetStakingV1 is AdminControlled {
     uint256 public touchedAt;
     uint256[] public tau;
     uint256[] public totalShares;
-    uint256 public decayGracePeriod;
-    uint256 public burnGracePeriod;
-    uint256 public seasonDuration;
     uint256 public streamsCount;
     address public treasury;
     address public auroraToken;
@@ -124,12 +121,6 @@ contract JetStakingV1 is AdminControlled {
         uint256 timestamp
     );
 
-    event VotesTransfered(
-        address indexed _sender,
-        address indexed _recipient,
-        uint256 _amount
-    );
-
     modifier onlyActiveStream(uint256 streamId) {
         require(streams[streamId].isActive, "INACTIVE_STREAM");
         _;
@@ -142,42 +133,26 @@ contract JetStakingV1 is AdminControlled {
     /// @param tauAuroraStream release time constant per stream (e.g AURORA stream)
     /// @param _flags admin controlled contract flags
     /// @param _treasury the Aurora treasury contract address
-    /// @param _decayGracePeriod period for each season in which vote tokes don't decay
-    /// @param _burnGracePeriod period for each season after which admin is able to burn unused vote tokens
     function initialize(
         address aurora,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauAuroraStream,
         uint256 _flags,
-        address _treasury,
-        uint256 _decayGracePeriod,
-        uint256 _burnGracePeriod,
-        uint256 _seasonDuration
+        address _treasury
     ) public initializer {
         require(
             aurora != address(0) && _treasury != address(0),
             "INVALID_ADDRESS"
         );
         __AdminControlled_init(_flags);
-        require(_seasonDuration > 0, "INVALID_SEASON_DURATION");
-        require(
-            _decayGracePeriod < _seasonDuration,
-            "INVALID_DECAY_GRACE_PERIOD"
-        );
-        require(
-            _burnGracePeriod < _seasonDuration,
-            "INVALID_BURN_GRACE_PERIOD"
-        );
-        seasonDuration = _seasonDuration;
+
         treasury = _treasury;
         auroraToken = aurora;
         totalShares.push(0);
         totalAmountOfStakedAurora = 0;
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
         tau.push(tauAuroraStream);
-        decayGracePeriod = _decayGracePeriod;
-        burnGracePeriod = _burnGracePeriod;
         //init AURORA default stream
         uint256 streamId = 0;
         streams.push();
@@ -194,28 +169,6 @@ contract JetStakingV1 is AdminControlled {
         stream.isActive = true;
         emit StreamProposed(streamId, msg.sender, block.timestamp);
         emit StreamCreated(streamId, msg.sender, block.timestamp);
-    }
-
-    /// @notice updates decay grace period
-    /// @dev restricted for the admin only
-    /// @param _decayGracePeriod period for each season in which vote tokes don't decay
-    function updateDecayGracePeriod(uint256 _decayGracePeriod)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_decayGracePeriod < seasonDuration);
-        decayGracePeriod = _decayGracePeriod;
-    }
-
-    /// @notice updates burn grace period
-    /// @dev restricted for the admin only
-    /// @param _burnGracePeriod period for each season in which vote tokes don't decay
-    function updateBurnGracePeriod(uint256 _burnGracePeriod)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_burnGracePeriod < seasonDuration);
-        burnGracePeriod = _burnGracePeriod;
     }
 
     /// @dev An admin of the staking contract can whitelist a stream.
