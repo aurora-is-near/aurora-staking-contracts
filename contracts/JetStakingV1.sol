@@ -140,7 +140,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 tauAuroraStream,
         uint256 _flags,
         address _treasury
-    ) public initializer {
+    ) external initializer {
         require(
             aurora != address(0) && _treasury != address(0),
             "INVALID_ADDRESS"
@@ -364,7 +364,7 @@ contract JetStakingV1 is AdminControlled {
     /// the AURORA deposit can be withdrawn by the stream creator too.
     /// called by the stream owner
     /// @param streamId the stream index
-    function releaseAuroraRewardsToStreamOwner(uint256 streamId) public {
+    function releaseAuroraRewardsToStreamOwner(uint256 streamId) external {
         Stream storage stream = streams[streamId];
         require(msg.sender == stream.streamOwner, "INVALID_STREAM_OWNER");
         require(stream.isActive, "INACTIVE_STREAM");
@@ -384,7 +384,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev get the stream data
     /// @param streamId the stream index
     function getStream(uint256 streamId)
-        public
+        external
         view
         returns (
             address streamOwner,
@@ -392,6 +392,7 @@ contract JetStakingV1 is AdminControlled {
             uint256 auroraDepositAmount,
             uint256 rewardDepositAmount,
             uint256 maxDepositAmount,
+            uint256 tau,
             bool isProposed,
             bool isActive
         )
@@ -403,6 +404,7 @@ contract JetStakingV1 is AdminControlled {
             stream.auroraDepositAmount,
             stream.rewardDepositAmount,
             stream.maxDepositAmount,
+            stream.tau,
             stream.isProposed,
             stream.isActive
         );
@@ -447,7 +449,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param account the account address
     /// @param amount in AURORA tokens
     function stakeOnBehalfOfAnotherUser(address account, uint256 amount)
-        public
+        external
     {
         _stakeOnBehalfOfAnotherUser(account, amount);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
@@ -480,7 +482,7 @@ contract JetStakingV1 is AdminControlled {
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
-    function stake(uint256 amount) public {
+    function stake(uint256 amount) external {
         _before();
         _stake(msg.sender, amount);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
