@@ -18,8 +18,6 @@ describe("JetStakingV1", function () {
     let streamOwner: any
     let treasury: any
     let jet: any
-    let name: string
-    let symbol: string
     let oneYear: number
     let tauPerStream: number
     let scheduleTimes: any
@@ -52,8 +50,6 @@ describe("JetStakingV1", function () {
             ]
         )
 
-        name = "Jet Staking V1" 
-        symbol = "VOTE"
         oneYear = 31556926
         tauPerStream = 10
 
@@ -78,16 +74,11 @@ describe("JetStakingV1", function () {
             JetStakingV1,
             [
                 auroraToken.address, 
-                name,
-                symbol,
                 scheduleTimes,
                 scheduleRewards,
                 tauPerStream,
                 flags,
-                treasury.address,
-                oneDay,
-                oneDay,
-                60 * oneDay
+                treasury.address
             ]
         )
         await jet.transferOwnership(stakingAdmin.address)
@@ -127,14 +118,6 @@ describe("JetStakingV1", function () {
 
     it("should return treasury account", async () => {
         expect(await jet.treasury()).to.eq(treasury.address)
-    })
-
-    it("should return jet staking name", async () => {
-        expect(await jet.name()).to.eq(name)
-    })
-
-    it("should return let staking symbol", async () => {
-        expect(await jet.symbol()).to.eq(symbol)
     })
 
     it('should allow admin to propose new stream', async () => {
@@ -623,54 +606,6 @@ describe("JetStakingV1", function () {
         expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.eq(expectedScheduledReward)
         expect(startIndex.toNumber()).to.be.eq(1)
         expect(endIndex.toNumber()).to.be.eq(3)
-    })
-    it('should only admin whitelist contract address', async () => {
-        const SampleContract = await ethers.getContractFactory("Token")
-        const sampleContract = await SampleContract.connect(auroraOwner).deploy(1000, "SampleContract", "SC")
-        await jet.connect(stakingAdmin).whitelistContract(sampleContract.address, true)
-        expect(await jet.whitelistedContracts(sampleContract.address)).to.be.eq(true)
-    })
-    it('should only admin batch whitelist contracts', async () => {
-        const SampleContract1 = await ethers.getContractFactory("Token")
-        const sampleContract1 = await SampleContract1.connect(auroraOwner).deploy(1000, "SampleContract1", "SC1")
-        const SampleContract2 = await ethers.getContractFactory("Token")
-        const sampleContract2 = await SampleContract2.connect(auroraOwner).deploy(1000, "SampleContract2", "SC2")
-        await jet.connect(stakingAdmin).batchWhitelistContract(
-            [
-                sampleContract1.address,
-                sampleContract2.address
-            ],
-            [
-                true,
-                true
-            ]
-        )
-        expect(await jet.whitelistedContracts(sampleContract1.address)).to.be.eq(true)
-        expect(await jet.whitelistedContracts(sampleContract2.address)).to.be.eq(true)
-    })
-    it('should only admin mint vote tokens', async () => {
-        const amount = ethers.utils.parseUnits("5", 18)
-        await jet.connect(stakingAdmin).mint(spender.address, amount)
-        expect(await jet.balanceOf(spender.address)).to.be.eq(amount)
-    })
-    it('should revert in transfer', async () => {
-        const amount = ethers.utils.parseUnits("5", 18)
-        await jet.connect(stakingAdmin).mint(spender.address, amount)
-        await expect(jet.connect(spender).transfer(spender.address, amount)).to.be.reverted;
-    })
-    it('should revert in approving vote tokens', async () => {
-        const amount = ethers.utils.parseUnits("5", 18)
-        await jet.connect(stakingAdmin).mint(spender.address, amount)
-        await expect(jet.connect(spender).approve(stakingAdmin.address, amount)).to.be.reverted;
-    })
-    it('should only whitelisted contract call transferFrom', async () => {
-        const sampleWhitelistContractAddress = spender.address
-        await jet.connect(stakingAdmin).whitelistContract(sampleWhitelistContractAddress, true)
-        expect(await jet.whitelistedContracts(sampleWhitelistContractAddress)).to.be.eq(true)
-        const amount = ethers.utils.parseUnits("5", 18)
-        await jet.connect(stakingAdmin).mint(user5.address, amount)
-        await jet.connect(spender).transferFrom(user5.address, user4.address, amount)
-        expect(await jet.balanceOf(user4.address)).to.be.eq(amount)
     })
     it('should stake on behalf of another user', async () => {
         const amount = ethers.utils.parseUnits("5", 18)
@@ -1206,19 +1141,5 @@ describe("JetStakingV1", function () {
         await jet.connect(stakingAdmin).cancelStreamProposal(id)
         const stream = await jet.getStream(id)
         expect(stream.isProposed).to.be.eq(false)
-    })
-    it('should admin able to update decay grace period', async () => {
-        const newDecayGracePeriod = 2 * oneDay
-        await jet.connect(stakingAdmin).updateDecayGracePeriod(newDecayGracePeriod)
-        expect(newDecayGracePeriod).to.be.eq(
-            parseInt(await jet.decayGracePeriod())
-        )
-    })
-    it('should admin able to update burn grace period', async () => {
-        const newBurnGracePeriod = 2 * oneDay
-        await jet.connect(stakingAdmin).updateBurnGracePeriod(newBurnGracePeriod)
-        expect(newBurnGracePeriod).to.be.eq(
-            parseInt(await jet.burnGracePeriod())
-        )
     })
 });

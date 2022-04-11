@@ -3,7 +3,6 @@ pragma solidity 0.8.10;
 
 import "./ITreasury.sol";
 import "./AdminControlled.sol";
-import "./VotingERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
@@ -19,18 +18,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
  *      Stream rewards can be claimed any time however AURORA can't be claimed
  *      unless the user unstakes his full/partial amount of shares.
  *
- *      It also defines the voting tokens (minting/burning) mechanics based
- *      on the user actions (stake/unstake) during voting season. A season is
- *      the period (defined by this contract admin) where a user can vote for
- *      a project. Vote tokens are ERC20 compatible with some limits in transfering,
- *      approving, minting and burning vote tokens. Only whitelisted contracts
- *      (e.g vote manager) is allowed to call transferFrom on behalf of the user
- *      in order to transfer these tokens for voting.
- *
  *      This contract is AdminControlled which has a tremendous power. However
  *      hopfully it be governed by a community wallet.
  */
-contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
+contract JetStakingV1 is AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     uint256 constant DENOMINATOR = 31556926; //1Year
     uint256 constant ONE_MONTH = 2629746;
@@ -41,9 +32,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     uint256 public touchedAt;
     uint256[] public tau;
     uint256[] public totalShares;
-    uint256 public decayGracePeriod;
-    uint256 public burnGracePeriod;
-    uint256 public seasonDuration;
     uint256 public streamsCount;
     address public treasury;
     address public auroraToken;
@@ -77,7 +65,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     mapping(address => User) users;
     mapping(address => uint256) public streamToIndex;
     mapping(uint256 => uint256) public rps; // Reward per share for a stream j>0
-    mapping(address => bool) public whitelistedContracts;
     Schedule[] schedules;
     Stream[] streams;
 
@@ -134,12 +121,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256 timestamp
     );
 
-    event VotesTransfered(
-        address indexed _sender,
-        address indexed _recipient,
-        uint256 _amount
-    );
-
     modifier onlyActiveStream(uint256 streamId) {
         require(streams[streamId].isActive, "INACTIVE_STREAM");
         _;
@@ -152,45 +133,26 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// @param tauAuroraStream release time constant per stream (e.g AURORA stream)
     /// @param _flags admin controlled contract flags
     /// @param _treasury the Aurora treasury contract address
-    /// @param _decayGracePeriod period for each season in which vote tokes don't decay
-    /// @param _burnGracePeriod period for each season after which admin is able to burn unused vote tokens
     function initialize(
         address aurora,
-        string memory voteTokenName,
-        string memory voteTokenSymbol,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauAuroraStream,
         uint256 _flags,
-        address _treasury,
-        uint256 _decayGracePeriod,
-        uint256 _burnGracePeriod,
-        uint256 _seasonDuration
+        address _treasury
     ) public initializer {
         require(
             aurora != address(0) && _treasury != address(0),
             "INVALID_ADDRESS"
         );
-        __ERC20_init(voteTokenName, voteTokenSymbol);
         __AdminControlled_init(_flags);
-        require(_seasonDuration > 0, "INVALID_SEASON_DURATION");
-        require(
-            _decayGracePeriod < _seasonDuration,
-            "INVALID_DECAY_GRACE_PERIOD"
-        );
-        require(
-            _burnGracePeriod < _seasonDuration,
-            "INVALID_BURN_GRACE_PERIOD"
-        );
-        seasonDuration = _seasonDuration;
+
         treasury = _treasury;
         auroraToken = aurora;
         totalShares.push(0);
         totalAmountOfStakedAurora = 0;
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
         tau.push(tauAuroraStream);
-        decayGracePeriod = _decayGracePeriod;
-        burnGracePeriod = _burnGracePeriod;
         //init AURORA default stream
         uint256 streamId = 0;
         streams.push();
@@ -207,28 +169,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         stream.isActive = true;
         emit StreamProposed(streamId, msg.sender, block.timestamp);
         emit StreamCreated(streamId, msg.sender, block.timestamp);
-    }
-
-    /// @notice updates decay grace period
-    /// @dev restricted for the admin only
-    /// @param _decayGracePeriod period for each season in which vote tokes don't decay
-    function updateDecayGracePeriod(uint256 _decayGracePeriod)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_decayGracePeriod < seasonDuration);
-        decayGracePeriod = _decayGracePeriod;
-    }
-
-    /// @notice updates burn grace period
-    /// @dev restricted for the admin only
-    /// @param _burnGracePeriod period for each season in which vote tokes don't decay
-    function updateBurnGracePeriod(uint256 _burnGracePeriod)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_burnGracePeriod < seasonDuration);
-        burnGracePeriod = _burnGracePeriod;
     }
 
     /// @dev An admin of the staking contract can whitelist a stream.
@@ -358,7 +298,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
 
     /// @dev Get the treasury balance
     /// @param token the token address
-    function getTreasuryBalance(address token) public returns (uint256) {
+    function getTreasuryBalance(address token) public view returns (uint256) {
         return IERC20Upgradeable(token).balanceOf(treasury);
     }
 
@@ -480,73 +420,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         treasury = _treasury;
     }
 
-    /// @notice adds address to whitelist. Whitelisted addreses only are allowed to call transferFrom function
-    /// @dev restricted for the admin only
-    /// @param _address address to be added to whitelist
-    /// @param _allowance flag determines allowance for the address
-    function whitelistContract(address _address, bool _allowance)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_address != address(0), "INVALID_ADDRESS");
-        whitelistedContracts[_address] = _allowance;
-    }
-
-    /// @notice batch adding address to whitelist. Whitelisted addreses only are allowed to call transferFrom function
-    /// @dev restricted for the admin only
-    /// @param _addresses addresses to be added to whitelist
-    /// @param _allowances flag determines allowances for the addresses
-    function batchWhitelistContract(
-        address[] memory _addresses,
-        bool[] memory _allowances
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_addresses.length == _allowances.length, "INVALID_LENGTH");
-
-        for (uint256 i = 0; i < _addresses.length; i++) {
-            require(_addresses[i] != address(0), "INVALID_ADDRESS");
-            whitelistContract(_addresses[i], _allowances[i]);
-        }
-    }
-
-    /// @notice Creates `_amount` tokens and assigns them to `_user`, increasing the total supply.
-    /// @param _user user address to mint
-    /// @param _amount of tokens to mint
-    function mint(address _user, uint256 _amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _mint(_user, _amount);
-    }
-
-    /// @notice standard ERC20 transfer
-    /// @dev reverts on any token transfer
-    function transfer(address, uint256) public override returns (bool) {
-        revert();
-    }
-
-    /// @notice standard ERC20 approve
-    /// @dev reverts on any call
-    function approve(address, uint256) public virtual override returns (bool) {
-        revert();
-    }
-
-    /// @notice standard ERC20 transfer from
-    /// @dev can called only by whitelisted contracts, implements accessible
-    /// VOTE cheking based on decay. Can by paused by admin.
-    /// @param _sender owner of the VOTE token
-    /// @param _recipient tokens transfer to
-    /// @param _amount amount of tokens to transfer
-    function transferFrom(
-        address _sender,
-        address _recipient,
-        uint256 _amount
-    ) public override pausable(1) returns (bool) {
-        require(whitelistedContracts[msg.sender], "ONLY_WHITELISTED_CONTRACT");
-        _transfer(_sender, _recipient, _amount);
-        emit VotesTransfered(_sender, _recipient, _amount);
-        return true;
-    }
-
     /// @dev batchStakeOnBehalfOfOtherUsers called for airdropping Aurora users
     /// @param accounts the account address
     /// @param amounts in AURORA tokens
@@ -614,10 +487,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     function stake(uint256 amount) public {
         _before();
         _stake(msg.sender, amount);
-        User storage userAccount = users[msg.sender];
-        // mint and update the user's voting tokens balance
-        //TODO: mint voting tokens
-        _balances[msg.sender] += userAccount.shares[0];
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
@@ -706,9 +575,6 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         if (amountToRestake > 0) {
             _stake(msg.sender, amountToRestake);
         }
-        // update the user's voting tokens balance
-        // TODO: burn tokens
-        _balances[msg.sender] = userAccount.shares[0];
     }
 
     /// @dev gets a user stream shares
@@ -1079,7 +945,7 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauPerStream
-    ) private {
+    ) private view {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
         require(

@@ -8,15 +8,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const startTime = Math.floor(Date.now()/ 1000) + 60 // starts after 60 seconds from now.
     const treasury = (await hre.ethers.getContract("Treasury")).address
     const aurora = (await hre.ethers.getContract("Token")).address
-
-    const name = "Jet Staking V1" 
-    const symbol = "VOTE"
     const flags = 0
     const oneYear = 31536000
     const tauPerStream = 1000
-    const decayGracePeriod = 86400 // one day
-    const burnGracePeriod = 86400 // one day
-    const seasonDuration = 2592000 // 2 months (60 days)
     const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
     // TODO: update schedule rewards
     const scheduleRewards = [
@@ -38,16 +32,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         },
         args: [
             aurora,
-            name,
-            symbol,
             scheduleTimes,
             scheduleRewards,
             tauPerStream,
             flags,
-            treasury,
-            decayGracePeriod,
-            burnGracePeriod,
-            seasonDuration
+            treasury
         ]
     })
     //TODO: transfer ownership to the admin address
