@@ -58,6 +58,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 rewardClaimedAmount;
         uint256 maxDepositAmount;
         uint256 lastClaimedTime;
+        uint256 tau;
         bool isProposed;
         bool isActive;
     }
@@ -152,7 +153,6 @@ contract JetStakingV1 is AdminControlled {
         totalShares.push(0);
         totalAmountOfStakedAurora = 0;
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
-        tau.push(tauAuroraStream);
         //init AURORA default stream
         uint256 streamId = 0;
         streams.push();
@@ -167,6 +167,7 @@ contract JetStakingV1 is AdminControlled {
         stream.lastClaimedTime = 0;
         stream.isProposed = true;
         stream.isActive = true;
+        stream.tau = tauAuroraStream;
         emit StreamProposed(streamId, msg.sender, block.timestamp);
         emit StreamCreated(streamId, msg.sender, block.timestamp);
     }
@@ -203,7 +204,6 @@ contract JetStakingV1 is AdminControlled {
             tauPerStream
         );
         totalShares.push(_weightedShares(totalShares[0], block.timestamp));
-        tau.push(tauPerStream);
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
         uint256 streamId = streams.length;
         streams.push();
@@ -218,6 +218,7 @@ contract JetStakingV1 is AdminControlled {
         stream.lastClaimedTime = schedules[streamId].time[0];
         stream.isProposed = true;
         stream.isActive = false;
+        stream.tau = tauPerStream;
         emit StreamProposed(streamId, streamOwner, block.timestamp);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
@@ -434,8 +435,6 @@ contract JetStakingV1 is AdminControlled {
         for (uint256 i = 0; i < amounts.length; i++) {
             totalAmount += amounts[i];
             _stakeOnBehalfOfAnotherUser(accounts[i], amounts[i]);
-            // mint and update the user's voting tokens balance
-            //TODO: mint voting tokens
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
         IERC20Upgradeable(auroraToken).safeTransferFrom(
@@ -452,8 +451,6 @@ contract JetStakingV1 is AdminControlled {
         public
     {
         _stakeOnBehalfOfAnotherUser(account, amount);
-        // mint and update the user's voting tokens balance
-        //TODO: mint voting tokens
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
@@ -567,7 +564,7 @@ contract JetStakingV1 is AdminControlled {
         userAccount.deposit = 0;
         // move unstaked AURORA to pending.
         userAccount.pendings[0] += userSharesValue;
-        userAccount.releaseTime[0] = block.timestamp + tau[0];
+        userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
         emit Pending(0, msg.sender, userAccount.pendings[0], block.timestamp);
         emit Unstaked(msg.sender, userSharesValue, userShares, block.timestamp);
         // restake the rest
@@ -872,7 +869,9 @@ contract JetStakingV1 is AdminControlled {
         require(reward != 0, "ZERO_REWARD");
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
-        userAccount.releaseTime[streamId] = block.timestamp + tau[streamId];
+        userAccount.releaseTime[streamId] =
+            block.timestamp +
+            streams[streamId].tau;
         // If the stream is blacklisted, remaining unclaimed rewards will be transfered out.
         streams[streamId].rewardClaimedAmount += reward;
         emit Pending(
