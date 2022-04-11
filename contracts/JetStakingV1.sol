@@ -629,20 +629,26 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
     function withdraw(uint256 streamId) external {
-        User storage userAccount = users[msg.sender];
         require(
-            block.timestamp > userAccount.releaseTime[streamId],
+            block.timestamp > users[msg.sender].releaseTime[streamId],
             "INVALID_RELEASE_TIME"
         );
-        uint256 pendingAmount = userAccount.pendings[streamId];
-        userAccount.pendings[streamId] = 0;
-        // check treasury balance before moving funds
-        ITreasury(treasury).payRewards(
-            msg.sender,
-            streams[streamId].rewardToken,
-            pendingAmount
-        );
-        emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
+        _withdraw(streamId);
+    }
+
+    /// @dev withdraw all claimed balances which have passed pending periode.
+    /// This function will reach gas limit with too many streams,
+    /// so the frontend will allow individual stream withdrawals and disable withdrawAll.
+    function withdrawAll() external {
+        User storage userAccount = users[msg.sender];
+        for (uint256 i = 0; i < streams.length; i++) {
+            if (
+                userAccount.pendings[i] != 0 &&
+                block.timestamp > userAccount.releaseTime[i]
+            ) {
+                _withdraw(i);
+            }
+        }
     }
 
     /// @dev gets the total user deposit
@@ -1111,5 +1117,18 @@ contract JetStakingV1 is AdminControlled, VotingERC20Upgradeable {
                     2;
             }
         }
+    }
+
+    function _withdraw(uint256 streamId) internal {
+        User storage userAccount = users[msg.sender];
+        uint256 pendingAmount = userAccount.pendings[streamId];
+        userAccount.pendings[streamId] = 0;
+        // check treasury balance before moving funds
+        ITreasury(treasury).payRewards(
+            msg.sender,
+            streams[streamId].rewardToken,
+            pendingAmount
+        );
+        emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
     }
 }
