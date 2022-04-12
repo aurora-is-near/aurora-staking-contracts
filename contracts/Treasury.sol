@@ -45,7 +45,7 @@ contract Treasury is ITreasury, AdminControlled {
         address[] memory _managers,
         address[] memory _supportedTokens,
         uint256 _flags
-    ) public initializer {
+    ) external initializer {
         for (uint256 i = 0; i < _managers.length; i++) {
             require(_managers[i] != address(0), "INVALID_MANAGER_ADDRESS");
             isManager[_managers[i]] = true;
@@ -66,7 +66,7 @@ contract Treasury is ITreasury, AdminControlled {
         address[] memory _supportedTokens,
         uint256[] memory _amounts,
         address _operator
-    ) public onlyManager {
+    ) external onlyManager {
         require(
             _amounts.length == _supportedTokens.length,
             "INVALID_APPROVE_TOKEN_PARAMETERS"
