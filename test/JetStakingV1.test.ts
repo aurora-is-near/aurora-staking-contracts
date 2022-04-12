@@ -181,7 +181,7 @@ describe("JetStakingV1", function () {
         const {streamId, owner, } = await getEventLogs(tx.hash, constants.eventsABI.streamCreated, 0)
         expect(owner).to.be.eq(user1.address)
         expect(streamId.toNumber()).to.be.eq(id)
-        expect(await jet.streamsCount()).to.be.eq(1)
+        expect(await jet.getStreamsCount()).to.be.eq(2)
     })
     it('should create stream and refund staking admin if deposit reward is less than the upper amount', async () => {
         const id = 1

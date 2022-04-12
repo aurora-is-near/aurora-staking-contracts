@@ -32,7 +32,6 @@ contract JetStakingV1 is AdminControlled {
     uint256 public touchedAt;
     uint256 public totalAuroraShares;
     uint256 public totalStreamShares;
-    uint256 public streamsCount;
     address public treasury;
     address public auroraToken;
 
@@ -265,7 +264,6 @@ contract JetStakingV1 is AdminControlled {
             "STREAM_PROPOSAL_EXPIRED"
         );
         stream.isActive = true;
-        streamsCount++;
         emit StreamCreated(streamId, msg.sender, block.timestamp);
         if (rewardTokenAmount < stream.maxDepositAmount) {
             // refund staking admin if deposited reward tokens less than the upper limit of deposit
@@ -407,6 +405,12 @@ contract JetStakingV1 is AdminControlled {
             stream.isProposed,
             stream.isActive
         );
+    }
+
+    /// @dev get the streams count
+    /// @return streams.length
+    function getStreamsCount() external view returns (uint256) {
+        return streams.length;
     }
 
     /// @notice updates treasury account
