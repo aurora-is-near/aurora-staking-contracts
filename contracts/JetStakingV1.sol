@@ -79,12 +79,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 timestamp
     );
 
-    event Unstaked(
-        address indexed user,
-        uint256 amount,
-        uint256 shares,
-        uint256 timestamp
-    );
+    event Unstaked(address indexed user, uint256 amount, uint256 timestamp);
 
     event Pending(
         uint256 indexed streamId,
@@ -536,43 +531,21 @@ contract JetStakingV1 is AdminControlled {
         return users[account].auroraShares;
     }
 
-    /// @dev unstake amount of user shares. It calculates the total amount of
-    /// staked tokens based on the amount of shares, moves them to pending withdrawl,
-    /// then restake the (total user staked amount - shares value) if there is any.
-    function unstake(uint256 shares) external {
-        // Also no restaking after ending of schedule
-        User storage userAccount = users[msg.sender];
+    /// @dev unstake amount from user shares value. The rest is re-staked
+    /// @param amount to unstake
+    function unstake(uint256 amount) external {
         _before();
-        require(totalAmountOfStakedAurora != 0, "NOTHING_TO_UNSTAKE");
-        uint256 userShares = userAccount.auroraShares;
-        require(
-            shares <= userShares && shares != 0 && userShares != 0,
-            "INVALID_SHARES_AMOUNT"
-        );
-        uint256 userSharesValue = (totalAmountOfStakedAurora * shares) /
-            totalAuroraShares;
-        uint256 totalUserSharesValue = (totalAmountOfStakedAurora *
-            userShares) / totalAuroraShares;
-        // move rewards to pending
-        _moveAllRewardsToPending(msg.sender);
-        // remove the shares from everywhere
-        totalAuroraShares -= userAccount.auroraShares;
-        totalStreamShares -= userAccount.streamShares;
-        userAccount.auroraShares = 0;
-        userAccount.streamShares = 0;
-        // update the total Aurora staked and deposits
-        totalAmountOfStakedAurora -= totalUserSharesValue;
-        userAccount.deposit = 0;
-        // move unstaked AURORA to pending.
-        userAccount.pendings[0] += userSharesValue;
-        userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
-        emit Pending(0, msg.sender, userAccount.pendings[0], block.timestamp);
-        emit Unstaked(msg.sender, userSharesValue, userShares, block.timestamp);
-        // restake the rest
-        uint256 amountToRestake = totalUserSharesValue - userSharesValue;
-        if (amountToRestake > 0) {
-            _stake(msg.sender, amountToRestake);
-        }
+        uint256 stakeValue = (totalAmountOfStakedAurora *
+            users[msg.sender].auroraShares) / totalAuroraShares;
+        _unstake(amount, stakeValue);
+    }
+
+    /// @dev unstake all the user's shares
+    function unstakeAll() external {
+        _before();
+        uint256 stakeValue = (totalAmountOfStakedAurora *
+            users[msg.sender].auroraShares) / totalAuroraShares;
+        _unstake(stakeValue, stakeValue);
     }
 
     /// @dev gets a user stream shares
@@ -913,6 +886,32 @@ contract JetStakingV1 is AdminControlled {
             userAccount.rps[i] = rps[i]; // The new shares should not claim old rewards
         }
         emit Staked(account, amount, _amountOfShares, block.timestamp);
+    }
+
+    function _unstake(uint256 amount, uint256 stakeValue) internal {
+        require(amount != 0, "ZERO_AMOUNT");
+        require(amount <= stakeValue, "NOT_ENOUGH_STAKE_BALANCE");
+        User storage userAccount = users[msg.sender];
+        // move rewards to pending
+        _moveAllRewardsToPending(msg.sender);
+        // remove the shares from everywhere
+        totalAuroraShares -= userAccount.auroraShares;
+        totalStreamShares -= userAccount.streamShares;
+        userAccount.auroraShares = 0;
+        userAccount.streamShares = 0;
+        // update the total Aurora staked and deposits
+        totalAmountOfStakedAurora -= stakeValue;
+        userAccount.deposit = 0;
+        // move unstaked AURORA to pending.
+        userAccount.pendings[0] += amount;
+        userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
+        emit Pending(0, msg.sender, userAccount.pendings[0], block.timestamp);
+        emit Unstaked(msg.sender, amount, block.timestamp);
+        // restake the rest
+        uint256 amountToRestake = stakeValue - amount;
+        if (amountToRestake > 0) {
+            _stake(msg.sender, amountToRestake);
+        }
     }
 
     /// @dev validates the stream parameters prior proposing it.
