@@ -830,7 +830,7 @@ contract JetStakingV1 is AdminControlled {
         User storage userAccount = users[account];
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) *
             userAccount.streamShares) / RPS_MULTIPLIER;
-        require(reward != 0, "ZERO_REWARD");
+        if (reward == 0) return; // All rewards claimed or stream schedule didn't start
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
         userAccount.releaseTime[streamId] =
