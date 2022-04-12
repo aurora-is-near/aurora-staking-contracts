@@ -25,6 +25,7 @@ contract JetStakingV1 is AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     uint256 constant DENOMINATOR = 31556926; //1Year
     uint256 constant ONE_MONTH = 2629746;
+    uint256 constant FOUR_YEARS = 126227704;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
     uint256 constant RPS_MULTIPLIER = 1e31;
@@ -834,18 +835,16 @@ contract JetStakingV1 is AdminControlled {
         view
         returns (uint256)
     {
-        uint256 maxWeight = 100; // TODO
-        uint256 minWeight = 25;
-        uint256 slopeStart = streams[0].schedule.time[0] + ONE_MONTH;
-        uint256 end = streams[0].schedule.time[
-            streams[0].schedule.time.length - 1
-        ];
+        uint256 maxWeight = 1024;
+        uint256 minWeight = 256;
+        uint256 rewardsStartTime = streams[0].schedule.time[0];
+        uint256 slopeStart = rewardsStartTime + ONE_MONTH;
+        uint256 slopeEnd = rewardsStartTime + FOUR_YEARS;
         if (timestamp <= slopeStart) return shares * maxWeight;
-        uint256 weightedShares = (shares * maxWeight * (end - timestamp)) /
-            (end - slopeStart);
-        uint256 minShares = shares * minWeight;
-        if (weightedShares < minShares) return minShares;
-        return weightedShares;
+        if (timestamp > slopeEnd) return shares * minWeight;
+        return
+            (shares * (maxWeight - minWeight) * (slopeEnd - timestamp)) /
+            (slopeEnd - slopeStart);
     }
 
     /// @dev allocate the collected reward to the pending tokens

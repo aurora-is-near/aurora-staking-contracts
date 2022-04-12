@@ -769,7 +769,7 @@ describe("JetStakingV1", function () {
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
         await jet.connect(user1).stake(amount)
-        expect(amount.mul(100)).to.be.eq(
+        expect(amount.mul(1024)).to.be.eq(
             await jet.getAmountOfShares(id, user1.address)
         )
     })
