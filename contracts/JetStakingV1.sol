@@ -30,14 +30,16 @@ contract JetStakingV1 is AdminControlled {
     uint256 constant RPS_MULTIPLIER = 1e31;
     uint256 public totalAmountOfStakedAurora;
     uint256 public touchedAt;
-    uint256[] public totalShares; // TODO refactor: merge stream shares to `uint256 public totalStreamShares`
+    uint256 public totalAuroraShares;
+    uint256 public totalStreamShares;
     uint256 public streamsCount;
     address public treasury;
     address public auroraToken;
 
     struct User {
         uint256 deposit;
-        mapping(uint256 => uint256) shares; // The amount of shares for user per stream j
+        uint256 auroraShares;
+        uint256 streamShares;
         mapping(uint256 => uint256) pendings; // The amount of tokens pending release for user per stream
         mapping(uint256 => uint256) releaseTime; // The release moment per stream
         mapping(uint256 => uint256) rps; // RPS or reward per share during the previous withdrawal
@@ -149,8 +151,6 @@ contract JetStakingV1 is AdminControlled {
 
         treasury = _treasury;
         auroraToken = aurora;
-        totalShares.push(0);
-        totalAmountOfStakedAurora = 0;
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
         //init AURORA default stream
         uint256 streamId = 0;
@@ -202,7 +202,6 @@ contract JetStakingV1 is AdminControlled {
             scheduleRewards,
             tauPerStream
         );
-        totalShares.push(_weightedShares(totalShares[0], block.timestamp));
         schedules.push(Schedule(scheduleTimes, scheduleRewards));
         uint256 streamId = streams.length;
         streams.push();
@@ -531,7 +530,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param account the user address
     /// @return user shares
     function getUserShares(address account) external view returns (uint256) {
-        return users[account].shares[0];
+        return users[account].auroraShares;
     }
 
     /// @dev unstake amount of user shares. It calculates the total amount of
@@ -542,22 +541,22 @@ contract JetStakingV1 is AdminControlled {
         User storage userAccount = users[msg.sender];
         _before();
         require(totalAmountOfStakedAurora != 0, "NOTHING_TO_UNSTAKE");
-        uint256 userShares = userAccount.shares[0];
+        uint256 userShares = userAccount.auroraShares;
         require(
             shares <= userShares && shares != 0 && userShares != 0,
             "INVALID_SHARES_AMOUNT"
         );
         uint256 userSharesValue = (totalAmountOfStakedAurora * shares) /
-            totalShares[0];
+            totalAuroraShares;
         uint256 totalUserSharesValue = (totalAmountOfStakedAurora *
-            userShares) / totalShares[0];
+            userShares) / totalAuroraShares;
         // move rewards to pending
         _moveAllRewardsToPending(msg.sender);
         // remove the shares from everywhere
-        for (uint256 i = 0; i < streams.length; i++) {
-            totalShares[i] -= userAccount.shares[i];
-            userAccount.shares[i] = 0;
-        }
+        totalAuroraShares -= userAccount.auroraShares;
+        totalStreamShares -= userAccount.streamShares;
+        userAccount.auroraShares = 0;
+        userAccount.streamShares = 0;
         // update the total Aurora staked and deposits
         totalAmountOfStakedAurora -= totalUserSharesValue;
         userAccount.deposit = 0;
@@ -582,7 +581,8 @@ contract JetStakingV1 is AdminControlled {
         view
         returns (uint256)
     {
-        return users[account].shares[streamId];
+        if (streamId == 0) return users[account].auroraShares;
+        return users[account].streamShares;
     }
 
     /// @dev gets reward per share (RPS) for a stream
@@ -632,11 +632,11 @@ contract JetStakingV1 is AdminControlled {
         returns (uint256)
     {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
-        require(totalShares[streamId] != 0, "ZERO_STREAM_SHARES");
+        require(totalStreamShares != 0, "ZERO_STREAM_SHARES");
         return
             rps[streamId] +
             (getRewardsAmount(streamId) * RPS_MULTIPLIER) /
-            totalShares[streamId];
+            totalStreamShares;
     }
 
     /// @dev gets the user's reward per share (RPS) for a stream
@@ -658,18 +658,10 @@ contract JetStakingV1 is AdminControlled {
         view
         returns (uint256)
     {
-        if (totalShares[streamId] == 0) return 0;
         uint256 latestRps = getLatestRewardPerShare(streamId);
         User storage userAccount = users[account];
         uint256 userRps = userAccount.rps[streamId];
-        uint256 userShares = userAccount.shares[streamId];
-        if (userShares == 0 && userAccount.shares[0] != 0) {
-            // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userShares = _weightedShares(
-                userAccount.shares[0],
-                schedules[streamId].time[0]
-            );
-        }
+        uint256 userShares = userAccount.streamShares;
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
 
@@ -806,7 +798,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev called before touching the contract reserves (stake/unstake)
     function _before() internal {
         if (touchedAt == block.timestamp) return; // Already updated by previous tx in same block.
-        if (totalShares[0] != 0) {
+        if (totalAuroraShares != 0) {
             // Don't release rewards if there are no stakers.
             totalAmountOfStakedAurora += getRewardsAmount(0);
             for (uint256 i = 1; i < streams.length; i++) {
@@ -856,15 +848,8 @@ contract JetStakingV1 is AdminControlled {
         //TODO: phantom overflow/underflow check
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         User storage userAccount = users[account];
-        if (userAccount.shares[streamId] == 0 && userAccount.shares[0] != 0) {
-            // User staked before stream was added so initialize shares with the weight when the stream was created.
-            userAccount.shares[streamId] = _weightedShares(
-                userAccount.shares[0],
-                schedules[streamId].time[0]
-            );
-        }
         uint256 reward = ((rps[streamId] - userAccount.rps[streamId]) *
-            userAccount.shares[streamId]) / RPS_MULTIPLIER;
+            userAccount.streamShares) / RPS_MULTIPLIER;
         require(reward != 0, "ZERO_REWARD");
         userAccount.pendings[streamId] += reward;
         userAccount.rps[streamId] = rps[streamId];
@@ -895,34 +880,34 @@ contract JetStakingV1 is AdminControlled {
         // recalculation of shares for user
         User storage userAccount = users[account];
         uint256 _amountOfShares = 0;
-        if (totalShares[0] == 0) {
+        if (totalAuroraShares == 0) {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
             _amountOfShares = amount;
         } else {
             // Round up (+1) so users don't get less sharesValue than their staked amount
             _amountOfShares =
-                (amount * totalShares[0]) /
+                (amount * totalAuroraShares) /
                 totalAmountOfStakedAurora +
                 1;
         }
-        if (userAccount.shares[0] != 0) {
+        if (userAccount.auroraShares != 0) {
             // move rewards to pending: new shares should not claim previous rewards.
             _moveAllRewardsToPending(account);
         }
-        userAccount.shares[0] += _amountOfShares;
-        totalShares[0] += _amountOfShares;
+        userAccount.auroraShares += _amountOfShares;
+        totalAuroraShares += _amountOfShares;
         totalAmountOfStakedAurora += amount;
         userAccount.deposit += amount;
 
         // Calculate stream shares
+        uint256 weightedAmountOfSharesPerStream = _weightedShares(
+            _amountOfShares,
+            block.timestamp
+        );
+        totalStreamShares += weightedAmountOfSharesPerStream;
+        userAccount.streamShares += weightedAmountOfSharesPerStream;
         for (uint256 i = 1; i < streams.length; i++) {
-            uint256 weightedAmountOfSharesPerStream = _weightedShares(
-                _amountOfShares,
-                block.timestamp
-            );
-            userAccount.shares[i] += weightedAmountOfSharesPerStream;
             userAccount.rps[i] = rps[i]; // The new shares should not claim old rewards
-            totalShares[i] += weightedAmountOfSharesPerStream;
         }
         emit Staked(account, amount, _amountOfShares, block.timestamp);
     }

@@ -304,7 +304,7 @@ describe("JetStakingV1", function () {
             parseInt(expectedReward.toString())
         )
         expect(parseInt(ethers.utils.formatUnits(amountStaked1, 0))).to.be.eq(
-            parseInt(ethers.utils.formatUnits(await jet.totalShares(0), 0))
+            parseInt(ethers.utils.formatUnits(await jet.totalAuroraShares(), 0))
         )
     })
     it('should users stake and claim reward any time', async () => {
