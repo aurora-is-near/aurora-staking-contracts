@@ -16,8 +16,8 @@ contract JetStakingTesting is JetStakingV1 {
         scheduleCalculated =
             rewardsSchedule(0, startTime, endTime) /
             1000000000000000000;
-        if (totalShares[0] != 0) {
-            rewardPerShareAurora = total / (totalShares[0]);
+        if (totalAuroraShares != 0) {
+            rewardPerShareAurora = total / (totalAuroraShares);
         } else {
             rewardPerShareAurora = total;
         }
@@ -29,12 +29,12 @@ contract JetStakingTesting is JetStakingV1 {
 
     function getTotalUserReward() external view returns (uint256 totalReward) {
         totalReward =
-            users[msg.sender].shares[0] *
-            (totalAmountOfStakedAurora / totalShares[0]);
+            users[msg.sender].auroraShares *
+            (totalAmountOfStakedAurora / totalAuroraShares);
     }
 
     function calculateReward(address account) public view returns (uint256) {
-        uint256 userShares = users[account].shares[0];
-        return (totalAmountOfStakedAurora * userShares) / totalShares[0];
+        uint256 userShares = users[account].auroraShares;
+        return (totalAmountOfStakedAurora * userShares) / totalAuroraShares;
     }
 }
