@@ -841,7 +841,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 slopeStart = rewardsStartTime + ONE_MONTH;
         uint256 slopeEnd = rewardsStartTime + FOUR_YEARS;
         if (timestamp <= slopeStart) return shares * maxWeight;
-        if (timestamp > slopeEnd) return shares * minWeight;
+        if (timestamp >= slopeEnd) return shares * minWeight;
         return
             (shares * (maxWeight - minWeight) * (slopeEnd - timestamp)) /
             (slopeEnd - slopeStart);
