@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.10;
 
+import "./DelegateCallGuard.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract AdminControlled is AccessControlUpgradeable {
+contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
     address public admin;
     uint256 public paused;
 
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
+
+    event OwnershipTransferred(address oldAdmin, address newAdmin);
 
     modifier pausable(uint256 flag) {
         require(
@@ -77,5 +80,16 @@ contract AdminControlled is AccessControlUpgradeable {
 
     function adminReceiveEth() external payable {}
 
-    event OwnershipTransferred(address oldAdmin, address newAdmin);
+    /// @custom:oz-upgrades-unsafe-allow delegatecall
+    function adminDelegatecall(address target, bytes memory data)
+        public
+        payable
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyDelegateCall
+        returns (bytes memory)
+    {
+        (bool success, bytes memory rdata) = target.delegatecall(data);
+        require(success);
+        return rdata;
+    }
 }
