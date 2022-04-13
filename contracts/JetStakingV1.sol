@@ -890,8 +890,11 @@ contract JetStakingV1 is AdminControlled {
         );
         totalStreamShares += weightedAmountOfSharesPerStream;
         userAccount.streamShares += weightedAmountOfSharesPerStream;
-        for (uint256 i = 1; i < streams.length; i++) {
-            userAccount.rpsDuringLastWithdrawal[i] = streams[i].rps; // The new shares should not claim old rewards
+        if (userAccount.auroraShares == 0) {
+            // Already set when claiming rewards
+            for (uint256 i = 1; i < streams.length; i++) {
+                userAccount.rpsDuringLastWithdrawal[i] = streams[i].rps; // The new shares should not claim old rewards
+            }
         }
         emit Staked(account, amount, _amountOfShares, block.timestamp);
     }
