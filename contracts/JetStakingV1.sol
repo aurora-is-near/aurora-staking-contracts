@@ -810,9 +810,8 @@ contract JetStakingV1 is AdminControlled {
     {
         uint256 maxWeight = 1024;
         uint256 minWeight = 256;
-        uint256 rewardsStartTime = streams[0].schedule.time[0];
-        uint256 slopeStart = rewardsStartTime + ONE_MONTH;
-        uint256 slopeEnd = rewardsStartTime + FOUR_YEARS;
+        uint256 slopeStart = streams[0].schedule.time[0] + ONE_MONTH;
+        uint256 slopeEnd = slopeStart + FOUR_YEARS;
         if (timestamp <= slopeStart) return shares * maxWeight;
         if (timestamp >= slopeEnd) return shares * minWeight;
         return
