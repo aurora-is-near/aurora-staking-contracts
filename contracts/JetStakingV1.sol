@@ -256,6 +256,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamId stream id
     function createStream(uint256 streamId, uint256 rewardTokenAmount)
         external
+        pausable(1)
     {
         Stream storage stream = streams[streamId];
         require(stream.isProposed, "STREAM_NOT_PROPOSED");
@@ -364,7 +365,10 @@ contract JetStakingV1 is AdminControlled {
     /// the AURORA deposit can be withdrawn by the stream creator too.
     /// called by the stream owner
     /// @param streamId the stream index
-    function releaseAuroraRewardsToStreamOwner(uint256 streamId) external {
+    function releaseAuroraRewardsToStreamOwner(uint256 streamId)
+        external
+        pausable(1)
+    {
         Stream storage stream = streams[streamId];
         require(msg.sender == stream.streamOwner, "INVALID_STREAM_OWNER");
         require(stream.isActive, "INACTIVE_STREAM");
@@ -430,7 +434,7 @@ contract JetStakingV1 is AdminControlled {
         address[] memory accounts,
         uint256[] memory amounts,
         uint256 batchAmount
-    ) external {
+    ) external pausable(1) {
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < amounts.length; i++) {
@@ -450,6 +454,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param amount in AURORA tokens
     function stakeOnBehalfOfAnotherUser(address account, uint256 amount)
         external
+        pausable(1)
     {
         _stakeOnBehalfOfAnotherUser(account, amount);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
@@ -465,6 +470,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamId stream index
     function moveRewardsToPending(uint256 streamId)
         external
+        pausable(1)
         onlyActiveStream(streamId)
     {
         _before();
@@ -472,7 +478,7 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @dev moves all the user rewards to pending reward.
-    function moveAllRewardsToPending() external {
+    function moveAllRewardsToPending() external pausable(1) {
         _before();
         // Claim all streams while skipping inactive streams.
         _moveAllRewardsToPending(msg.sender);
@@ -482,7 +488,7 @@ contract JetStakingV1 is AdminControlled {
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
-    function stake(uint256 amount) external {
+    function stake(uint256 amount) external pausable(1) {
         _before();
         _stake(msg.sender, amount);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
@@ -495,7 +501,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev withdraw amount in the pending. User should wait for
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
-    function withdraw(uint256 streamId) external {
+    function withdraw(uint256 streamId) external pausable(1) {
         require(
             block.timestamp > users[msg.sender].releaseTime[streamId],
             "INVALID_RELEASE_TIME"
@@ -506,7 +512,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev withdraw all claimed balances which have passed pending periode.
     /// This function will reach gas limit with too many streams,
     /// so the frontend will allow individual stream withdrawals and disable withdrawAll.
-    function withdrawAll() external {
+    function withdrawAll() external pausable(1) {
         User storage userAccount = users[msg.sender];
         for (uint256 i = 0; i < streams.length; i++) {
             if (
@@ -539,7 +545,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev unstake amount of user shares. It calculates the total amount of
     /// staked tokens based on the amount of shares, moves them to pending withdrawl,
     /// then restake the (total user staked amount - shares value) if there is any.
-    function unstake(uint256 shares) external {
+    function unstake(uint256 shares) external pausable(1) {
         // Also no restaking after ending of schedule
         User storage userAccount = users[msg.sender];
         _before();
