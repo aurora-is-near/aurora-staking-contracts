@@ -774,10 +774,8 @@ contract JetStakingV1 is AdminControlled {
                     schedule.reward[endIndex] -
                     schedule.reward[endIndex + 1];
                 rewardScheduledAmount +=
-                    (reward /
-                        (schedule.time[startIndex + 1] -
-                            schedule.time[startIndex])) *
-                    (end - schedule.time[endIndex]);
+                    (reward * (end - schedule.time[endIndex])) /
+                    (schedule.time[startIndex + 1] - schedule.time[startIndex]);
             }
         }
         return rewardScheduledAmount;
