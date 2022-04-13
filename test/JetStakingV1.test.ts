@@ -181,7 +181,7 @@ describe("JetStakingV1", function () {
         const {streamId, owner, } = await getEventLogs(tx.hash, constants.eventsABI.streamCreated, 0)
         expect(owner).to.be.eq(user1.address)
         expect(streamId.toNumber()).to.be.eq(id)
-        expect(await jet.streamsCount()).to.be.eq(1)
+        expect(await jet.getStreamsCount()).to.be.eq(2)
     })
     it('should create stream and refund staking admin if deposit reward is less than the upper amount', async () => {
         const id = 1
@@ -676,7 +676,7 @@ describe("JetStakingV1", function () {
          const streamId = 0 // main aurora rewards
          await jet.connect(user1).withdraw(streamId)
          const user1BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
-         expect(user1BalanceAfter).to.be.greaterThan(user1BalanceBefore)
+         expect(user1BalanceAfter).to.eq(user1BalanceBefore)
     })
     it('should withdraw all rewards after release time', async () => {
          // stake
@@ -694,7 +694,26 @@ describe("JetStakingV1", function () {
          await network.provider.send("evm_mine")
          await jet.connect(user1).withdrawAll()
          const user1BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
-         expect(user1BalanceAfter).to.be.greaterThan(user1BalanceBefore)
+         expect(user1BalanceAfter).to.be.eq(user1BalanceBefore)
+    })
+    it('should unstake all', async () => {
+         // stake
+         const amount = ethers.utils.parseUnits("1000", 18)
+         const user1BalanceBefore = parseInt(await auroraToken.balanceOf(user1.address))
+         await auroraToken.connect(user1).approve(jet.address, amount)
+         await jet.connect(user1).stake(amount)
+         // unstake
+         await network.provider.send("evm_increaseTime", [1])
+         await network.provider.send("evm_mine")
+         await jet.connect(user1).unstakeAll()
+
+         // withdraw
+         await network.provider.send("evm_increaseTime", [tauPerStream + 1])
+         await network.provider.send("evm_mine")
+         const streamId = 0 // main aurora rewards
+         await jet.connect(user1).withdraw(streamId)
+         const user1BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
+         expect(user1BalanceAfter).to.greaterThan(user1BalanceBefore)
     })
     it('should claim all rewards', async () => {
         // deploy stream
@@ -769,7 +788,7 @@ describe("JetStakingV1", function () {
         const amount = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amount)
         await jet.connect(user1).stake(amount)
-        expect(amount.mul(100)).to.be.eq(
+        expect(amount.mul(1024)).to.be.eq(
             await jet.getAmountOfShares(id, user1.address)
         )
     })
@@ -1051,15 +1070,14 @@ describe("JetStakingV1", function () {
         // unstake
         await network.provider.send("evm_increaseTime", [5 * oneYear])
         await network.provider.send("evm_mine")
-        const shares = amount
-        await jet.connect(user1).unstake(shares)
+        await jet.connect(user1).unstake(amount)
         // withdraw
         await network.provider.send("evm_increaseTime", [tauPerStream + 1])
         await network.provider.send("evm_mine")
         const streamId = 0 // main aurora rewards
         await jet.connect(user1).withdraw(streamId)
         const user1BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
-        expect(user1BalanceAfter).to.be.greaterThan(user1BalanceBefore)
+        expect(user1BalanceAfter).to.be.eq(user1BalanceBefore)
     })
     it('should only admin update the treasury address', async () => {
         // deploy new treasury contract
