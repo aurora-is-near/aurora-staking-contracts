@@ -261,22 +261,21 @@ contract JetStakingV1 is AdminControlled {
             "STREAM_PROPOSAL_EXPIRED"
         );
         stream.isActive = true;
+        stream.rewardDepositAmount = rewardTokenAmount;
         emit StreamCreated(streamId, msg.sender, block.timestamp);
         if (rewardTokenAmount < stream.maxDepositAmount) {
             // refund staking admin if deposited reward tokens less than the upper limit of deposit
             uint256 refundAuroraAmount = ((stream.maxDepositAmount -
                 rewardTokenAmount) * stream.auroraDepositAmount) /
                 stream.maxDepositAmount;
+            stream.auroraDepositAmount -= refundAuroraAmount;
+            // update stream reward schedules
+            _updateStreamRewardSchedules(streamId, rewardTokenAmount);
             IERC20Upgradeable(auroraToken).safeTransfer(
                 admin,
                 refundAuroraAmount
             );
-            stream.auroraDepositAmount -= refundAuroraAmount;
-            // update stream reward schedules
-            _updateStreamRewardSchedules(streamId, rewardTokenAmount);
         }
-
-        stream.rewardDepositAmount = rewardTokenAmount;
         // move Aurora tokens to treasury
         IERC20Upgradeable(auroraToken).safeTransfer(
             address(treasury),
