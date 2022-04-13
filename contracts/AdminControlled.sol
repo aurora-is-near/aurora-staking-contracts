@@ -37,10 +37,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         virtual
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(
-            newAdmin != address(0),
-            "INVALID_ADDRESS"
-        );
+        require(newAdmin != address(0), "INVALID_ADDRESS");
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         _grantRole(PAUSE_ROLE, newAdmin);
         admin = newAdmin;
