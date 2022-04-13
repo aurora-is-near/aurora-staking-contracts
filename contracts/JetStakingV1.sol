@@ -829,7 +829,6 @@ contract JetStakingV1 is AdminControlled {
     /// @param account is the staker address
     /// @param streamId the stream index
     function _moveRewardsToPending(address account, uint256 streamId) private {
-        //TODO: phantom overflow/underflow check
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         User storage userAccount = users[account];
         uint256 reward = ((streams[streamId].rps -
@@ -983,12 +982,11 @@ contract JetStakingV1 is AdminControlled {
         User storage userAccount = users[msg.sender];
         uint256 pendingAmount = userAccount.pendings[streamId];
         userAccount.pendings[streamId] = 0;
-        // check treasury balance before moving funds
+        emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
         ITreasury(treasury).payRewards(
             msg.sender,
             streams[streamId].rewardToken,
             pendingAmount
         );
-        emit Released(streamId, msg.sender, pendingAmount, block.timestamp);
     }
 }
