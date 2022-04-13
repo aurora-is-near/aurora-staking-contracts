@@ -23,7 +23,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
  */
 contract JetStakingV1 is AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    uint256 constant DENOMINATOR = 31556926; //1Year
     uint256 constant ONE_MONTH = 2629746;
     uint256 constant FOUR_YEARS = 126227704;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
@@ -753,15 +752,17 @@ contract JetStakingV1 is AdminControlled {
             reward =
                 schedule.reward[startIndex] -
                 schedule.reward[startIndex + 1];
-            rewardScheduledAmount = (reward / DENOMINATOR) * (end - start);
+            rewardScheduledAmount =
+                (reward * (end - start)) /
+                (schedule.time[startIndex + 1] - schedule.time[startIndex]);
         } else {
             // start and end are not within the same schedule period
             // Reward during the startIndex period
             reward = (schedule.reward[startIndex] -
                 schedule.reward[startIndex + 1]);
             rewardScheduledAmount =
-                (reward / DENOMINATOR) *
-                (schedule.time[startIndex + 1] - start);
+                (reward * (schedule.time[startIndex + 1] - start)) /
+                (schedule.time[startIndex + 1] - schedule.time[startIndex]);
             // Reward during the period from startIndex + 1  to endIndex - 1
             for (uint256 i = startIndex + 1; i < endIndex; i++) {
                 reward = schedule.reward[i] - schedule.reward[i + 1];
@@ -773,15 +774,12 @@ contract JetStakingV1 is AdminControlled {
                     schedule.reward[endIndex] -
                     schedule.reward[endIndex + 1];
                 rewardScheduledAmount +=
-                    (reward / DENOMINATOR) *
+                    (reward /
+                        (schedule.time[startIndex + 1] -
+                            schedule.time[startIndex])) *
                     (end - schedule.time[endIndex]);
-            } else if (end == schedule.time[schedule.time.length - 1]) {
-                rewardScheduledAmount += schedule.reward[
-                    schedule.time.length - 1
-                ];
             }
         }
-        //TODO: phantom overflow/underflow check
         return rewardScheduledAmount;
     }
 
