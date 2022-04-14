@@ -66,7 +66,6 @@ contract JetStakingV1 is AdminControlled {
     }
 
     mapping(address => User) users;
-    mapping(address => uint256) public streamToIndex;
     Stream[] streams;
 
     // events
