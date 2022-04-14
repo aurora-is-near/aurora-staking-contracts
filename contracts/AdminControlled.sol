@@ -37,10 +37,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         virtual
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(
-            newAdmin != address(0),
-            "Ownable: new owner is the zero address"
-        );
+        require(newAdmin != address(0), "INVALID_ADDRESS");
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         _grantRole(PAUSE_ROLE, newAdmin);
         admin = newAdmin;
@@ -82,7 +79,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
 
     /// @custom:oz-upgrades-unsafe-allow delegatecall
     function adminDelegatecall(address target, bytes memory data)
-        public
+        external
         payable
         onlyRole(DEFAULT_ADMIN_ROLE)
         onlyDelegateCall
