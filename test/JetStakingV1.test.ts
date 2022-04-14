@@ -228,7 +228,7 @@ describe("JetStakingV1", function () {
             parseInt(ethers.utils.formatEther(stream.auroraDepositAmount))
         )
         expect(expectedAuroraDeposit).to.be.eq(parseInt(ethers.utils.formatEther(stream.auroraDepositAmount)))
-        const rewardSchedule = await jet.getSchedule(id)
+        const rewardSchedule = await jet.getStreamSchedule(id)
         for (let i = 0; i < rewardSchedule[1].length; i++) {
             i != rewardSchedule[1].length - 1 ? expect(parseInt(ethers.utils.formatEther(rewardSchedule[1][i]))).to.be.eq(parseInt(ethers.utils.formatEther(scheduleRewards[i]))/2) :
             expect(parseInt(ethers.utils.formatEther(rewardSchedule[1][i]))).to.be.eq(0)
@@ -433,7 +433,7 @@ describe("JetStakingV1", function () {
         
     })
     it('should able to get schedule times per stream', async () => {
-        const schedules = await jet.getSchedule(0)
+        const schedules = await jet.getStreamSchedule(0)
         expect(schedules[0][0]).to.be.eq(scheduleTimes[0])
     })
     it('should be able to get reward per share', async () => {

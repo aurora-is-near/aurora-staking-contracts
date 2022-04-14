@@ -40,6 +40,9 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         require(newAdmin != address(0), "INVALID_ADDRESS");
         require(admin != newAdmin, "SAME_ADMIN_ADDRESS");
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        // This admin is used for colleting dust tokens,
+        // and releasing some locked funds. It is used
+        // by the staking contract.
         admin = newAdmin;
         _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
         emit OwnershipTransferred(_msgSender(), newAdmin);
