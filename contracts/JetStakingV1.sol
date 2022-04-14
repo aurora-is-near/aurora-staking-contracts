@@ -140,11 +140,17 @@ contract JetStakingV1 is AdminControlled {
             aurora != address(0) && _treasury != address(0),
             "INVALID_ADDRESS"
         );
+        require(
+            scheduleTimes.length == scheduleRewards.length,
+            "INVALID_SCHEDULE_VALUES"
+        );
+        require(tauAuroraStream != 0, "INVALID_TAU_PERIOD");
         __AdminControlled_init(_flags);
 
         treasury = _treasury;
         auroraToken = aurora;
         //init AURORA default stream
+        // This is a special stream where the reward token is the aurora token itself.
         uint256 streamId = 0;
         streams.push();
         Stream storage stream = streams[streamId];
@@ -164,12 +170,12 @@ contract JetStakingV1 is AdminControlled {
         emit StreamCreated(streamId, msg.sender, block.timestamp);
     }
 
-    /// @dev An admin of the staking contract can whitelist a stream.
-    ///Whitelisting of the stream provides the option for the stream
-    ///creator (presumably the issuing party of a specific token) to
-    ///deposit some ERC-20 tokens on the staking contract and potentially
-    ///get in return some AURORA tokens. Deposited ERC-20 tokens will be
-    ///distributed to the stakers over some period of time.
+    /// @notice An admin of the staking contract can whitelist (propose) a stream.
+    /// Whitelisting of the stream provides the option for the stream
+    /// creator (presumably the issuing party of a specific token) to
+    /// deposit some ERC-20 tokens on the staking contract and potentially
+    /// get in return some AURORA tokens. Deposited ERC-20 tokens will be
+    /// distributed to the stakers over some period of time.
     /// @param streamOwner only this account would be able to create a stream
     /// @param rewardToken the address of the ERC-20 tokens to be deposited in the stream
     /// @param auroraDepositAmount Amount of the AURORA deposited by the Admin.
@@ -218,7 +224,7 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @dev cancelStreamProposal should only called if the stream owner
-    /// never created the stream after the proposal expiry date.
+    /// never created the stream after the proposal expiry date (streams[streamId].schedule.time[0]).
     /// @param streamId the stream index
     function cancelStreamProposal(uint256 streamId)
         external
@@ -226,7 +232,7 @@ contract JetStakingV1 is AdminControlled {
     {
         Stream storage stream = streams[streamId];
         require(
-            streams[streamId].schedule.time[0] < block.timestamp &&
+            streams[streamId].schedule.time[0] <= block.timestamp &&
                 stream.isProposed,
             "STREAM_DID_NOT_EXPIRE"
         );
@@ -297,14 +303,14 @@ contract JetStakingV1 is AdminControlled {
         return IERC20Upgradeable(token).balanceOf(treasury);
     }
 
-    /// @dev removes a stream (only admin role)
-    /// @param streamId contract address
+    /// @dev removes a stream (only default admin role)
+    /// @param streamId stream index
     /// @param streamFundReceiver receives the rest of the reward tokens in the stream
     function removeStream(uint256 streamId, address streamFundReceiver)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(streamId != 0, "AURORA_NOT_REMOVABLE");
+        require(streamId != 0, "AURORA_STREAM_NOT_REMOVABLE");
         Stream storage stream = streams[streamId];
         require(stream.isActive, "STREAM_ALREADY_REMOVED");
         stream.isActive = false;
@@ -380,6 +386,9 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @dev get the stream data
+    /// @notice this function doesn't return the stream
+    /// schedule due to some stake slots limitations. To
+    /// get the stream schedule, refer to getStreamSchedule
     /// @param streamId the stream index
     function getStream(uint256 streamId)
         external
@@ -388,8 +397,11 @@ contract JetStakingV1 is AdminControlled {
             address streamOwner,
             address rewardToken,
             uint256 auroraDepositAmount,
+            uint256 auroraClaimedAmount,
             uint256 rewardDepositAmount,
+            uint256 rewardClaimedAmount,
             uint256 maxDepositAmount,
+            uint256 lastTimeOwnerClaimed,
             uint256 tau,
             bool isProposed,
             bool isActive
@@ -400,11 +412,30 @@ contract JetStakingV1 is AdminControlled {
             stream.streamOwner,
             stream.rewardToken,
             stream.auroraDepositAmount,
+            stream.auroraClaimedAmount,
             stream.rewardDepositAmount,
+            stream.rewardClaimedAmount,
             stream.maxDepositAmount,
+            stream.lastTimeOwnerClaimed,
             stream.tau,
             stream.isProposed,
             stream.isActive
+        );
+    }
+
+    /// @dev get the stream schedule data
+    /// @param streamId the stream index
+    function getStreamSchedule(uint256 streamId)
+        public
+        view
+        returns (
+            uint256[] memory scheduleTimes,
+            uint256[] memory scheduleRewards
+        )
+    {
+        return (
+            streams[streamId].schedule.time,
+            streams[streamId].schedule.reward
         );
     }
 
@@ -415,13 +446,14 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @notice updates treasury account
-    /// @dev restricted for the admin only
+    /// @dev restricted for the admin only. Admin should pause this
+    /// contract before changing the treasury address by setting the
+    /// pause =1 (for changing this variable, call adminPause(1))
     /// @param _treasury treasury contract address for the reward tokens
     function updateTreasury(address _treasury)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        //TODO: should pause this contract before changing the treasury contract address.
         require(_treasury != address(0), "INVALID_ADDRESS");
         treasury = _treasury;
     }
@@ -613,7 +645,7 @@ contract JetStakingV1 is AdminControlled {
             start = touchedAt;
         } else {
             // Release rewards from stream start.
-            start = streams[streamId].schedule.time[0];
+            start = streamStart;
         }
         if (block.timestamp < streamEnd) {
             end = block.timestamp;
@@ -688,20 +720,6 @@ contract JetStakingV1 is AdminControlled {
         returns (uint256)
     {
         return users[account].releaseTime[streamId];
-    }
-
-    /// @dev gets the stream schedule time and reward
-    /// @param streamId stream index
-    /// @return schedule.time, schedule.reward
-    function getSchedule(uint256 streamId)
-        external
-        view
-        returns (uint256[] memory, uint256[] memory)
-    {
-        return (
-            streams[streamId].schedule.time,
-            streams[streamId].schedule.reward
-        );
     }
 
     /// @dev gets the total amount of staked aurora
