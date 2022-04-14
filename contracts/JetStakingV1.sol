@@ -189,7 +189,6 @@ contract JetStakingV1 is AdminControlled {
         _validateStreamParameters(
             streamOwner,
             rewardToken,
-            auroraDepositAmount,
             maxDepositAmount,
             scheduleTimes,
             scheduleRewards,
@@ -258,6 +257,10 @@ contract JetStakingV1 is AdminControlled {
         require(
             stream.schedule.time[0] >= block.timestamp,
             "STREAM_PROPOSAL_EXPIRED"
+        );
+        require(
+            rewardTokenAmount <= stream.maxDepositAmount,
+            "INVALID_REWARD_TOKEN_AMOUNT"
         );
         stream.isActive = true;
         stream.rewardDepositAmount = rewardTokenAmount;
@@ -924,7 +927,6 @@ contract JetStakingV1 is AdminControlled {
     /// @dev validates the stream parameters prior proposing it.
     /// @param streamOwner stream owner address
     /// @param rewardToken stream reward token address
-    /// @param auroraDepositAmount the amount of Aurora token deposit by the admi.
     /// @param maxDepositAmount the max reward token deposit
     /// @param scheduleTimes the stream schedule time list
     /// @param scheduleRewards the stream schedule reward list
@@ -932,7 +934,6 @@ contract JetStakingV1 is AdminControlled {
     function _validateStreamParameters(
         address streamOwner,
         address rewardToken,
-        uint256 auroraDepositAmount,
         uint256 maxDepositAmount,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
@@ -940,10 +941,7 @@ contract JetStakingV1 is AdminControlled {
     ) private view {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
-        require(
-            auroraDepositAmount <= maxDepositAmount,
-            "INVALID_DEPOSITED_AURORA_PARAMETERS"
-        );
+        require(maxDepositAmount > 0, "INVALID_MAX_DEPOSITED_AMOUNT_VALUE");
         // scheduleTimes[0] == proposal expiration time
         require(
             scheduleTimes[0] > block.timestamp,
