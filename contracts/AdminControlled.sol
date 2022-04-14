@@ -77,7 +77,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
 
     /// @custom:oz-upgrades-unsafe-allow delegatecall
     function adminDelegatecall(address target, bytes memory data)
-        public
+        external
         payable
         onlyRole(DEFAULT_ADMIN_ROLE)
         onlyDelegateCall
