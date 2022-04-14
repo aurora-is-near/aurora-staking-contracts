@@ -893,9 +893,10 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
     /// @param amount the staked amount
-    // WARNING: rewards are not claimed during stake.
-    // The UI must make sure to claim rewards before adding more stake.
-    // Unclaimed rewards will be lost.
+    /// WARNING: rewards are not claimed during stake which implies that
+    /// `_before()` must be called prior to it.
+    /// The UI must make sure to claim rewards before adding more stake.
+    /// Unclaimed rewards will be lost.
     function _stake(address account, uint256 amount) private {
         // recalculation of shares for user
         User storage userAccount = users[account];
