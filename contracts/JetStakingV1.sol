@@ -482,6 +482,20 @@ contract JetStakingV1 is AdminControlled {
         _moveAllRewardsToPending(msg.sender);
     }
 
+    /// @dev batchClaimOnBehalfOfAnotherUser when gas limits prevent users from claiming all.
+    /// @param account the user account address.
+    /// @param streamIds to claim.
+    function batchClaimOnBehalfOfAnotherUser(
+        address account,
+        uint256[] memory streamIds
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _before();
+        for (uint256 i = 0; i < streamIds.length; i++) {
+            if (streams[streamIds[i]].isActive)
+                _moveRewardsToPending(account, streamIds[i]);
+        }
+    }
+
     /// @dev a user stakes amount of AURORA tokens
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
@@ -825,7 +839,6 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @dev allocate the collected reward to the pending tokens
-    /// @notice TODO: potentially withdraw the released rewards if any
     /// @param account is the staker address
     /// @param streamId the stream index
     function _moveRewardsToPending(address account, uint256 streamId) private {
@@ -860,6 +873,9 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev calculate the shares for a user per AURORA stream and other streams
     /// @param amount the staked amount
+    // WARNING: rewards are not claimed during stake.
+    // The UI must make sure to claim rewards before adding more stake.
+    // Unclaimed rewards will be lost.
     function _stake(address account, uint256 amount) private {
         // recalculation of shares for user
         User storage userAccount = users[account];
@@ -874,10 +890,6 @@ contract JetStakingV1 is AdminControlled {
                 totalAmountOfStakedAurora +
                 1;
         }
-        if (userAccount.auroraShares != 0) {
-            // move rewards to pending: new shares should not claim previous rewards.
-            _moveAllRewardsToPending(account);
-        }
         userAccount.auroraShares += _amountOfShares;
         totalAuroraShares += _amountOfShares;
         totalAmountOfStakedAurora += amount;
@@ -890,21 +902,20 @@ contract JetStakingV1 is AdminControlled {
         );
         totalStreamShares += weightedAmountOfSharesPerStream;
         userAccount.streamShares += weightedAmountOfSharesPerStream;
-        if (userAccount.auroraShares == 0) {
-            // Already set when claiming rewards
-            for (uint256 i = 1; i < streams.length; i++) {
-                userAccount.rpsDuringLastWithdrawal[i] = streams[i].rps; // The new shares should not claim old rewards
-            }
+        for (uint256 i = 1; i < streams.length; i++) {
+            userAccount.rpsDuringLastWithdrawal[i] = streams[i].rps; // The new shares should not claim old rewards
         }
         emit Staked(account, amount, _amountOfShares, block.timestamp);
     }
 
+    /// WARNING: rewards are not claimed during unstake.
+    /// The UI must make sure to claim rewards before unstaking.
+    /// Unclaimed rewards will be lost.
     function _unstake(uint256 amount, uint256 stakeValue) internal {
         require(amount != 0, "ZERO_AMOUNT");
         require(amount <= stakeValue, "NOT_ENOUGH_STAKE_BALANCE");
         User storage userAccount = users[msg.sender];
         // move rewards to pending
-        _moveAllRewardsToPending(msg.sender);
         // remove the shares from everywhere
         totalAuroraShares -= userAccount.auroraShares;
         totalStreamShares -= userAccount.streamShares;

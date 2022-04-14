@@ -1160,9 +1160,50 @@ describe("JetStakingV1", function () {
         const stream = await jet.getStream(id)
         expect(stream.isProposed).to.be.eq(false)
     })
-    it('estimageGas claiming multiple stream rewards', async () => {
+    it('admin can claim streams on behalf of another user', async() => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(stakingAdmin).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_increaseTime", [101])
+        await network.provider.send("evm_mine")
+
+        await jet.connect(stakingAdmin).batchClaimOnBehalfOfAnotherUser(
+            user1.address,
+            [id]
+        )
+        expect(parseInt(await jet.getPending(id, user1.address))).to.be.greaterThan(0)
+    })
+    it('estimageGas staking with multiple streams', async () => {
         // deploy streams
-        const nb = 10
+        const nb = 20
         console.log("====================================================")
         console.log("Deploying", nb, "streams...")
         for (let id = 1; id <= nb; id++) {
@@ -1199,14 +1240,14 @@ describe("JetStakingV1", function () {
 
         await auroraToken.connect(user1).approve(jet.address, amount)
         console.log("Approval:", (await auroraToken.connect(user1).estimateGas.approve(jet.address, amount)).toNumber(), "gas")
-        console.log("User1 stake 1st time (without claiming rewards + without _before):", (await jet.connect(user1).estimateGas.stake(amount)).toNumber(), "gas")
+        console.log("User1 stake 1st time (without _before):", (await jet.connect(user1).estimateGas.stake(amount)).toNumber(), "gas")
         await jet.connect(user1).stake(amount)
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
         await auroraToken.connect(user1).approve(jet.address, amount)
         // NOTE: Claiming rewards the 1st time is more expensive due to new storage allocation in _moveRewardsToPending.
         // This is also the case calling _before the 1st time.
-        console.log("User1 stake 2nd time (init _before + claim rewards):", (await jet.connect(user1).estimateGas.stake(amount)).toNumber(), "gas")
+        console.log("User1 stake 2nd time (init _before + init rps):", (await jet.connect(user1).estimateGas.stake(amount)).toNumber(), "gas")
         await jet.connect(user1).stake(amount)
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
@@ -1217,12 +1258,12 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_mine")
 
         await auroraToken.connect(user2).approve(jet.address, amount)
-        console.log("User2 stake 1st time (without claiming rewards):", (await jet.connect(user2).estimateGas.stake(amount)).toNumber(), "gas")
+        console.log("User2 stake 1st time (init rps):", (await jet.connect(user2).estimateGas.stake(amount)).toNumber(), "gas")
         await jet.connect(user2).stake(amount)
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
         await auroraToken.connect(user2).approve(jet.address, amount)
-        console.log("User2 stake 2nd time (claim rewards):", (await jet.connect(user2).estimateGas.stake(amount)).toNumber(), "gas")
+        console.log("User2 stake 2nd time:", (await jet.connect(user2).estimateGas.stake(amount)).toNumber(), "gas")
         await jet.connect(user2).stake(amount)
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
