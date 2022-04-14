@@ -6,10 +6,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
-    address public admin;
+    address public superAdmin;
     uint256 public paused;
 
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
+    bytes32 public constant SUPER_ADMIN_ROLE = keccak256("SUPER_ADMIN_ROLE");
 
     event OwnershipTransferred(address oldAdmin, address newAdmin);
 
@@ -24,6 +25,8 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
     function __AdminControlled_init(uint256 _flags) public initializer {
         __AccessControl_init();
         paused = _flags;
+        superAdmin = msg.sender;
+        _grantRole(SUPER_ADMIN_ROLE, msg.sender);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSE_ROLE, msg.sender);
     }
@@ -32,19 +35,20 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         paused = flags;
     }
 
-    function transferOwnership(address newAdmin)
+    function updateSuperAdmin(address newAdmin)
         external
         virtual
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(SUPER_ADMIN_ROLE)
     {
         require(newAdmin != address(0), "INVALID_ADDRESS");
+        require(newAdmin != superAdmin, "SAME_ADDRESS");
+        superAdmin = newAdmin;
+        _grantRole(SUPER_ADMIN_ROLE, newAdmin);
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         _grantRole(PAUSE_ROLE, newAdmin);
-        admin = newAdmin;
-
-        _revokeRole(PAUSE_ROLE, _msgSender());
+        _revokeRole(SUPER_ADMIN_ROLE, _msgSender());
         _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        emit OwnershipTransferred(_msgSender(), newAdmin);
+        _revokeRole(PAUSE_ROLE, _msgSender());
     }
 
     function adminSstore(uint256 key, uint256 value)

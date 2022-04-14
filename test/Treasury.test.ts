@@ -49,8 +49,8 @@ describe("Treasury", function () {
     })
 
     it('should allow transfer ownership', async () => {
-        await treasury.connect(auroraOwner).transferOwnership(newOwner.address)
-        expect(await treasury.admin()).to.be.eq(newOwner.address)
+        await treasury.connect(auroraOwner).updateSuperAdmin(newOwner.address)
+        expect(await treasury.superAdmin()).to.be.eq(newOwner.address)
     })
 
     it('should only manager approve tokens to', async () => {

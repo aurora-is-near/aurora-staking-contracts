@@ -242,7 +242,7 @@ contract JetStakingV1 is AdminControlled {
             block.timestamp
         );
         // refund admin wallet with the stream aurora deposit
-        IERC20Upgradeable(auroraToken).safeTransfer(admin, refundAmount);
+        IERC20Upgradeable(auroraToken).safeTransfer(superAdmin, refundAmount);
     }
 
     /// @dev create new stream (only stream owner)
@@ -272,7 +272,7 @@ contract JetStakingV1 is AdminControlled {
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
             IERC20Upgradeable(auroraToken).safeTransfer(
-                admin,
+                superAdmin,
                 refundAuroraAmount
             );
         }
@@ -317,7 +317,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
         // move rest of the unclaimed aurora to the admin
         ITreasury(treasury).payRewards(
-            admin,
+            superAdmin,
             auroraToken,
             releaseAuroraAmount <= auroraTreasury
                 ? releaseAuroraAmount

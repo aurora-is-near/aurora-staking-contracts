@@ -4,7 +4,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     const { deploy } = hre.deployments
-    const { owner } = await hre.getNamedAccounts()
+    const { owner } = await hre.getNamedAccounts() // super admin , default admin and pauser
     const startTime = Math.floor(Date.now()/ 1000) + 60 // starts after 60 seconds from now.
     const treasury = (await hre.ethers.getContract("Treasury")).address
     const aurora = (await hre.ethers.getContract("Token")).address

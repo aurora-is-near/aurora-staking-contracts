@@ -81,7 +81,13 @@ describe("JetStakingV1", function () {
                 treasury.address
             ]
         )
-        await jet.transferOwnership(stakingAdmin.address)
+        const defaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+        const pauseRole = await treasury.PAUSE_ROLE()
+        await jet.connect(auroraOwner).grantRole(defaultAdminRole, stakingAdmin.address)
+        await jet.connect(auroraOwner).grantRole(pauseRole, stakingAdmin.address)
+        expect(await jet.hasRole(defaultAdminRole, stakingAdmin.address)).to.be.eq(true)
+        expect(await jet.hasRole(pauseRole, stakingAdmin.address)).to.be.eq(true)
+        await jet.connect(auroraOwner).updateSuperAdmin(stakingAdmin.address)
     })
 
     beforeEach(async () => {        
@@ -100,7 +106,10 @@ describe("JetStakingV1", function () {
         const balanceOfAurorOwner = await auroraToken.balanceOf(auroraOwner.address)
         await auroraToken.connect(auroraOwner).transfer(user5.address, balanceOfAurorOwner)
         // transfer ownership of the treasury to the jet staking contract
-        await treasury.connect(auroraOwner).transferOwnership(jet.address)
+        const defaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+        const pauseRole = await treasury.PAUSE_ROLE()
+        await treasury.connect(auroraOwner).grantRole(defaultAdminRole, jet.address)
+        await treasury.connect(auroraOwner).grantRole(pauseRole, auroraOwner.address)
         await treasury.connect(auroraOwner).approveTokensTo(
             [
                 auroraToken.address,
@@ -492,7 +501,7 @@ describe("JetStakingV1", function () {
         const timeDiff = currentTime - startTime
         const expectedScheduledReward = 
             (parseInt(ethers.utils.formatEther(scheduleRewards[0])) - parseInt(ethers.utils.formatEther(scheduleRewards[1]))) * (timeDiff) / oneYear
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(parseInt(expectedScheduledReward.toString()) - 10, parseInt(expectedScheduledReward.toString()) + 10)
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(parseInt(expectedScheduledReward.toString()) - 20, parseInt(expectedScheduledReward.toString()) + 20)
         expect(parseInt(scheduleCalculated.toNumber())).to.be.greaterThanOrEqual(parseInt(expectedScheduledReward.toString()))
         expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.greaterThanOrEqual(parseInt(expectedScheduledReward.toString()))
         expect(startIndex.toNumber()).to.be.eq(0)
