@@ -10,6 +10,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
     uint256 public paused;
 
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
+    bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
 
     event OwnershipTransferred(address oldAdmin, address newAdmin);
 
@@ -26,6 +27,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         paused = _flags;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSE_ROLE, msg.sender);
+        _grantRole(AIRDROP_ROLE, msg.sender);
     }
 
     function adminPause(uint256 flags) external onlyRole(PAUSE_ROLE) {
@@ -42,7 +44,9 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         // This admin is used for colleting dust tokens,
         // and releasing some locked funds. It is used
-        // by the staking contract.
+        // by the staking contract. It must be assinged to
+        // the community treasury wallet that will be governed
+        // by DAO.
         admin = newAdmin;
         _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
         emit OwnershipTransferred(_msgSender(), newAdmin);
