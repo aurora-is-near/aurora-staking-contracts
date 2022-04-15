@@ -24,10 +24,6 @@ describe("JetStakingV1Upgrade", function () {
     let startTime: any
     let jetv2: any
 
-    // before(async () => {
-        
-    // })
-
     beforeEach(async () => {
         // deploys all the contracts
         [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5, spender, streamOwner] = await ethers.getSigners()

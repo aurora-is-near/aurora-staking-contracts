@@ -2,6 +2,10 @@
 pragma solidity 0.8.10;
 import "../../../Treasury.sol";
 
-contract TreasuryChangeInStorage is Treasury {
-    
+contract TreasuryChangeInStorageAndLogic is Treasury {
+    address public newTreasury;
+
+    function updateStorageVar(address newTreasuryVal) public {
+        newTreasury = newTreasuryVal;
+    }
 }
