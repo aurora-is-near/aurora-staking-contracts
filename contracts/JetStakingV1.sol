@@ -578,6 +578,21 @@ contract JetStakingV1 is AdminControlled {
         }
     }
 
+    /// @dev withdraw a set of stream Ids.
+    /// Allows user to select stream ids to withdraw from UI.
+    /// @param streamIds to withdraw.
+    function batchWithdraw(uint256[] memory streamIds) external pausable(1) {
+        User storage userAccount = users[msg.sender];
+        for (uint256 i = 0; i < streamIds.length; i++) {
+            if (
+                userAccount.pendings[streamIds[i]] != 0 &&
+                block.timestamp > userAccount.releaseTime[streamIds[i]]
+            ) {
+                _withdraw(streamIds[i]);
+            }
+        }
+    }
+
     /// @dev gets the total user deposit
     /// @param account the user address
     /// @return user total deposit in (AURORA)
