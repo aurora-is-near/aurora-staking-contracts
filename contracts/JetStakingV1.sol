@@ -135,7 +135,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 tauAuroraStream,
         uint256 _flags,
         address _treasury
-    ) external initializer {
+    ) public initializer {
         require(
             aurora != address(0) && _treasury != address(0),
             "INVALID_ADDRESS"
