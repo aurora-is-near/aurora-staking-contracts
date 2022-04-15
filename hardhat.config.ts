@@ -75,7 +75,7 @@ module.exports = {
     apiKey: ETHERSCAN_API_KEY,
   },
   docgen: {
-    path: './docs',
+    path: './docs/contracts',
     clear: true,
     runOnCompile: true,
   },
