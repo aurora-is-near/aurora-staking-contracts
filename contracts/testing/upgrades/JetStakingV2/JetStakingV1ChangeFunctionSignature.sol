@@ -12,13 +12,13 @@ contract JetStakingV1ChangeFunctionSignature is JetStakingTesting {
         uint256[] memory amounts,
         uint256 batchAmount,
         bool checkLength
-    ) external pausable(1) {
-        if (checkLength)
-            require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
+    ) external onlyRole(AIRDROP_ROLE) {
+        _before();
+        require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < amounts.length; i++) {
             totalAmount += amounts[i];
-            _stakeOnBehalfOfAnotherUser(accounts[i], amounts[i]);
+            _stake(accounts[i], amounts[i]);
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
         IERC20Upgradeable(auroraToken).safeTransferFrom(

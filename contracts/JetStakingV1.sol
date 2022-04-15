@@ -862,7 +862,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev calculate the weighted stream shares at given timeshamp.
     /// @param timestamp the timestamp refering to the current or older timestamp
     function _weightedShares(uint256 shares, uint256 timestamp)
-        private
+        internal
         view
         returns (uint256)
     {
@@ -881,7 +881,7 @@ contract JetStakingV1 is AdminControlled {
     /// Rewards will become withdrawable after the release time.
     /// @param account is the staker address
     /// @param streamId the stream index
-    function _moveRewardsToPending(address account, uint256 streamId) private {
+    function _moveRewardsToPending(address account, uint256 streamId) internal {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         User storage userAccount = users[account];
         uint256 reward = ((streams[streamId].rps -
@@ -905,7 +905,7 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev move all the streams rewards for a user to the pending tokens
     /// @param account is the staker address
-    function _moveAllRewardsToPending(address account) private {
+    function _moveAllRewardsToPending(address account) internal {
         for (uint256 i = 1; i < streams.length; i++) {
             if (streams[i].isActive) _moveRewardsToPending(account, i);
         }
@@ -931,7 +931,7 @@ contract JetStakingV1 is AdminControlled {
     /// Unclaimed rewards will be lost.
     /// `_before()` must be called before `_stake` to update streams rps
     /// compounded AURORA rewards.
-    function _stake(address account, uint256 amount) private {
+    function _stake(address account, uint256 amount) internal {
         // recalculation of shares for user
         User storage userAccount = users[account];
         uint256 _amountOfShares = 0;
@@ -1005,7 +1005,7 @@ contract JetStakingV1 is AdminControlled {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tau
-    ) private view {
+    ) internal view {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
         require(maxDepositAmount > 0, "INVALID_MAX_DEPOSITED_AMOUNT_VALUE");
