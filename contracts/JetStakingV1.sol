@@ -516,6 +516,17 @@ contract JetStakingV1 is AdminControlled {
         _moveAllRewardsToPending(msg.sender);
     }
 
+    /// @dev moves a set of stream Id rewards to pending.
+    /// Allows user to select stream ids to claim from UI.
+    /// @param streamIds stream indexes
+    function batchMoveRewardsToPending(uint256[] memory streamIds)
+        external
+        pausable(1)
+    {
+        _before();
+        _batchClaimRewards(msg.sender, streamIds);
+    }
+
     /// @dev batchClaimOnBehalfOfAnotherUser when gas limits prevent users from claiming all.
     /// @param account the user account address.
     /// @param streamIds to claim.
@@ -524,10 +535,7 @@ contract JetStakingV1 is AdminControlled {
         uint256[] memory streamIds
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _before();
-        for (uint256 i = 0; i < streamIds.length; i++) {
-            if (streams[streamIds[i]].isActive)
-                _moveRewardsToPending(account, streamIds[i]);
-        }
+        _batchClaimRewards(account, streamIds);
     }
 
     /// @dev a user stakes amount of AURORA tokens
@@ -859,6 +867,7 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @dev allocate the collected reward to the pending tokens
+    /// Rewards will become withdrawable after the release time.
     /// @param account is the staker address
     /// @param streamId the stream index
     function _moveRewardsToPending(address account, uint256 streamId) private {
@@ -891,12 +900,26 @@ contract JetStakingV1 is AdminControlled {
         }
     }
 
+    /// @dev moves a set of stream Id rewards to pending.
+    /// `_before` must be called before to update the streams rps.
+    /// @param account the user account address.
+    /// @param streamIds to claim.
+    function _batchClaimRewards(address account, uint256[] memory streamIds)
+        internal
+    {
+        for (uint256 i = 0; i < streamIds.length; i++) {
+            if (streams[streamIds[i]].isActive)
+                _moveRewardsToPending(account, streamIds[i]);
+        }
+    }
+
     /// @dev calculate the shares for a user per AURORA stream and other streams
     /// @param amount the staked amount
-    /// WARNING: rewards are not claimed during stake which implies that
-    /// `_before()` must be called prior to it.
+    /// WARNING: rewards are not claimed during stake.
     /// The UI must make sure to claim rewards before adding more stake.
     /// Unclaimed rewards will be lost.
+    /// `_before()` must be called before `_stake` to update streams rps
+    /// compounded AURORA rewards.
     function _stake(address account, uint256 amount) private {
         // recalculation of shares for user
         User storage userAccount = users[account];
@@ -1008,6 +1031,8 @@ contract JetStakingV1 is AdminControlled {
         }
     }
 
+    /// @dev withdraw stream rewards after the release time.
+    /// @param streamId the stream index
     function _withdraw(uint256 streamId) internal {
         User storage userAccount = users[msg.sender];
         uint256 pendingAmount = userAccount.pendings[streamId];
