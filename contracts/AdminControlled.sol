@@ -44,7 +44,9 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         // This admin is used for colleting dust tokens,
         // and releasing some locked funds. It is used
-        // by the staking contract.
+        // by the staking contract. It must be assinged to
+        // the community treasury wallet that will be governed
+        // by DAO.
         admin = newAdmin;
         _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
         emit OwnershipTransferred(_msgSender(), newAdmin);

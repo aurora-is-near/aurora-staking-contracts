@@ -468,7 +468,7 @@ contract JetStakingV1 is AdminControlled {
         address[] memory accounts,
         uint256[] memory amounts,
         uint256 batchAmount
-    ) external onlyRole(AIRDROP_ROLE) {
+    ) external pausable(1) onlyRole(AIRDROP_ROLE) {
         _before();
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
         uint256 totalAmount = 0;
@@ -491,6 +491,7 @@ contract JetStakingV1 is AdminControlled {
     /// only distribute to accounts without stake
     function stakeOnBehalfOfAnotherUser(address account, uint256 amount)
         external
+        pausable(1)
         onlyRole(AIRDROP_ROLE)
     {
         _before();
