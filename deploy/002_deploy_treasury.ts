@@ -20,9 +20,6 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         },
         args: [
             [
-                owner
-            ],
-            [
                 auroraAddress,
                 omgTokenAddress,
                 hexTokenAddress

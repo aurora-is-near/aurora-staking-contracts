@@ -40,7 +40,6 @@ describe("JetStakingV1", function () {
         treasury = await upgrades.deployProxy(
             Treasury, 
             [
-                [auroraOwner.address],
                 [
                     auroraToken.address,
                     streamToken1.address,
@@ -1167,7 +1166,6 @@ describe("JetStakingV1", function () {
         const newTreasury = await upgrades.deployProxy(
             Treasury,
             [
-                [auroraOwner.address],
                 [
                     auroraToken.address,
                     streamToken1.address,

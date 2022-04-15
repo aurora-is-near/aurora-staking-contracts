@@ -8,19 +8,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract Treasury is ITreasury, AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    bytes32 public constant TREASURY_MANAGER_ROLE =
+        keccak256("TREASURY_MANAGER_ROLE");
     mapping(address => bool) public isSupportedToken;
-    mapping(address => bool) public isManager;
     //events
-    event ManagerAdded(
-        address indexed manager,
-        address indexed addedBy,
-        uint256 timestamp
-    );
-    event ManagerRemoved(
-        address indexed manager,
-        address indexed removedBy,
-        uint256 timestamp
-    );
     event TokenAdded(
         address indexed token,
         address indexed addedBy,
@@ -32,30 +23,18 @@ contract Treasury is ITreasury, AdminControlled {
         uint256 timestamp
     );
 
-    /// @dev Throws if called by any account other than the owner
-    modifier onlyManager() {
-        require(isManager[msg.sender], "SENDER_IS_NOT_MANAGER");
-        _;
-    }
-
     /// @notice initializes ownable Treasury with list of managers and supported tokens
-    /// @param _managers list of managers
     /// @param _supportedTokens list of supported tokens
-    function initialize(
-        address[] memory _managers,
-        address[] memory _supportedTokens,
-        uint256 _flags
-    ) external initializer {
-        for (uint256 i = 0; i < _managers.length; i++) {
-            require(_managers[i] != address(0), "INVALID_MANAGER_ADDRESS");
-            isManager[_managers[i]] = true;
-        }
-
+    function initialize(address[] memory _supportedTokens, uint256 _flags)
+        external
+        initializer
+    {
         for (uint256 i = 0; i < _supportedTokens.length; i++) {
             require(_supportedTokens[i] != address(0), "INVALID_TOKEN_ADDRESS");
             isSupportedToken[_supportedTokens[i]] = true;
         }
         __AdminControlled_init(_flags);
+        _grantRole(TREASURY_MANAGER_ROLE, msg.sender);
     }
 
     /// @notice allows operator to transfer supported tokens on befalf of Treasury
@@ -66,7 +45,7 @@ contract Treasury is ITreasury, AdminControlled {
         address[] memory _supportedTokens,
         uint256[] memory _amounts,
         address _operator
-    ) external onlyManager {
+    ) external onlyRole(TREASURY_MANAGER_ROLE) {
         require(
             _amounts.length == _supportedTokens.length,
             "INVALID_APPROVE_TOKEN_PARAMETERS"
@@ -95,7 +74,10 @@ contract Treasury is ITreasury, AdminControlled {
 
     /// @notice adds token as a supproted rewards token by Treasury
     /// @param _token ERC20 token address
-    function addSupportedToken(address _token) external onlyManager {
+    function addSupportedToken(address _token)
+        external
+        onlyRole(TREASURY_MANAGER_ROLE)
+    {
         require(!isSupportedToken[_token], "TOKEN_ALREADY_EXISTS");
         isSupportedToken[_token] = true;
         emit TokenAdded(_token, msg.sender, block.timestamp);
@@ -103,25 +85,12 @@ contract Treasury is ITreasury, AdminControlled {
 
     /// @notice removed token as a supproted rewards token by Treasury
     /// @param _token ERC20 token address
-    function removeSupportedToken(address _token) external onlyManager {
+    function removeSupportedToken(address _token)
+        external
+        onlyRole(TREASURY_MANAGER_ROLE)
+    {
         require(isSupportedToken[_token], "TOKEN_DOES_NOT_EXIST");
         isSupportedToken[_token] = false;
         emit TokenRemoved(_token, msg.sender, block.timestamp);
-    }
-
-    /// @notice adds address to list of owners
-    /// @param _manager any ethereum account
-    function addManager(address _manager) external onlyManager {
-        require(!isManager[_manager], "MANAGER_ALREADY_EXISTS");
-        isManager[_manager] = true;
-        emit ManagerAdded(_manager, msg.sender, block.timestamp);
-    }
-
-    /// @notice removes address from list of owners
-    /// @param _manager any active manager
-    function removeManager(address _manager) external onlyManager {
-        require(isManager[_manager], "MANAGER_DOES_NOT_EXIST");
-        isManager[_manager] = false;
-        emit ManagerRemoved(_manager, msg.sender, block.timestamp);
     }
 }

@@ -33,7 +33,6 @@ describe("TreasuryUpgrade", function () {
         treasury = await upgrades.deployProxy(
             Treasury, 
             [
-                [manager1.address],
                 [
                     auroraToken.address,
                     streamToken1.address
@@ -55,7 +54,7 @@ describe("TreasuryUpgrade", function () {
             treasury.address,
             TreasuryChangeFunctionSignature
         )
-        await treasuryV2.connect(manager1)["addSupportedToken(address,bool)"](
+        await treasuryV2.connect(auroraOwner)["addSupportedToken(address,bool)"](
             streamToken3.address,
             true
         )
