@@ -1,12 +1,5 @@
 # Aurora Staking smart contracts.
-This repository contains the Aurora's staking and community treasury contracts. For more details about 
-the specification, please refer to this [blogpost](https://forum.aurora.dev/t/aurora-staking-and-the-community-treasury/75).
-
-There are a couple of roles that are needed for the contract deployment and management (admin keys):
-
-- Deployer role: TBC
-- Admin role: TBC
-- Manager role: TBC
+This repository contains the Aurora's staking and community treasury contracts.
 
 ## Install
 
@@ -47,8 +40,8 @@ yarn coverage
 
 ```
 yarn deploy:local # default hardhat network
-yarn deploy:testnet # Aurora Testnet
-yarn deploy:mainnet # Ethereum Mainnet
+yarn deploy:auroraTestnet # Aurora Testnet
+yarn deploy:auroraMainnet # Aurora Mainnet
 ```
 
 ### Generate docs
@@ -57,3 +50,6 @@ Execute the following command to regenerate the contracts documentation:
 yarn generate:doc
 ```
 Then check out the [index.html](docs/index.html).
+
+## Docs
+ - [High level Architecture](docs/README.md)
