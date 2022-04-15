@@ -462,11 +462,13 @@ contract JetStakingV1 is AdminControlled {
     /// @param accounts the account address
     /// @param amounts in AURORA tokens
     /// @param batchAmount equals to the sum of amounts
+    /// WARNING: rewards are not claimed during stake. Airdrop script must claim or
+    /// only distribute to accounts without stake
     function batchStakeOnBehalfOfOtherUsers(
         address[] memory accounts,
         uint256[] memory amounts,
         uint256 batchAmount
-    ) external pausable(1) {
+    ) external onlyRole(AIRDROP_ROLE) {
         _before();
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
         uint256 totalAmount = 0;
@@ -485,9 +487,11 @@ contract JetStakingV1 is AdminControlled {
     /// @dev stakeOnBehalfOfAnotherUser is called for airdropping Aurora users
     /// @param account the account address
     /// @param amount in AURORA tokens
+    /// WARNING: rewards are not claimed during stake. Airdrop script must claim or
+    /// only distribute to accounts without stake
     function stakeOnBehalfOfAnotherUser(address account, uint256 amount)
         external
-        pausable(1)
+        onlyRole(AIRDROP_ROLE)
     {
         _before();
         _stake(account, amount);

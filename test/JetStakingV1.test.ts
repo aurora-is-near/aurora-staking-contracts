@@ -611,6 +611,10 @@ describe("JetStakingV1", function () {
         const amount = ethers.utils.parseUnits("5", 18)
         await auroraToken.connect(auroraOwner).mint(auroraOwner.address, amount)
         await auroraToken.connect(auroraOwner).approve(jet.address, amount)
+        await expect(jet.connect(user1).stakeOnBehalfOfAnotherUser(
+            user1.address,
+            amount
+        )).to.be.reverted
         await jet.connect(auroraOwner).stakeOnBehalfOfAnotherUser(
             user1.address,
             amount
@@ -624,6 +628,17 @@ describe("JetStakingV1", function () {
         const batchAmount = ethers.utils.parseUnits("10", 18)
         await auroraToken.connect(auroraOwner).mint(auroraOwner.address, batchAmount)
         await auroraToken.connect(auroraOwner).approve(jet.address, batchAmount)
+        await expect(jet.connect(user1).batchStakeOnBehalfOfOtherUsers(
+            [
+                user1.address,
+                user2.address
+            ],
+            [
+                amount,
+                amount
+            ],
+            batchAmount
+        )).to.be.reverted
         await jet.connect(auroraOwner).batchStakeOnBehalfOfOtherUsers(
             [
                 user1.address,
