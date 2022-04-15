@@ -467,11 +467,12 @@ contract JetStakingV1 is AdminControlled {
         uint256[] memory amounts,
         uint256 batchAmount
     ) external pausable(1) {
+        _before();
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < amounts.length; i++) {
             totalAmount += amounts[i];
-            _stakeOnBehalfOfAnotherUser(accounts[i], amounts[i]);
+            _stake(accounts[i], amounts[i]);
         }
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
         IERC20Upgradeable(auroraToken).safeTransferFrom(
@@ -488,7 +489,8 @@ contract JetStakingV1 is AdminControlled {
         external
         pausable(1)
     {
-        _stakeOnBehalfOfAnotherUser(account, amount);
+        _before();
+        _stake(account, amount);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(treasury),
@@ -851,16 +853,6 @@ contract JetStakingV1 is AdminControlled {
             }
         }
         touchedAt = block.timestamp;
-    }
-
-    /// @dev internal function for airdropping Aurora users
-    /// @param account the account address
-    /// @param amount in AURORA tokens
-    function _stakeOnBehalfOfAnotherUser(address account, uint256 amount)
-        internal
-    {
-        _before();
-        _stake(account, amount);
     }
 
     /// @dev calculate the weighted stream shares at given timeshamp.
