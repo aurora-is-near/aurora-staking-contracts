@@ -31,7 +31,6 @@ describe("Treasury", function () {
         treasury = await upgrades.deployProxy(
             Treasury, 
             [
-                [manager1.address],
                 [
                     auroraToken.address,
                     streamToken1.address
@@ -54,7 +53,7 @@ describe("Treasury", function () {
     })
 
     it('should only manager approve tokens to', async () => {
-        await treasury.connect(manager1).approveTokensTo(
+        await treasury.connect(auroraOwner).approveTokensTo(
             [
                 auroraToken.address,
                 streamToken1.address
@@ -79,25 +78,27 @@ describe("Treasury", function () {
     }) 
     
     it('should allow only manager add supported token', async () => {
-        await treasury.connect(manager1).addSupportedToken(streamToken2.address)
+        await treasury.connect(auroraOwner).addSupportedToken(streamToken2.address)
         expect(await treasury.isSupportedToken(streamToken2.address)).to.be.eq(true)
     })
 
     it('should allow only manager to remove supported token', async () => {
         expect(await treasury.isSupportedToken(streamToken2.address)).to.be.eq(true)
-        await treasury.connect(manager1).removeSupportedToken(streamToken2.address)
+        await treasury.connect(auroraOwner).removeSupportedToken(streamToken2.address)
         expect(await treasury.isSupportedToken(streamToken2.address)).to.be.eq(false)
     })
 
     it('should allow only manager to add a new manager', async () => {
-        await expect(treasury.connect(manager2).addManager(user2.address)).to.be.revertedWith("SENDER_IS_NOT_MANAGER")
-        await treasury.connect(manager1).addManager(manager2.address)
-        expect(await treasury.isManager(manager2.address)).to.be.eq(true)
+        const treasury_manager_role = await treasury.TREASURY_MANAGER_ROLE()
+        await expect(treasury.connect(manager2).grantRole(treasury_manager_role, user2.address)).to.be.reverted
+        await treasury.connect(newOwner).grantRole(treasury_manager_role, manager2.address)
+        expect(await treasury.hasRole(treasury_manager_role, manager2.address)).to.be.eq(true)
     })
 
     it('should allow only manager to remove a manager', async () => {
-        expect(treasury.connect(user2).removeManager(user1.address)).to.be.reverted
-        await treasury.connect(manager1).removeManager(manager2.address)
-        expect(await treasury.isManager(manager2.address)).to.be.eq(false)
+        const treasury_manager_role = await treasury.TREASURY_MANAGER_ROLE()
+        expect(treasury.connect(user2).revokeRole(treasury_manager_role, user1.address)).to.be.reverted
+        await treasury.connect(newOwner).revokeRole(treasury_manager_role, manager2.address)
+        expect(await treasury.hasRole(treasury_manager_role, manager2.address)).to.be.eq(false)
     })
 });

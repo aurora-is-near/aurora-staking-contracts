@@ -23,6 +23,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
  */
 contract JetStakingV1 is AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
     uint256 constant ONE_MONTH = 2629746;
     uint256 constant FOUR_YEARS = 126227704;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
@@ -146,7 +147,7 @@ contract JetStakingV1 is AdminControlled {
         );
         require(tauAuroraStream != 0, "INVALID_TAU_PERIOD");
         __AdminControlled_init(_flags);
-
+        _grantRole(AIRDROP_ROLE, msg.sender);
         treasury = _treasury;
         auroraToken = aurora;
         //init AURORA default stream

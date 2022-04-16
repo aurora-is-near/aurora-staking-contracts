@@ -39,7 +39,6 @@ describe("JetStakingV1Upgrade", function () {
         treasury = await upgrades.deployProxy(
             Treasury, 
             [
-                [auroraOwner.address],
                 [
                     auroraToken.address,
                     streamToken1.address,
