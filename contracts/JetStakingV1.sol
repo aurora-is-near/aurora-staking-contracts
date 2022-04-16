@@ -1030,17 +1030,12 @@ contract JetStakingV1 is AdminControlled {
     function _updateStreamRewardSchedules(
         uint256 streamId,
         uint256 rewardTokenAmount
-    ) private {
+    ) internal {
+        uint256 suggestedAmount = streams[streamId].schedule.reward[0];
         for (uint256 i = 0; i < streams[streamId].schedule.reward.length; i++) {
-            if (i == 0) {
-                streams[streamId].schedule.reward[i] = rewardTokenAmount;
-            } else if (i == streams[streamId].schedule.reward.length - 1) {
-                streams[streamId].schedule.reward[i] = 0;
-            } else {
-                streams[streamId].schedule.reward[i] =
-                    streams[streamId].schedule.reward[i - 1] /
-                    2;
-            }
+            streams[streamId].schedule.reward[i] =
+                (streams[streamId].schedule.reward[i] * rewardTokenAmount) /
+                suggestedAmount;
         }
     }
 
