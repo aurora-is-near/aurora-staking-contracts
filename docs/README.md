@@ -47,7 +47,7 @@ The weighting function of other streams follows the following curve:
 ![weighting-function](imgs/weighting-function.png)
 
 
-It is a decreasing function which creates leverage for the early stakers. It starts with `maxWeight` 100 for a month, then decays with a negative downward slope till it reachs the end of the 4rth year (end of the schedule) in the reward schedule, after that it goes with a flat weight or `minWeight` 25. 
+It is a decreasing function which creates leverage for the early stakers. It starts with `maxWeight` 1024 for a month, then decays with a negative downward slope till it reachs the end of the 4rth year (end of the schedule) in the reward schedule, after that it goes with a flat weight or `minWeight` 256. 
 
 ### Unstaking
 The user is able to unstake AURORA at any time, however in such a case, the weighting coefficient is reapplied to the stream rewards for the whole AURORA stake. Also it is important to note that users `MUST` claim their rewards before unstaking their AURORA tokens.
