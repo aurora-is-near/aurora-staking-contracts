@@ -72,7 +72,8 @@ describe("JetStakingV1", function () {
         jet = await upgrades.deployProxy(
             JetStakingV1,
             [
-                auroraToken.address, 
+                auroraToken.address,
+                auroraOwner.address, // aurora stream owner
                 scheduleTimes,
                 scheduleRewards,
                 tauPerStream,
