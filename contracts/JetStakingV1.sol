@@ -35,6 +35,8 @@ contract JetStakingV1 is AdminControlled {
     uint256 public totalStreamShares;
     address public treasury;
     address public auroraToken;
+    uint256 maxWeight;
+    uint256 minWeight;
 
     struct User {
         uint256 deposit;
@@ -129,14 +131,19 @@ contract JetStakingV1 is AdminControlled {
     /// @param tauAuroraStream release time constant per stream (e.g AURORA stream)
     /// @param _flags admin controlled contract flags
     /// @param _treasury the Aurora treasury contract address
+    /// @param _maxWeight max stream reward weighting coefficient
+    /// @param _minWeight min stream reward weighting coefficient
     function initialize(
         address aurora,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tauAuroraStream,
         uint256 _flags,
-        address _treasury
+        address _treasury,
+        uint256 _maxWeight,
+        uint256 _minWeight
     ) public initializer {
+        require(_maxWeight > _minWeight, "INVALID_WEIGHTS");
         require(
             aurora != address(0) && _treasury != address(0),
             "INVALID_ADDRESS"
@@ -150,6 +157,8 @@ contract JetStakingV1 is AdminControlled {
         _grantRole(AIRDROP_ROLE, msg.sender);
         treasury = _treasury;
         auroraToken = aurora;
+        maxWeight = _maxWeight;
+        minWeight = _minWeight;
         //init AURORA default stream
         // This is a special stream where the reward token is the aurora token itself.
         uint256 streamId = 0;
@@ -868,13 +877,13 @@ contract JetStakingV1 is AdminControlled {
         view
         returns (uint256)
     {
-        uint256 maxWeight = 1024;
-        uint256 minWeight = 256;
         uint256 slopeStart = streams[0].schedule.time[0] + ONE_MONTH;
         uint256 slopeEnd = slopeStart + FOUR_YEARS;
         if (timestamp <= slopeStart) return shares * maxWeight;
         if (timestamp >= slopeEnd) return shares * minWeight;
         return
+            shares *
+            minWeight +
             (shares * (maxWeight - minWeight) * (slopeEnd - timestamp)) /
             (slopeEnd - slopeStart);
     }
