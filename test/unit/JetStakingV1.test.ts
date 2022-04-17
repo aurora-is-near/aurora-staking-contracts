@@ -1334,8 +1334,9 @@ describe("JetStakingV1", function () {
         await jet.connect(user2).stake(amount)
         await network.provider.send("evm_increaseTime", [101])
         await network.provider.send("evm_mine")
-
-        await jet.connect(stakingAdmin).batchClaimOnBehalfOfAnotherUser(
+        
+        const pauser = auroraOwner
+        await jet.connect(pauser).batchClaimOnBehalfOfAnotherUser(
             user2.address,
             [Ids[0], Ids[2]]
         )
