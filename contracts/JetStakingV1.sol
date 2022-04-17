@@ -364,10 +364,9 @@ contract JetStakingV1 is AdminControlled {
     {
         Stream storage stream = streams[streamId];
         if (!stream.isActive) return 0;
-        uint256 scheduledReward = rewardsSchedule(
+        uint256 scheduledReward = getRewardsAmount(
             streamId,
-            stream.lastTimeOwnerClaimed,
-            block.timestamp
+            stream.lastTimeOwnerClaimed
         );
         return
             (scheduledReward * stream.auroraDepositAmount) /
@@ -676,17 +675,21 @@ contract JetStakingV1 is AdminControlled {
     /// @dev calculates and gets the latest released rewards.
     /// @param streamId stream index
     /// @return rewards released since last update.
-    function getRewardsAmount(uint256 streamId) public view returns (uint256) {
+    function getRewardsAmount(uint256 streamId, uint256 lastUpdate)
+        public
+        view
+        returns (uint256)
+    {
         uint256 streamStart = streams[streamId].schedule.time[0];
         if (block.timestamp <= streamStart) return 0; // Stream didn't start
         uint256 streamEnd = streams[streamId].schedule.time[
             streams[streamId].schedule.time.length - 1
         ];
-        if (touchedAt >= streamEnd) return 0; // Stream schedule ended, all rewards released
+        if (lastUpdate >= streamEnd) return 0; // Stream schedule ended, all rewards released
         uint256 start;
         uint256 end;
-        if (touchedAt > streamStart) {
-            start = touchedAt;
+        if (lastUpdate > streamStart) {
+            start = lastUpdate;
         } else {
             // Release rewards from stream start.
             start = streamStart;
@@ -712,7 +715,7 @@ contract JetStakingV1 is AdminControlled {
         require(totalStreamShares != 0, "ZERO_STREAM_SHARES");
         return
             streams[streamId].rps +
-            (getRewardsAmount(streamId) * RPS_MULTIPLIER) /
+            (getRewardsAmount(streamId, touchedAt) * RPS_MULTIPLIER) /
             totalStreamShares;
     }
 
@@ -770,9 +773,7 @@ contract JetStakingV1 is AdminControlled {
     /// @return totalAmountOfStakedAurora + latest reward schedule
     function getTotalAmountOfStakedAurora() external view returns (uint256) {
         if (touchedAt == 0) return 0;
-        return
-            totalAmountOfStakedAurora +
-            rewardsSchedule(0, touchedAt, block.timestamp);
+        return totalAmountOfStakedAurora + getRewardsAmount(0, touchedAt);
     }
 
     /// @dev gets start index and end index in a stream schedule
@@ -863,7 +864,7 @@ contract JetStakingV1 is AdminControlled {
         if (touchedAt == block.timestamp) return; // Already updated by previous tx in same block.
         if (totalAuroraShares != 0) {
             // Don't release rewards if there are no stakers.
-            totalAmountOfStakedAurora += getRewardsAmount(0);
+            totalAmountOfStakedAurora += getRewardsAmount(0, touchedAt);
             for (uint256 i = 1; i < streams.length; i++) {
                 if (streams[i].isActive) {
                     // If stream becomes blacklisted, no more rewards are released.
