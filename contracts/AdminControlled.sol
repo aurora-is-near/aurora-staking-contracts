@@ -1,36 +1,58 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.10;
 
+import "./DelegateCallGuard.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract AdminControlled is Initializable {
+contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
     address public admin;
     uint256 public paused;
 
-    // solhint-disable-next-line
-    function __AdminControlled_init(address _admin, uint256 flags)
-        public
-        initializer
-    {
-        admin = _admin;
-        paused = flags;
-    }
-
-    modifier onlyAdmin() {
-        require(msg.sender == admin);
-        _;
-    }
+    bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
+    event OwnershipTransferred(address oldAdmin, address newAdmin);
 
     modifier pausable(uint256 flag) {
-        require((paused & flag) == 0 || msg.sender == admin);
+        require(
+            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            "Paused"
+        );
         _;
     }
 
-    function adminPause(uint256 flags) public onlyAdmin {
+    function __AdminControlled_init(uint256 _flags) public initializer {
+        __AccessControl_init();
+        paused = _flags;
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSE_ROLE, msg.sender);
+    }
+
+    function adminPause(uint256 flags) external onlyRole(PAUSE_ROLE) {
         paused = flags;
     }
 
-    function adminSstore(uint256 key, uint256 value) public onlyAdmin {
+    function transferOwnership(address newAdmin)
+        external
+        virtual
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(newAdmin != address(0), "INVALID_ADDRESS");
+        require(admin != newAdmin, "SAME_ADMIN_ADDRESS");
+        _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        // This admin is used for colleting dust tokens,
+        // and releasing some locked funds. It is used
+        // by the staking contract. It must be assinged to
+        // the community treasury wallet that will be governed
+        // by DAO.
+        admin = newAdmin;
+        _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        emit OwnershipTransferred(_msgSender(), newAdmin);
+    }
+
+    function adminSstore(uint256 key, uint256 value)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         assembly {
             sstore(key, value)
         }
@@ -40,7 +62,7 @@ contract AdminControlled is Initializable {
         uint256 key,
         uint256 value,
         uint256 mask
-    ) public onlyAdmin {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         assembly {
             let oldval := sload(key)
             sstore(key, xor(and(xor(value, oldval), mask), oldval))
@@ -48,20 +70,25 @@ contract AdminControlled is Initializable {
     }
 
     function adminSendEth(address payable destination, uint256 amount)
-        public
-        onlyAdmin
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        //slither-disable-next-line arbitrary-send
         destination.transfer(amount);
     }
 
-    function adminReceiveEth() public payable onlyAdmin {}
-    // function adminDelegatecall(address target, bytes memory data) public payable onlyAdmin returns (bytes memory) {
-    //     /// @custom:oz-upgrades-unsafe-allow delegatecall
-    //     (bool success, bytes memory rdata) = target.delegatecall(data);
-    //     //TODO: This function has unsafe upgrade. It should apply OnlyDelegateCall which allows
-    //     // calling this function only throw proxy not the implementation. For more details:
-    //     // https://docs.openzeppelin.com/upgrades-plugins/1.x/faq#delegatecall-selfdestruct
-    //     require(success);
-    //     return rdata;
-    // }
+    function adminReceiveEth() external payable {}
+
+    /// @custom:oz-upgrades-unsafe-allow delegatecall
+    function adminDelegatecall(address target, bytes memory data)
+        external
+        payable
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyDelegateCall
+        returns (bytes memory)
+    {
+        (bool success, bytes memory rdata) = target.delegatecall(data);
+        require(success);
+        return rdata;
+    }
 }
