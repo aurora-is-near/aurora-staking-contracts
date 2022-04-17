@@ -105,19 +105,6 @@ describe("JetStakingV1", function () {
         await auroraToken.connect(auroraOwner).transfer(user5.address, balanceOfAurorOwner)
         // transfer ownership of the treasury to the jet staking contract
         await treasury.connect(auroraOwner).transferOwnership(jet.address)
-        await treasury.connect(auroraOwner).approveTokensTo(
-            [
-                auroraToken.address,
-                streamToken1.address,
-                streamToken1.address
-            ],
-            [
-                ethers.utils.parseUnits("100000", 18),
-                ethers.utils.parseUnits("100000", 18),
-                ethers.utils.parseUnits("100000", 18)
-            ],
-            treasury.address
-        )
     })
 
     it("should return treasury account", async () => {
@@ -311,131 +298,6 @@ describe("JetStakingV1", function () {
             parseInt(ethers.utils.formatUnits(await jet.totalAuroraShares(), 0))
         )
     })
-    it('should users stake and claim reward any time', async () => {
-        const timeDiff = 0
-        // // add new stream
-        // await jet.connect(stakingAdmin).deployStream(
-        //     streamToken1.address,
-        //     10,
-        //     scheduleTimes,
-        //     scheduleRewards,
-        //     tauPerStream
-        // )
-        // // user1 stakes 1000 Aurora tokens
-        // let amount = ethers.utils.parseUnits("1000", 18)
-        // await auroraToken.connect(user1).approve(jet.address, amount)
-        // let touchedAt = (await ethers.provider.getBlock("latest")).timestamp
-        // await jet.connect(user1).stake(amount)
-        // const user1Balance = parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
-        // // wait for 3 days
-        // let days = 0
-        // await network.provider.send("evm_increaseTime", [3 * oneDay])
-        // days += 3
-        // await network.provider.send("evm_mine")
-        // let current = (await ethers.provider.getBlock("latest")).timestamp
-        // timeDiff =  current - touchedAt - 1
-        // touchedAt = (await ethers.provider.getBlock("latest")).timestamp
-        // // user 1 claim rewards
-        // const streamId = 1
-        // let rps = await jet.getRewardPerShare(streamId)
-        // await jet.connect(user1).moveRewardsToPending(streamId)
-        // const pending = parseInt(ethers.utils.formatEther(await jet.getPending(streamId, user1.address)))
-        // rps = await jet.getRewardPerShare(streamId)
-        // const user1RPSAfterClaiming = rps
-        // await network.provider.send("evm_increaseTime", [1])
-        // await network.provider.send("evm_mine")
-        // let totalStakedAurora = await jet.getTotalAmountOfStakedAurora()
-        // await network.provider.send("evm_increaseTime", [1])
-        // await network.provider.send("evm_mine")
-        // let shares =  parseInt(ethers.utils.formatEther(amount))
-        // let expectedRewardPerShare = (
-        //     ((parseInt(scheduleRewards[0])/1e18 - parseInt(scheduleRewards[1])/1e18)) * (days * oneDay + 2) /
-        //     (oneYear * shares)
-        // )
-        // expect(pending).within(expectedRewardPerShare * shares - 5, expectedRewardPerShare * shares + 5)
-        // // expect(pending).to.be.lessThanOrEqual(expectedRewardPerShare * shares)
-        // expect(amount).to.be.eq(
-        //     await jet.totalShares(0)
-        // )
-        // expect(timeDiff).within(3 * oneDay - 1, 3 * oneDay + 1)
-        // // const _rps = parseInt(ethers.utils.formatUnits(rps, 30)) / 10
-        // // expect(parseInt(_rps.toString())).to.be.eq(
-        // //     parseInt(
-        // //         expectedRewardPerShare.toString()
-        // //     )
-        // // )
-        // // expect(rps).to.be.eq(
-        // //     await jet.getRewardPerShareForUser(streamId, user1.address)
-        // // )
-        // // user2 stakes 100 Aurora tokens
-        // await network.provider.send("evm_increaseTime", [1 * oneDay])
-        // await network.provider.send("evm_mine")
-        // current = (await ethers.provider.getBlock("latest")).timestamp
-        // days += 1
-        // amount = ethers.utils.parseUnits("100", 18)
-        // await auroraToken.connect(user2).approve(jet.address, amount)
-        // await jet.connect(user2).stake(amount)
-        // // check RPS
-        // rps = await jet.getRewardPerShare(streamId)
-        // expectedRewardPerShare = (
-        //     ((parseInt(scheduleRewards[0])/1e18 - parseInt(scheduleRewards[1])/1e18)) * (days * oneDay) /
-        //     (oneYear * shares)
-        // )
-        // shares += parseInt(ethers.utils.formatEther(amount)) * shares / parseInt(ethers.utils.formatEther(totalStakedAurora))
-        // const expectedTotalAmountOfStakedAurora = 
-        //         parseInt(ethers.utils.formatUnits(amount, 18)) +
-        //         parseInt(ethers.utils.formatUnits(totalStakedAurora)) +
-        //         ((parseInt(scheduleRewards[0])/1e18 - parseInt(scheduleRewards[1])/1e18)) * (current - touchedAt + 2) /
-        //         (oneYear)
-        // await network.provider.send("evm_increaseTime", [1])
-        // await network.provider.send("evm_mine")
-        // expect(parseInt(expectedTotalAmountOfStakedAurora.toString())).within(
-        //     parseInt(ethers.utils.formatUnits(await jet.getTotalAmountOfStakedAurora(), 18)) - 5,
-        //     parseInt(ethers.utils.formatUnits(await jet.getTotalAmountOfStakedAurora(), 18)) + 5
-        // )
-        // await network.provider.send("evm_increaseTime", [1])
-        // await network.provider.send("evm_mine")
-        // totalStakedAurora = parseInt(ethers.utils.formatUnits(await jet.totalAmountOfStakedAurora()))
-        // expect(rps.toNumber()).to.be.lessThanOrEqual(expectedRewardPerShare)
-        // expect(parseInt(shares.toString())).to.be.eq(
-        //     parseInt(ethers.utils.formatEther(await jet.totalShares(0)))
-        // )
-        // expect(
-        //     parseInt(ethers.utils.formatEther(await jet.getUserShares(user1.address))) +
-        //     parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))
-        // ).to.be.eq(
-        //     parseInt(shares.toString())
-        // )
-        // // user 1 unstake 500 Aurora tokens (50%) and restake unclaimed rewards = false
-        // amount = ethers.utils.parseUnits("500", 18)
-        // await network.provider.send("evm_increaseTime", [5 * oneDay])
-        // await network.provider.send("evm_mine")
-        // days += 5
-        // expectedRewardPerShare = (
-        //     ((parseInt(scheduleRewards[0])/1e18 - parseInt(scheduleRewards[1])/1e18)) * (days * oneDay) /
-        //     (oneYear * shares)
-        // )
-        // await jet.connect(user1).unstake(amount)
-        // shares -= parseInt(ethers.utils.formatEther(amount))
-        
-        // expect(parseInt(shares.toString())).to.be.eq(parseInt(ethers.utils.formatEther(await jet.totalShares(0))))
-        // // rps = await jet.getRewardPerShare(0)
-        // // expect(parseInt(rps)).to.be.greaterThanOrEqual(expectedRewardPerShare)
-        // expect(pending).within(
-        //     (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming) - 400,
-        //     (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming) + 400
-        // )
-        // await network.provider.send("evm_increaseTime", [5 * oneDay])
-        // await network.provider.send("evm_mine")
-        // days += 5
-        // await jet.connect(user1).withdraw(0)
-        
-        // expect(user1Balance + (shares - parseInt(ethers.utils.formatEther(await jet.getUserShares(user2.address)))) * (expectedRewardPerShare - user1RPSAfterClaiming)).to.be.lessThanOrEqual(
-        //     parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
-        // )
-        // // user 1 stakes 500 Aurora tokens
-        
-    })
     it('should able to get schedule times per stream', async () => {
         const schedules = await jet.getStreamSchedule(0)
         expect(schedules[0][0]).to.be.eq(scheduleTimes[0])
@@ -497,8 +359,8 @@ describe("JetStakingV1", function () {
         const expectedScheduledReward = 
             (parseInt(ethers.utils.formatEther(scheduleRewards[0])) - parseInt(ethers.utils.formatEther(scheduleRewards[1]))) * (timeDiff) / oneYear
         expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(parseInt(expectedScheduledReward.toString()) - 10, parseInt(expectedScheduledReward.toString()) + 10)
-        expect(parseInt(scheduleCalculated.toNumber())).to.be.greaterThanOrEqual(parseInt(expectedScheduledReward.toString()))
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.greaterThanOrEqual(parseInt(expectedScheduledReward.toString()))
+        expect(parseInt(scheduleCalculated.toNumber())).to.be.within(parseInt(expectedScheduledReward.toString()) - 50, parseInt(expectedScheduledReward.toString()) + 50)
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.within(parseInt(expectedScheduledReward.toString()) - 50, parseInt(expectedScheduledReward.toString()) + 50)
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(0)
     })
@@ -514,9 +376,9 @@ describe("JetStakingV1", function () {
             (parseInt(ethers.utils.formatEther(scheduleRewards[0])) - parseInt(ethers.utils.formatEther(scheduleRewards[1])))
         const expectedScheduledReward2 = (parseInt(ethers.utils.formatEther(scheduleRewards[1])) - parseInt(ethers.utils.formatEther(scheduleRewards[2]))) * (timeDiff - oneYear) / oneYear
         const expectedScheduledReward = parseInt(expectedScheduledReward1.toString()) + parseInt(expectedScheduledReward2.toString())
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.greaterThanOrEqual(expectedScheduledReward)
-        expect(scheduleCalculated.toNumber()).to.be.greaterThanOrEqual(expectedScheduledReward)
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.greaterThanOrEqual(expectedScheduledReward)
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
+        expect(scheduleCalculated.toNumber()).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(1)
     })
@@ -533,9 +395,9 @@ describe("JetStakingV1", function () {
             (parseInt(ethers.utils.formatEther(scheduleRewards[1])) - parseInt(ethers.utils.formatEther(scheduleRewards[2])))
         const expectedScheduledReward2 = (parseInt(ethers.utils.formatEther(scheduleRewards[2])) - parseInt(ethers.utils.formatEther(scheduleRewards[3]))) * (timeDiff - 2 * oneYear) / oneYear
         const expectedScheduledReward = parseInt(expectedScheduledReward1.toString()) + parseInt(expectedScheduledReward2.toString())
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.greaterThanOrEqual(expectedScheduledReward)
-        expect(scheduleCalculated.toNumber()).to.be.greaterThanOrEqual(expectedScheduledReward)
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.greaterThanOrEqual(expectedScheduledReward)
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
+        expect(scheduleCalculated.toNumber()).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(2)
     })

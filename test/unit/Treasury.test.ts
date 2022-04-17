@@ -52,20 +52,6 @@ describe("Treasury", function () {
         expect(await treasury.admin()).to.be.eq(newOwner.address)
     })
 
-    it('should only manager approve tokens to', async () => {
-        await treasury.connect(auroraOwner).approveTokensTo(
-            [
-                auroraToken.address,
-                streamToken1.address
-            ],
-            [
-                ethers.utils.parseUnits("100000", 18),
-                ethers.utils.parseUnits("100000", 18)
-            ],
-            treasury.address
-        )
-    })
-
     it("should allow only owner pay rewards", async () => {
        await treasury.connect(newOwner).payRewards(
             user5.address,

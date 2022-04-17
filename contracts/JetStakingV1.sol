@@ -188,12 +188,13 @@ contract JetStakingV1 is AdminControlled {
         emit StreamCreated(streamId, streamOwner, block.timestamp);
     }
 
-    /// @notice An admin of the staking contract can whitelist (propose) a stream.
+    /// @dev An admin of the staking contract can whitelist (propose) a stream.
     /// Whitelisting of the stream provides the option for the stream
     /// creator (presumably the issuing party of a specific token) to
     /// deposit some ERC-20 tokens on the staking contract and potentially
     /// get in return some AURORA tokens. Deposited ERC-20 tokens will be
     /// distributed to the stakers over some period of time.
+    /// @notice treasury manager must call
     /// @param streamOwner only this account would be able to create a stream
     /// @param rewardToken the address of the ERC-20 tokens to be deposited in the stream
     /// @param auroraDepositAmount Amount of the AURORA deposited by the Admin.
