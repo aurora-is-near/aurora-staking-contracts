@@ -37,4 +37,12 @@ contract JetStakingTesting is JetStakingV1 {
         uint256 userShares = users[account].auroraShares;
         return (totalAmountOfStakedAurora * userShares) / totalAuroraShares;
     }
+
+    function calculateWeightedShares(uint256 shares, uint256 timestamp)
+        public
+        view
+        returns (uint256)
+    {
+        return _weightedShares(shares, timestamp);
+    }
 }

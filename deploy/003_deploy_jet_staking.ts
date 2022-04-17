@@ -12,6 +12,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const flags = 0
     const oneYear = 31556926
     const tauPerStream = 2629746 // 1 month
+    const minWeight = 256
+    const maxWeight = 1024
     const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
     // TODO: update schedule rewards before the deployment
     const scheduleRewards = [
@@ -38,7 +40,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             scheduleRewards,
             tauPerStream,
             flags,
-            treasury
+            treasury,
+            maxWeight,
+            minWeight
         ]
     })
     //TODO: transfer ownership to the admin address
