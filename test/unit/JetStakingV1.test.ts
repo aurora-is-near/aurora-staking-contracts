@@ -100,19 +100,6 @@ describe("JetStakingV1", function () {
         await auroraToken.connect(auroraOwner).transfer(user5.address, balanceOfAurorOwner)
         // transfer ownership of the treasury to the jet staking contract
         await treasury.connect(auroraOwner).transferOwnership(jet.address)
-        await treasury.connect(auroraOwner).approveTokensTo(
-            [
-                auroraToken.address,
-                streamToken1.address,
-                streamToken1.address
-            ],
-            [
-                ethers.utils.parseUnits("100000", 18),
-                ethers.utils.parseUnits("100000", 18),
-                ethers.utils.parseUnits("100000", 18)
-            ],
-            treasury.address
-        )
     })
 
     it("should return treasury account", async () => {

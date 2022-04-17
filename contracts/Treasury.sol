@@ -37,27 +37,6 @@ contract Treasury is ITreasury, AdminControlled {
         _grantRole(TREASURY_MANAGER_ROLE, msg.sender);
     }
 
-    /// @notice allows operator to transfer supported tokens on befalf of Treasury
-    /// @dev used to allow jet staking contract to pay reverds from Treasury balance
-    /// @param _operator operator
-    /// @param _supportedTokens list of supported tokens to approve
-    function approveTokensTo(
-        address[] memory _supportedTokens,
-        uint256[] memory _amounts,
-        address _operator
-    ) external onlyRole(TREASURY_MANAGER_ROLE) {
-        require(
-            _amounts.length == _supportedTokens.length,
-            "INVALID_APPROVE_TOKEN_PARAMETERS"
-        );
-        for (uint256 i = 0; i < _supportedTokens.length; i++) {
-            IERC20Upgradeable(_supportedTokens[i]).safeIncreaseAllowance(
-                _operator,
-                _amounts[i]
-            );
-        }
-    }
-
     /// @notice transfers token amount from Treasury balance to user.
     /// @dev Used by jet staking contracts
     /// @param _user user to transfer tokens to
@@ -73,7 +52,9 @@ contract Treasury is ITreasury, AdminControlled {
     }
 
     /// @notice adds token as a supproted rewards token by Treasury
-    /// @param _token ERC20 token address
+    /// supported tokens means any future stream token should be
+    /// whitelisted here
+    /// @param _token stream ERC20 token address
     function addSupportedToken(address _token)
         external
         onlyRole(TREASURY_MANAGER_ROLE)
@@ -84,7 +65,7 @@ contract Treasury is ITreasury, AdminControlled {
     }
 
     /// @notice removed token as a supproted rewards token by Treasury
-    /// @param _token ERC20 token address
+    /// @param _token stream ERC20 token address
     function removeSupportedToken(address _token)
         external
         onlyRole(TREASURY_MANAGER_ROLE)
