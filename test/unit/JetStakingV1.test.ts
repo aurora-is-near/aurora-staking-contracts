@@ -54,6 +54,8 @@ describe("JetStakingV1", function () {
 
         startTime = (await ethers.provider.getBlock("latest")).timestamp
         const JetStakingV1 = await ethers.getContractFactory('JetStakingTesting')
+        const minWeight = 256
+        const maxWeight = 1024
         scheduleTimes = [
             startTime, 
             startTime + oneYear, 
@@ -72,12 +74,15 @@ describe("JetStakingV1", function () {
         jet = await upgrades.deployProxy(
             JetStakingV1,
             [
-                auroraToken.address, 
+                auroraToken.address,
+                auroraOwner.address, // aurora stream owner
                 scheduleTimes,
                 scheduleRewards,
                 tauPerStream,
                 flags,
-                treasury.address
+                treasury.address,
+                maxWeight,
+                minWeight
             ]
         )
         await jet.transferOwnership(stakingAdmin.address)
@@ -860,6 +865,34 @@ describe("JetStakingV1", function () {
             await jet.getAmountOfShares(id, user1.address)
         )
     })
+    it('should calculate weighted shares', async () => {
+        const shares = 1000
+        let timestamp = scheduleTimes[2]
+        const minWeight = 256
+        const maxWeight = 1024
+        const oneMonth = 2629746
+        const slopeStart = scheduleTimes[0] + oneMonth;
+        let slopeEnd = slopeStart + 4 * oneYear;
+        const expectedWeightedShares = shares * minWeight + ((shares * (maxWeight - minWeight) * (slopeEnd - timestamp)) / (slopeEnd - slopeStart))
+        expect(
+            parseInt(
+                await jet.calculateWeightedShares(shares, timestamp)
+            )
+        ).to.be.lessThanOrEqual(expectedWeightedShares)
+        timestamp = scheduleTimes[0]
+        expect(
+            parseInt(
+                await jet.calculateWeightedShares(shares, timestamp)
+            )
+        ).to.be.eq(maxWeight * shares)
+        timestamp = scheduleTimes[4] + oneMonth
+        expect(
+            parseInt(
+                await jet.calculateWeightedShares(shares, timestamp)
+            )
+        ).to.be.eq(minWeight * shares)
+
+    })
     it('should get reward per share for a user', async () => {
         const id = 1
         const user1RPSBefore = parseInt(await jet.getRewardPerShareForUser(id, user1.address))
@@ -1288,8 +1321,9 @@ describe("JetStakingV1", function () {
         await jet.connect(user2).stake(amount)
         await network.provider.send("evm_increaseTime", [101])
         await network.provider.send("evm_mine")
-
-        await jet.connect(stakingAdmin).batchClaimOnBehalfOfAnotherUser(
+        
+        const pauser = auroraOwner
+        await jet.connect(pauser).batchClaimOnBehalfOfAnotherUser(
             user2.address,
             [Ids[0], Ids[2]]
         )
