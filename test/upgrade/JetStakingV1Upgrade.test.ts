@@ -54,7 +54,8 @@ describe("JetStakingV1Upgrade", function () {
 
         startTime = (await ethers.provider.getBlock("latest")).timestamp
         const JetStakingV1 = await ethers.getContractFactory('JetStakingTesting')
-        
+        const minWeight = 256
+        const maxWeight = 1024
         scheduleTimes = [
             startTime, 
             startTime + oneYear, 
@@ -73,12 +74,15 @@ describe("JetStakingV1Upgrade", function () {
         jet = await upgrades.deployProxy(
             JetStakingV1,
             [
-                auroraToken.address, 
+                auroraToken.address,
+                auroraOwner.address, // aurora stream owner
                 scheduleTimes,
                 scheduleRewards,
                 tauPerStream,
                 flags,
-                treasury.address
+                treasury.address,
+                maxWeight,
+                minWeight
             ]
         )
         await jet.deployed();
