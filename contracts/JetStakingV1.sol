@@ -160,6 +160,20 @@ contract JetStakingV1 is AdminControlled {
             "INVALID_SCHEDULE_VALUES"
         );
         require(tauAuroraStream != 0, "INVALID_TAU_PERIOD");
+        for (uint256 i = 1; i < scheduleTimes.length; i++) {
+            require(
+                scheduleTimes[i] > scheduleTimes[i - 1],
+                "INVALID_SCHEDULE_TIMES"
+            );
+            require(
+                scheduleRewards[i] <= scheduleRewards[i - 1],
+                "INVALID_SCHEDULE_REWARDS"
+            );
+        }
+        require(
+            scheduleRewards[scheduleRewards.length - 1] == 0,
+            "INVALID_SCHEDULE_END_REWARD"
+        );
         __AdminControlled_init(_flags);
         _grantRole(AIRDROP_ROLE, msg.sender);
         _grantRole(CLAIM_ROLE, msg.sender);
@@ -820,10 +834,16 @@ contract JetStakingV1 is AdminControlled {
         uint256 start,
         uint256 end
     ) public view returns (uint256) {
+        require(end > start, "INVALID_REWARD_QUERY_PERIODE");
+        Schedule storage schedule = streams[streamId].schedule;
+        require(start >= schedule.time[0], "QUERY_BEFORE_SCHEDULE_START");
+        require(
+            end <= schedule.time[schedule.time.length - 1],
+            "QUERY_AFTER_SCHEDULE_END"
+        );
         uint256 startIndex;
         uint256 endIndex;
         (startIndex, endIndex) = startEndScheduleIndex(streamId, start, end);
-        Schedule storage schedule = streams[streamId].schedule;
         uint256 rewardScheduledAmount = 0;
         uint256 reward = 0;
         if (startIndex == endIndex) {
@@ -1036,6 +1056,20 @@ contract JetStakingV1 is AdminControlled {
             "INVALID_SCHEDULE_VALUES"
         );
         require(tau != 0, "INVALID_TAU_PERIOD");
+        for (uint256 i = 1; i < scheduleTimes.length; i++) {
+            require(
+                scheduleTimes[i] > scheduleTimes[i - 1],
+                "INVALID_SCHEDULE_TIMES"
+            );
+            require(
+                scheduleRewards[i] <= scheduleRewards[i - 1],
+                "INVALID_SCHEDULE_REWARDS"
+            );
+        }
+        require(
+            scheduleRewards[scheduleRewards.length - 1] == 0,
+            "INVALID_SCHEDULE_END_REWARD"
+        );
     }
 
     /// @dev updates the stream reward schedule if the reward token amount is less than
