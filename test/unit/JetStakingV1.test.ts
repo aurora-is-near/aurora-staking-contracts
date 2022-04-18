@@ -494,7 +494,7 @@ describe("JetStakingV1", function () {
         const batchAmount = ethers.utils.parseUnits("10", 18)
         await auroraToken.connect(auroraOwner).mint(auroraOwner.address, batchAmount)
         await auroraToken.connect(auroraOwner).approve(jet.address, batchAmount)
-        await expect(jet.connect(user1).batchStakeOnBehalfOfOtherUsers(
+        await expect(jet.connect(user1).stakeOnBehalfOfOtherUsers(
             [
                 user1.address,
                 user2.address
@@ -505,7 +505,7 @@ describe("JetStakingV1", function () {
             ],
             batchAmount
         )).to.be.reverted
-        await jet.connect(auroraOwner).batchStakeOnBehalfOfOtherUsers(
+        await jet.connect(auroraOwner).stakeOnBehalfOfOtherUsers(
             [
                 user1.address,
                 user2.address
@@ -747,7 +747,7 @@ describe("JetStakingV1", function () {
         const maxWeight = 1024
         const oneMonth = 2629746
         const slopeStart = scheduleTimes[0] + oneMonth;
-        let slopeEnd = slopeStart + 4 * oneYear;
+        const slopeEnd = slopeStart + 4 * oneYear;
         const expectedWeightedShares = shares * minWeight + ((shares * (maxWeight - minWeight) * (slopeEnd - timestamp)) / (slopeEnd - slopeStart))
         expect(
             parseInt(
@@ -1208,10 +1208,10 @@ describe("JetStakingV1", function () {
     })
     it('estimageGas staking with multiple streams', async () => {
         // deploy streams
-        const nb = 20
+        const streamCount = 20
         console.log("====================================================")
-        console.log("Deploying", nb, "streams...")
-        for (let id = 1; id <= nb; id++) {
+        console.log("Deploying", streamCount, "streams...")
+        for (let id = 1; id <= streamCount; id++) {
             // approve aurora tokens to the stream proposal
             const auroraProposalAmountForAStream = ethers.utils.parseUnits("10", 18)
             const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200", 18)
@@ -1244,36 +1244,109 @@ describe("JetStakingV1", function () {
         const amount = ethers.utils.parseUnits("1000", 18)
 
         await auroraToken.connect(user1).approve(jet.address, amount)
-        console.log("Approval:", (await auroraToken.connect(user1).estimateGas.approve(jet.address, amount)).toNumber(), "gas")
-        console.log("User1 stake 1st time (without _before):", (await jet.connect(user1).estimateGas.stake(amount)).toNumber(), "gas")
-        await jet.connect(user1).stake(amount)
+        let tx = await jet.connect(user1).stake(amount)
+        console.log("User1 stake 1st time (without _before):", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas")
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
         await auroraToken.connect(user1).approve(jet.address, amount)
         // NOTE: Claiming rewards the 1st time is more expensive due to new storage allocation in _moveRewardsToPending.
         // This is also the case calling _before the 1st time.
-        console.log("User1 stake 2nd time (init _before + init rps):", (await jet.connect(user1).estimateGas.stake(amount)).toNumber(), "gas")
-        await jet.connect(user1).stake(amount)
+        tx = await jet.connect(user1).stake(amount)
+        console.log("User1 stake 2nd time (init _before + init rps):", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas")
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
         await auroraToken.connect(user1).approve(jet.address, amount)
-        console.log("User1 stake 3rd time:", (await jet.connect(user1).estimateGas.stake(amount)).toNumber(), "gas")
-        await jet.connect(user1).stake(amount)
+        tx = await jet.connect(user1).stake(amount)
+        console.log("User1 stake 3rd time:", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas")
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
 
         await auroraToken.connect(user2).approve(jet.address, amount)
-        console.log("User2 stake 1st time (init rps):", (await jet.connect(user2).estimateGas.stake(amount)).toNumber(), "gas")
-        await jet.connect(user2).stake(amount)
+        tx = await jet.connect(user2).stake(amount)
+        console.log("User2 stake 1st time (init rps):", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas")
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
         await auroraToken.connect(user2).approve(jet.address, amount)
-        console.log("User2 stake 2nd time:", (await jet.connect(user2).estimateGas.stake(amount)).toNumber(), "gas")
-        await jet.connect(user2).stake(amount)
+        tx = await jet.connect(user2).stake(amount)
+        console.log("User2 stake 2nd time:", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas")
         await network.provider.send("evm_increaseTime", [1])
         await network.provider.send("evm_mine")
         await auroraToken.connect(user2).approve(jet.address, amount)
-        console.log("User2 stake 3rd time:", (await jet.connect(user2).estimateGas.stake(amount)).toNumber(), "gas")
-        await jet.connect(user2).stake(amount)
+        tx = await jet.connect(user2).stake(amount)
+        console.log("User2 stake 3rd time:", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas")
+    })
+    it('estimageGas claiming all with multiple users', async () => {
+        // deploy streams
+        const streamCount = 4
+        for (let id = 1; id <= streamCount; id++) {
+            // approve aurora tokens to the stream proposal
+            const auroraProposalAmountForAStream = ethers.utils.parseUnits("10", 18)
+            const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200", 18)
+            await auroraToken.connect(stakingAdmin).approve(jet.address, auroraProposalAmountForAStream)
+            // propose a stream
+            startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+            scheduleTimes = [
+                startTime,
+                startTime + oneYear,
+                startTime + 2 * oneYear,
+                startTime + 3 * oneYear,
+                startTime + 4 * oneYear
+            ]
+            await jet.connect(stakingAdmin).proposeStream(
+                user1.address,
+                streamToken1.address,
+                auroraProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                scheduleTimes,
+                scheduleRewards,
+                tauPerStream
+            )
+            // approve reward tokens
+            await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+            // create a stream
+            await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        }
+        await network.provider.send("evm_increaseTime", [101])
+        await network.provider.send("evm_mine")
+        const amount = ethers.utils.parseUnits("1", 18)
+
+        const usersCount = 5
+        const users = [...Array(usersCount).keys()].map(i => `0x000000000000000000000000000000000000000${i+1}`)
+        const amounts = users.map(() => amount)
+        const batchAmount = amount.mul(usersCount)
+
+        console.log(`Airdrop to ${usersCount} users with ${streamCount} streams.`)
+
+        // init _before()
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+
+        // airdrop stake 1st time, set user rps 1st time, initialize shares 1st time
+        await auroraToken.connect(auroraOwner).mint(auroraOwner.address, batchAmount)
+        await auroraToken.connect(auroraOwner).approve(jet.address, batchAmount)
+        let tx = await jet.connect(auroraOwner).stakeOnBehalfOfOtherUsers(users, amounts, batchAmount)
+        console.log("Airdrop stake 1st time:", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas.")
+        await network.provider.send("evm_increaseTime", [10])
+        await network.provider.send("evm_mine")
+
+        // airdrop claim before stake
+        tx = await jet.connect(auroraOwner).claimAllOnBehalfOfOtherUsers(users)
+        console.log("Claim all on behalf:", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas.")
+        await network.provider.send("evm_increaseTime", [10])
+        await network.provider.send("evm_mine")
+
+        // airdrop add stake
+        await auroraToken.connect(auroraOwner).mint(auroraOwner.address, batchAmount)
+        await auroraToken.connect(auroraOwner).approve(jet.address, batchAmount)
+        tx = await jet.connect(auroraOwner).stakeOnBehalfOfOtherUsers(users, amounts, batchAmount)
+        console.log("Airdrop add stake:", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas.")
+        await network.provider.send("evm_increaseTime", [10])
+        await network.provider.send("evm_mine")
+
+        tx = await jet.connect(auroraOwner).claimAllOnBehalfOfAnotherUser(users[0])
+        console.log("Claim all on behalf of single user:", (await tx.wait()).cumulativeGasUsed.toNumber(), "gas.")
+
+        // Conclusion: claim all for 5 users (airdrop batch) is possible with up to 4 streams.
+        // It will be better for the airdrop script to use multiple signing keys for processing requests in parallel.
     })
 });
