@@ -85,7 +85,24 @@ describe("JetStakingV1", function () {
                 minWeight
             ]
         )
-        await jet.transferOwnership(stakingAdmin.address)
+        const claimRole = await jet.CLAIM_ROLE()
+        const airdropRole = await jet.AIRDROP_ROLE()
+        const pauseRole = await jet.PAUSE_ROLE()
+        const defaultAdminRole = await jet.DEFAULT_ADMIN_ROLE()
+        const deployer = auroraOwner
+        expect(await jet.hasRole(claimRole, stakingAdmin.address)).to.be.eq(false)
+        expect(await jet.hasRole(airdropRole, stakingAdmin.address)).to.be.eq(false)
+        expect(await jet.hasRole(pauseRole, stakingAdmin.address)).to.be.eq(false)
+        expect(await jet.hasRole(defaultAdminRole, stakingAdmin.address)).to.be.eq(false)
+        await jet.connect(deployer).grantRole(claimRole, stakingAdmin.address)
+        await jet.connect(deployer).grantRole(airdropRole, stakingAdmin.address)
+        await jet.connect(deployer).grantRole(pauseRole, stakingAdmin.address)
+        await jet.connect(deployer).transferOwnership(stakingAdmin.address)
+        
+        expect(await jet.hasRole(claimRole, stakingAdmin.address)).to.be.eq(true)
+        expect(await jet.hasRole(airdropRole, stakingAdmin.address)).to.be.eq(true)
+        expect(await jet.hasRole(pauseRole, stakingAdmin.address)).to.be.eq(true)
+        expect(await jet.hasRole(defaultAdminRole, stakingAdmin.address)).to.be.eq(true)
     })
 
     beforeEach(async () => {        
