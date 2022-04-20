@@ -292,6 +292,14 @@ describe("JetStakingV1", function () {
         const {amount, } = await getEventLogs(tx.hash, constants.eventsABI.staked, 0)
         expect(amount).to.be.eq(amountStaked)
     })
+    it('should not release new rewards in the same block', async () => {
+        const amount = ethers.utils.parseUnits("1000", 18)
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        const touchedAt = await jet.touchedAt()
+        const rewards = await jet.getRewardsAmount(0, touchedAt)
+        expect(rewards.isZero()).to.be.eq(true)
+    })
     it('user stakes and never claims', async () => {
         const amountStaked1 = ethers.utils.parseUnits("1000", 18)
         await auroraToken.connect(user1).approve(jet.address, amountStaked1)

@@ -740,6 +740,7 @@ contract JetStakingV1 is AdminControlled {
         view
         returns (uint256)
     {
+        if (lastUpdate == block.timestamp) return 0; // No more rewards since last update
         uint256 streamStart = streams[streamId].schedule.time[0];
         if (block.timestamp <= streamStart) return 0; // Stream didn't start
         uint256 streamEnd = streams[streamId].schedule.time[
