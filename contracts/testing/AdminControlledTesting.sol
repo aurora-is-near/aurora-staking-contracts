@@ -14,11 +14,19 @@ contract AdminControlledTesting is AdminControlled {
         return paused;
     }
 
-    function getSignatureForTokenMinting(address receiver, uint256 amount)
-        public
-        returns (bytes memory)
-    {
-        return
-            abi.encodeWithSignature("mint(address,uint256)", receiver, amount);
+    function getSignatureForTokenMinting() public returns (bytes memory) {
+        return abi.encodeWithSignature("targetFunction(string)", "Testname");
+    }
+}
+
+contract TargetContract {
+    uint256 public value;
+    address public sender;
+    string public name;
+
+    function targetFunction(string memory _nameTarget) public payable {
+        value = msg.value;
+        sender = msg.sender;
+        name = _nameTarget;
     }
 }

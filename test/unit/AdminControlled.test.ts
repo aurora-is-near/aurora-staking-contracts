@@ -7,15 +7,15 @@ describe("AdminControlled", function () {
     let newAdmin: any
     let user: any
     let adminControlled: any
-    let auroraToken: any
+    let targetContract: any
 
     before(async () => {
         // deploys the contracts
         [admin, newAdmin, user] = await ethers.getSigners()
         const AdminControlled = await ethers.getContractFactory("AdminControlledTesting")
-        const Token = await ethers.getContractFactory("Token")
+        const TargetContract = await ethers.getContractFactory("TargetContract")
         const supply = ethers.utils.parseUnits("1000000000", 18)
-        auroraToken = await Token.connect(admin).deploy(supply, "AuroraToken", "AURORA")
+        targetContract = await TargetContract.connect(admin).deploy()
         const flags = 0
         adminControlled = await upgrades.deployProxy(
             AdminControlled,
@@ -49,11 +49,14 @@ describe("AdminControlled", function () {
         expect(changeMeBefore).to.be.eq(changeMeAfter)
     })
     it('should allow admin to delegate call', async () => {
-        const target = auroraToken.address
-        const tx = await adminControlled.getSignatureForTokenMinting(user.address, ethers.utils.parseUnits("10", 18))
-        //TODO: still need to figure out why it reverts
-        await expect(adminControlled.connect(admin).adminDelegatecall(target, tx.data, {value: ethers.utils.parseEther("0")})).to.be.reverted
-        // expect(await auroraToken.balanceOf(user.address)).to.be.eq(ethers.utils.formatEther("1"))
+        const tx = await adminControlled.getSignatureForTokenMinting()
+        let ABI = ["function targetFunction(string memory _nameTarget)"]
+        let iface = new ethers.utils.Interface(ABI)
+        const data = iface.encodeFunctionData("targetFunction", ["Testname"])
+        await adminControlled.connect(admin).adminDelegatecall(
+            targetContract.address,
+            data
+        )
     })
     it('should allow admin to send and receive eth', async () => {
         await adminControlled.adminReceiveEth({value: ethers.utils.parseEther("1.0")})
