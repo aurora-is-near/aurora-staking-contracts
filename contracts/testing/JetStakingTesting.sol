@@ -46,7 +46,9 @@ contract JetStakingTesting is JetStakingV1 {
         return _weightedShares(shares, timestamp);
     }
 
-    function tempMoveRewardsToPending(address account, uint256 streamId) public {
+    function tempMoveRewardsToPending(address account, uint256 streamId)
+        public
+    {
         _moveRewardsToPending(account, streamId);
     }
 
