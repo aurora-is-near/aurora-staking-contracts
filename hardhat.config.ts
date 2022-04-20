@@ -36,6 +36,11 @@ module.exports = {
       optimizer: {
         enabled: true,
         runs: 1
+      },
+      outputSelection: {
+        "*": {
+          "*": ["storageLayout"],
+        },
       }
     }
   },
