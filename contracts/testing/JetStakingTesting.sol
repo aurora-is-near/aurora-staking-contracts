@@ -27,22 +27,22 @@ contract JetStakingTesting is JetStakingV1 {
         _before();
     }
 
-    function getTotalUserReward() external view returns (uint256 totalReward) {
-        totalReward =
-            users[msg.sender].auroraShares *
-            (totalAmountOfStakedAurora / totalAuroraShares);
-    }
-
-    function calculateReward(address account) public view returns (uint256) {
-        uint256 userShares = users[account].auroraShares;
-        return (totalAmountOfStakedAurora * userShares) / totalAuroraShares;
-    }
-
     function calculateWeightedShares(uint256 shares, uint256 timestamp)
         public
         view
         returns (uint256)
     {
         return _weightedShares(shares, timestamp);
+    }
+
+    function tempMoveRewardsToPending(address account, uint256 streamId)
+        public
+    {
+        _moveRewardsToPending(account, streamId);
+    }
+
+    function callBeforeTwice() public {
+        _before();
+        _before();
     }
 }
