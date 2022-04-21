@@ -6,6 +6,16 @@ import "./AdminControlled.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
+/**
+ * @title Treasury
+ * @author Aurora Team
+ *
+ * @dev Implementation of the treasury contract
+ *
+ *      This contract is holding all the aurora staking and streams funds.
+ *      It inherits adminControlled which gives admin more privilegs over this
+ *      this contract.
+ */
 contract Treasury is ITreasury, AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     bytes32 public constant TREASURY_MANAGER_ROLE =
