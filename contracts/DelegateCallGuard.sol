@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 /**
- * @title AdminControlled
+ * @title DelegateCallGuard
  * @author Aurora Team
  *
  * @dev Implementation of delegatecall guard contract
