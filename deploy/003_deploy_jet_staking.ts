@@ -2,19 +2,30 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
+    
+    const {
+        FLAGS,
+        ONE_YEAR,
+        TAU_PER_STREAM,
+        MIN_WEIGHT,
+        MAX_WEIGHT,
+        AURORA_STREAM_OWNER,
+        SCHEDULE_START_TIME
+    } = process.env
 
     const { deploy } = hre.deployments
+    let startTime: any
     const { owner } = await hre.getNamedAccounts()
-    const auroraStreamOwner = owner //TODO: change this address prior deployment
-    const startTime = Math.floor(Date.now()/ 1000) + 60 // starts after 60 seconds from now.
+    SCHEDULE_START_TIME ? startTime = parseInt(SCHEDULE_START_TIME as string) :  startTime = Math.floor(Date.now()/ 1000) + 60 
     const treasury = (await hre.ethers.getContract("Treasury")).address
     const aurora = (await hre.ethers.getContract("Token")).address
-    const flags = 0
-    const oneYear = 31556926
-    const tauPerStream = 2629746 // 1 month
-    const minWeight = 256
-    const maxWeight = 1024
-    const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
+    const scheduleTimes = [
+        startTime,
+        startTime + parseInt(ONE_YEAR as string),
+        startTime + 2 * parseInt(ONE_YEAR as string),
+        startTime + 3 * parseInt(ONE_YEAR as string),
+        startTime + 4 * parseInt(ONE_YEAR as string)
+    ]
     // TODO: update schedule rewards before the deployment
     const scheduleRewards = [
         hre.ethers.utils.parseUnits("200000000", 18),// 100M
@@ -35,14 +46,14 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         },
         args: [
             aurora,
-            auroraStreamOwner,
+            AURORA_STREAM_OWNER ? AURORA_STREAM_OWNER : owner,
             scheduleTimes,
             scheduleRewards,
-            tauPerStream,
-            flags,
+            parseInt(TAU_PER_STREAM as string),
+            parseInt(FLAGS as string),
             treasury,
-            maxWeight,
-            minWeight
+            parseInt(MAX_WEIGHT as string),
+            parseInt(MIN_WEIGHT as string)
         ]
     })
     //TODO: transfer ownership to the admin address
