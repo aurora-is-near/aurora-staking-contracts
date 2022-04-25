@@ -1087,7 +1087,10 @@ contract JetStakingV1 is AdminControlled {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
         require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
-        require(maxDepositAmount == scheduleRewards[0], "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE");
+        require(
+            maxDepositAmount == scheduleRewards[0],
+            "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE"
+        );
         // scheduleTimes[0] == proposal expiration time
         require(
             scheduleTimes[0] > block.timestamp,
