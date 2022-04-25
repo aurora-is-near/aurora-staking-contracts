@@ -1091,7 +1091,8 @@ contract JetStakingV1 is AdminControlled {
     ) internal view {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
-        require(maxDepositAmount > 0, "INVALID_MAX_DEPOSITED_AMOUNT_VALUE");
+        require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
+        require(maxDepositAmount == scheduleRewards[0], "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE");
         // scheduleTimes[0] == proposal expiration time
         require(
             scheduleTimes[0] > block.timestamp,
@@ -1126,11 +1127,10 @@ contract JetStakingV1 is AdminControlled {
         uint256 streamId,
         uint256 rewardTokenAmount
     ) internal {
-        uint256 suggestedAmount = streams[streamId].schedule.reward[0];
         for (uint256 i = 0; i < streams[streamId].schedule.reward.length; i++) {
             streams[streamId].schedule.reward[i] =
                 (streams[streamId].schedule.reward[i] * rewardTokenAmount) /
-                suggestedAmount;
+                streams[streamId].maxDepositAmount;
         }
     }
 
