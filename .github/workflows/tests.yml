@@ -36,6 +36,7 @@ jobs:
       - name: Clone the repository
         uses: actions/checkout@v2
       - run: yarn install --force
+      - run: cp .env.example .env
       - run: yarn lint
       - run: yarn compile
       - run: yarn coverage
