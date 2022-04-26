@@ -400,6 +400,7 @@ contract JetStakingV1 is AdminControlled {
         Stream storage stream = streams[streamId];
         require(msg.sender == stream.owner, "INVALID_STREAM_OWNER");
         require(stream.isActive, "INACTIVE_STREAM");
+        require(streamId != 0, "AURORA_STREAM_NA");
         uint256 auroraStreamOwnerReward = getStreamOwnerClaimableAmount(
             streamId
         );
