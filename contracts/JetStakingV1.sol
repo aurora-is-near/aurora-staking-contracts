@@ -845,11 +845,11 @@ contract JetStakingV1 is AdminControlled {
     ) public view returns (uint256 startIndex, uint256 endIndex) {
         Schedule storage schedule = streams[streamId].schedule;
         require(schedule.time.length > 0, "NO_SCHEDULE");
+        require(end > start, "INVALID_REWARD_QUERY_PERIODE");
+        require(start >= schedule.time[0], "QUERY_BEFORE_SCHEDULE_START");
         require(
-            end > start &&
-                start >= schedule.time[0] &&
-                end <= schedule.time[schedule.time.length - 1],
-            "INVALID_SCHEDULE_PARAMETERS"
+            end <= schedule.time[schedule.time.length - 1],
+            "QUERY_AFTER_SCHEDULE_END"
         );
         // find start index and end index
         for (uint256 i = 0; i < schedule.time.length - 1; i++) {
@@ -865,6 +865,7 @@ contract JetStakingV1 is AdminControlled {
                 break;
             }
         }
+        require(startIndex <= endIndex, "INVALID_INDEX_CALCULATION");
     }
 
     /// @dev calculate the total amount of the released tokens within a period (start & end)
@@ -877,13 +878,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 start,
         uint256 end
     ) public view returns (uint256) {
-        require(end > start, "INVALID_REWARD_QUERY_PERIODE");
         Schedule storage schedule = streams[streamId].schedule;
-        require(start >= schedule.time[0], "QUERY_BEFORE_SCHEDULE_START");
-        require(
-            end <= schedule.time[schedule.time.length - 1],
-            "QUERY_AFTER_SCHEDULE_END"
-        );
         uint256 startIndex;
         uint256 endIndex;
         (startIndex, endIndex) = startEndScheduleIndex(streamId, start, end);
@@ -1088,7 +1083,11 @@ contract JetStakingV1 is AdminControlled {
     ) internal view {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
-        require(maxDepositAmount > 0, "INVALID_MAX_DEPOSITED_AMOUNT_VALUE");
+        require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
+        require(
+            maxDepositAmount == scheduleRewards[0],
+            "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE"
+        );
         // scheduleTimes[0] == proposal expiration time
         require(
             scheduleTimes[0] > block.timestamp,
@@ -1123,11 +1122,10 @@ contract JetStakingV1 is AdminControlled {
         uint256 streamId,
         uint256 rewardTokenAmount
     ) internal {
-        uint256 suggestedAmount = streams[streamId].schedule.reward[0];
         for (uint256 i = 0; i < streams[streamId].schedule.reward.length; i++) {
             streams[streamId].schedule.reward[i] =
                 (streams[streamId].schedule.reward[i] * rewardTokenAmount) /
-                suggestedAmount;
+                streams[streamId].maxDepositAmount;
         }
     }
 
