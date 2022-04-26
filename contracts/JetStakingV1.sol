@@ -25,7 +25,8 @@ contract JetStakingV1 is AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
     bytes32 public constant CLAIM_ROLE = keccak256("CLAIM_ROLE");
-    bytes32 public constant STREAM_MANAGER_ROLE = keccak256("STREAM_MANAGER_ROLE");
+    bytes32 public constant STREAM_MANAGER_ROLE =
+        keccak256("STREAM_MANAGER_ROLE");
     uint256 constant ONE_MONTH = 2629746;
     uint256 constant FOUR_YEARS = 126227704;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
