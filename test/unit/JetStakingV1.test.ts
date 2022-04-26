@@ -24,6 +24,7 @@ describe("JetStakingV1", function () {
     let scheduleRewards: any
     let oneDay: any
     let startTime: any
+    let treasuryAdmin: any
     
     before(async () => {
         // deploys all the contracts
@@ -103,6 +104,7 @@ describe("JetStakingV1", function () {
         expect(await jet.hasRole(airdropRole, stakingAdmin.address)).to.be.eq(true)
         expect(await jet.hasRole(pauseRole, stakingAdmin.address)).to.be.eq(true)
         expect(await jet.hasRole(defaultAdminRole, stakingAdmin.address)).to.be.eq(true)
+
     })
 
     beforeEach(async () => {        
@@ -121,7 +123,9 @@ describe("JetStakingV1", function () {
         const balanceOfAurorOwner = await auroraToken.balanceOf(auroraOwner.address)
         await auroraToken.connect(auroraOwner).transfer(user5.address, balanceOfAurorOwner)
         // transfer ownership of the treasury to the jet staking contract
-        await treasury.connect(auroraOwner).transferOwnership(jet.address)
+        const defaultAdminRole = await jet.DEFAULT_ADMIN_ROLE()
+        await treasury.connect(auroraOwner).grantRole(defaultAdminRole, jet.address)
+        // await treasury.connect(auroraOwner).transferOwnership(jet.address)
     })
 
     it("should return treasury account", async () => {
