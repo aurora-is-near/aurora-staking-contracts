@@ -256,19 +256,16 @@ contract JetStakingV1 is AdminControlled {
         );
     }
 
-    /// @dev cancelStreamProposal should only called if the stream owner
-    /// never created the stream after the proposal expiry date (streams[streamId].schedule.time[0]).
+    /// @dev cancelStreamProposal cancels a proposal any time before the stream
+    /// becomes active (created).
     /// @param streamId the stream index
     function cancelStreamProposal(uint256 streamId)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         Stream storage stream = streams[streamId];
-        require(
-            streams[streamId].schedule.time[0] <= block.timestamp &&
-                stream.isProposed,
-            "STREAM_DID_NOT_EXPIRE"
-        );
+        require(stream.isProposed, "STREAM_NOT_PROPOSED");
+        require(!stream.isActive, "STREAM_ALREADY_ACTIVE");
         // cancel the proposal
         stream.isProposed = false;
         uint256 refundAmount = stream.auroraDepositAmount;
