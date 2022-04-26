@@ -22,11 +22,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 
     const { deploy } = hre.deployments
     let startTime: any
-    let aurora: any
     const { owner } = await hre.getNamedAccounts()
     SCHEDULE_START_TIME ? startTime = parseInt(SCHEDULE_START_TIME as string) :  startTime = Math.floor(Date.now()/ 1000) + 60 
     const treasury = (await hre.ethers.getContract("Treasury")).address
-    TESTING ? aurora = (await hre.ethers.getContract("Token")).address: aurora = AURORA_TOKEN
     const scheduleTimes = [
         startTime,
         startTime + parseInt(ONE_YEAR as string),
@@ -53,7 +51,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             methodName: 'initialize',    
         },
         args: [
-            aurora,
+            TESTING ? (await hre.ethers.getContract("Token")).address: AURORA_TOKEN,
             AURORA_STREAM_OWNER ? AURORA_STREAM_OWNER : owner,
             scheduleTimes,
             scheduleRewards,
