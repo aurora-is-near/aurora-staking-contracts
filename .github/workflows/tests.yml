@@ -14,14 +14,29 @@ jobs:
     env:
       INFURA_KEY: ${{secrets.INFURA_KEY}}
       ETHERSCAN_API_KEY: ${{secrets.ETHERSCAN_API_KEY}}
-      PRIVATE_KEY_TESTNET: ${{secrets.PRIVATE_KEY_TESTNET}}
       PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
       MNEMONIC: ${{secrets.MNEMONIC}}
       AURORA_API_KEY: ${{secrets.AURORA_API_KEY}}
+      TESTING: ${{secrets.TESTING}}
+      AURORA_TOKEN: ${{secrets.AURORA_TOKEN}}
+      FLAGS: ${{secrets.FLAGS}}
+      ONE_YEAR: ${{secrets.ONE_YEAR}}
+      TAU_PER_STREAM: ${{secrets.TAU_PER_STREAM}}
+      MIN_WEIGHT: ${{secrets.MIN_WEIGHT}}
+      MAX_WEIGHT: ${{secrets.MAX_WEIGHT}}
+      AURORA_STREAM_OWNER: ${{secrets.AURORA_STREAM_OWNER}}
+      SCHEDULE_START_TIME: ${{secrets.SCHEDULE_START_TIME}}
+      DEFAULT_ADMIN_ROLE_ADDRESS: ${{secrets.DEFAULT_ADMIN_ROLE_ADDRESS}}
+      PAUSER_ROLE_ADDRESS: ${{secrets.PAUSER_ROLE_ADDRESS}}
+      AIRDROP_ROLE_ADDRESS: ${{secrets.AIRDROP_ROLE_ADDRESS}}
+      TREASURY_MANAGER_ROLE_ADDRESS: ${{secrets.TREASURY_MANAGER_ROLE_ADDRESS}}
+      STREAM_MANAGER_ROLE_ADDRESS: ${{secrets.STREAM_MANAGER_ROLE_ADDRESS}}
+      CLAIM_ROLE_ADDRESS: ${{secrets.CLAIM_ROLE_ADDRESS}}
     steps:
       - name: Clone the repository
         uses: actions/checkout@v2
       - run: yarn install --force
+      - run: cp .env.example .env
       - run: yarn lint
       - run: yarn compile
       - run: yarn coverage

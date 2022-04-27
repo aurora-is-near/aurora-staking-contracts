@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { JumpType } from "hardhat/internal/hardhat-network/stack-traces/model";
 
 describe("AdminControlled", function () {
     let admin: any

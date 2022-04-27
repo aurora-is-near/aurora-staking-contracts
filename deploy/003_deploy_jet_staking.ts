@@ -2,19 +2,36 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
+    
+    const {
+        FLAGS,
+        ONE_YEAR,
+        TAU_PER_STREAM,
+        MIN_WEIGHT,
+        MAX_WEIGHT,
+        AURORA_STREAM_OWNER,
+        SCHEDULE_START_TIME,
+        TESTING,
+        AURORA_TOKEN,
+        DEFAULT_ADMIN_ROLE_ADDRESS,
+        PAUSER_ROLE_ADDRESS,
+        AIRDROP_ROLE_ADDRESS,
+        CLAIM_ROLE_ADDRESS,
+        STREAM_MANAGER_ROLE_ADDRESS
+    } = process.env
 
     const { deploy } = hre.deployments
+    let startTime: any
     const { owner } = await hre.getNamedAccounts()
-    const auroraStreamOwner = owner //TODO: change this address prior deployment
-    const startTime = Math.floor(Date.now()/ 1000) + 60 // starts after 60 seconds from now.
+    SCHEDULE_START_TIME ? startTime = parseInt(SCHEDULE_START_TIME as string) :  startTime = Math.floor(Date.now()/ 1000) + 60 
     const treasury = (await hre.ethers.getContract("Treasury")).address
-    const aurora = (await hre.ethers.getContract("Token")).address
-    const flags = 0
-    const oneYear = 31556926
-    const tauPerStream = 2629746 // 1 month
-    const minWeight = 256
-    const maxWeight = 1024
-    const scheduleTimes = [startTime, startTime + oneYear, startTime + 2 * oneYear, startTime + 3 * oneYear, startTime + 4 * oneYear]
+    const scheduleTimes = [
+        startTime,
+        startTime + parseInt(ONE_YEAR as string),
+        startTime + 2 * parseInt(ONE_YEAR as string),
+        startTime + 3 * parseInt(ONE_YEAR as string),
+        startTime + 4 * parseInt(ONE_YEAR as string)
+    ]
     // TODO: update schedule rewards before the deployment
     const scheduleRewards = [
         hre.ethers.utils.parseUnits("200000000", 18),// 100M
@@ -34,20 +51,60 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             methodName: 'initialize',    
         },
         args: [
-            aurora,
-            auroraStreamOwner,
+            TESTING ? (await hre.ethers.getContract("Token")).address: AURORA_TOKEN,
+            AURORA_STREAM_OWNER ? AURORA_STREAM_OWNER : owner,
             scheduleTimes,
             scheduleRewards,
-            tauPerStream,
-            flags,
+            parseInt(TAU_PER_STREAM as string),
+            parseInt(FLAGS as string),
             treasury,
-            maxWeight,
-            minWeight
+            parseInt(MAX_WEIGHT as string),
+            parseInt(MIN_WEIGHT as string)
         ]
     })
-    //TODO: transfer ownership to the admin address
-    // await jet.transferOwnership(admin)
+    if(!TESTING) {
+        const jetStakingV1 = await hre.ethers.getContract("JetStakingV1")
+        await jetStakingV1.deployed()
+        const claimRole = await jetStakingV1.CLAIM_ROLE()
+        const airdropRole = await jetStakingV1.AIRDROP_ROLE()
+        const pauseRole = await jetStakingV1.PAUSE_ROLE()
+        // const streamManagerRole = await jetStakingV1.STREAM_MANAGER_ROLE()
+        const defaultAdminRole = await jetStakingV1.DEFAULT_ADMIN_ROLE()
+        console.log(`CLAIM_ROLE: ${claimRole}`)
+        console.log(`AIRDROP_ROLE: ${airdropRole}`)
+        console.log(`PAUSE_ROLE: ${pauseRole}`)
+        console.log(`DEFAULT ADMIN ROLE: ${defaultAdminRole}`)
+        // // await jetStakingV1.connect(owner).grantRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
+        await jetStakingV1.grantRole(claimRole, CLAIM_ROLE_ADDRESS)
+        console.log(
+            'ADDRESS ', 
+            CLAIM_ROLE_ADDRESS,
+            `Has a role ${claimRole}? `,
+            await jetStakingV1.hasRole(claimRole, CLAIM_ROLE_ADDRESS)
+        )
+        await jetStakingV1.grantRole(airdropRole, AIRDROP_ROLE_ADDRESS)
+        console.log(
+            'ADDRESS ', 
+            AIRDROP_ROLE_ADDRESS,
+            `Has a role ${airdropRole}? `,
+            await jetStakingV1.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)
+        )
+        await jetStakingV1.grantRole(pauseRole, PAUSER_ROLE_ADDRESS)
+        console.log(
+            'ADDRESS ', 
+            PAUSER_ROLE_ADDRESS,
+            `Has a role ${pauseRole}? `,
+            await jetStakingV1.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)
+        )
+        await jetStakingV1.transferOwnership(DEFAULT_ADMIN_ROLE_ADDRESS)
+        console.log(
+            'ADDRESS ', 
+            DEFAULT_ADMIN_ROLE_ADDRESS,
+            `Has a role ${defaultAdminRole}? `,
+            await jetStakingV1.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+        )
 
+    }
 }
 
 module.exports = func

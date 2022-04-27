@@ -25,12 +25,12 @@
     "outputSelection": {
       "*": {
         "*": [
+          "storageLayout",
           "abi",
           "evm.bytecode",
           "evm.deployedBytecode",
           "evm.methodIdentifiers",
           "metadata",
-          "storageLayout",
           "devdoc",
           "userdoc",
           "evm.gasEstimates",
