@@ -25,6 +25,8 @@ contract JetStakingV1 is AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
     bytes32 public constant CLAIM_ROLE = keccak256("CLAIM_ROLE");
+    bytes32 public constant STREAM_MANAGER_ROLE =
+        keccak256("STREAM_MANAGER_ROLE");
     uint256 constant ONE_MONTH = 2629746;
     uint256 constant FOUR_YEARS = 126227704;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
@@ -177,6 +179,7 @@ contract JetStakingV1 is AdminControlled {
         __AdminControlled_init(_flags);
         _grantRole(AIRDROP_ROLE, msg.sender);
         _grantRole(CLAIM_ROLE, msg.sender);
+        _grantRole(STREAM_MANAGER_ROLE, msg.sender);
         treasury = _treasury;
         auroraToken = aurora;
         maxWeight = _maxWeight;
@@ -224,7 +227,7 @@ contract JetStakingV1 is AdminControlled {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tau
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(STREAM_MANAGER_ROLE) {
         _validateStreamParameters(
             streamOwner,
             rewardToken,
@@ -261,7 +264,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamId the stream index
     function cancelStreamProposal(uint256 streamId)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(STREAM_MANAGER_ROLE)
     {
         Stream storage stream = streams[streamId];
         require(stream.isProposed, "STREAM_NOT_PROPOSED");
@@ -334,7 +337,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamFundReceiver receives the rest of the reward tokens in the stream
     function removeStream(uint256 streamId, address streamFundReceiver)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(STREAM_MANAGER_ROLE)
     {
         require(streamId != 0, "AURORA_STREAM_NOT_REMOVABLE");
         Stream storage stream = streams[streamId];
