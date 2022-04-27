@@ -17,13 +17,15 @@ import "./interfaces/ITreasury.sol";
 contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    uint256 public constant BP = 10;
-    uint256 public constant DENOMINATOR = 10000;
+    uint256 public constant BP = 10; // TODO(MarX): require comment
+    uint256 public constant DENOMINATOR = 10000; // TODO(MarX): require comment
     uint256 public constant MINIMUM_AURORA_STAKE = 5000000000000000000; // 5 AURORA
 
-    address public auroraToken;
+    // TODO(MarX): Use immutable to signal that this variable can't change after constructor
+    address public immutable auroraToken;
     address public treasury;
     uint256 public totalStaked;
+    // TODO(MarX): should't this be seasons.length instead?
     uint256 public seasonAmount;
     uint256 public seasonDuration;
     uint256 public startTime;
@@ -176,9 +178,12 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
     }
 
     /// @notice Initialize N seasons based on season duration
-    /// @dev each new season strarts from start + seasonDuration + 1 seconds
+    /// @dev each new season strarts from start + seasonDuration * i seconds
     /// @param _seasonDuration timestamp duration for one season
     function _initSeasons(uint256 _seasonDuration) private {
+        // TODO(MarX): Isn't it better to use the block number as the "time"?
+        // Also it is tricky to compute end of seasons in the mid of two blocks! (it can have slightly
+        // different behaviors)
         uint256 start = block.timestamp;
 
         for (uint256 i = 0; i < seasonAmount; i++) {
@@ -196,6 +201,9 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
             season.endSeason = start + _seasonDuration;
             season.decayStart = start + decayGracePeriod;
 
+            // TODO(MarX): Let's use semi open intervals [start, end).
+            // IMO: easier to reason about, less prone to bugs.
+            // I learnt this lesson from Dijkstra (https://www.cs.utexas.edu/~EWD/transcriptions/EWD08xx/EWD831.html)
             start += _seasonDuration + 1;
         }
     }
@@ -237,6 +245,7 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
         uint256 idx = seasons.length;
         seasons.push();
 
+        // TODO(MarX): use memory, then write to storage? Isn't that cheaper. (Same in _init season)
         Season storage season = seasons[idx];
         season.startSeason = _startSeason;
         season.applicationStart = _applicationStart;
@@ -247,6 +256,8 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
         season.endVoting = _endVoting;
         season.endSeason = _endSeason;
         season.decayStart = _decayStart;
+
+        seasonAmount += 1;
     }
 
     /// @notice updates a season by its index
@@ -322,6 +333,7 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
         uint256 _endSeason,
         uint256 _decayStart
     ) private pure {
+        // TODO(MarX): _startSeason should be greater than previous season
         require(_startSeason < _endSeason);
         require(_startVoting < _endVoting);
         require(_applicationStart < _applicationEnd);
@@ -344,7 +356,7 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
         public
         onlyAdmin
     {
-        require(_address != address(0), "Zero address");
+        require(_address != address(0), "Whitelist can't be zero address");
         whitelistedContracts[_address] = _allowance;
     }
 
@@ -356,15 +368,19 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
         address[] memory _addresses,
         bool[] memory _allowances
     ) external onlyAdmin {
-        require(_addresses.length == _allowances.length, "Invalid length");
+        require(
+            _addresses.length == _allowances.length,
+            "Addresses and allowances length doesn't match"
+        );
 
         for (uint256 i = 0; i < _addresses.length; i++) {
+            // TODO(MarX): Redundant check (done inside whitelistContract)
             require(_addresses[i] != address(0), "Zero address");
             whitelistContract(_addresses[i], _allowances[i]);
         }
     }
 
-    /// @notice updates decay grace perion
+    /// @notice update decay grace period
     /// @dev restricted for the admin only
     /// @param _decayGracePeriod period for each season in which vote tokes don't decay
     function updateDecayGracePeriod(uint256 _decayGracePeriod)
@@ -409,6 +425,7 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
         require(_keys.length == _values.length, "Invalid length");
 
         for (uint256 i = 0; i < _keys.length; i++) {
+            // TODO(MarX): Should this be less than (instead of less equal?)
             require(_keys[i] <= seasonAmount, "Invalid params");
             rewardWeights[_keys[i]] = _values[i];
         }
@@ -558,6 +575,7 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
         address _user,
         uint256 _seasonsAmount
     ) external pausable(1) {
+        // TODO(MarX): Suggestion to have the same order of arguments for function and event
         _depositInternal(_amount, _user, _seasonsAmount);
         emit Deposited(_user, _amount, _seasonsAmount);
     }
@@ -921,7 +939,7 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
     function removeTokensFromRewardPool(uint256 _index) external onlyAdmin {
         Stream storage stream = streams[_index];
 
-        require(stream.initialized, "! initialized");
+        require(stream.initialized, "Stream is not initialized");
 
         rewardsPool[stream.rewardsToken] = 0;
         stream.blacklisted = true;
@@ -1077,14 +1095,19 @@ contract JetStaking is AdminControlled, ERC20Upgradeable, IStaking {
     {
         require(seasons[0].startSeason < _timestamp, "Seasons haven't started");
 
+        // TODO(MarX): Are seasons sorted? Do binary search instead?
         for (uint256 i = 0; i < seasons.length; i++) {
             if (
                 seasons[i].startSeason <= _timestamp &&
                 _timestamp <= seasons[i].endSeason
             ) {
+                // Break early when season is found
                 season = i;
+                return;
             }
         }
+
+        revert("Season not found");
     }
 
     /// @notice allows admin to burn user tokens for current season that userd didn't used

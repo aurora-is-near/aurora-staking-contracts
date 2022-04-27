@@ -7,6 +7,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20Metadat
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+// TODO(MarX): Why is this contract copied??
+
 /**
  * @dev Implementation of the {IERC20} interface.
  *

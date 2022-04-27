@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interfaces/ITreasury.sol";
 
+// TODO: What is treasure? is it another contract
 contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -75,6 +76,7 @@ contract Treasury is ITreasury, Initializable, OwnableUpgradeable {
         address _token,
         uint256 _amount
     ) external isActive onlyOwner {
+        // TODO(MarX): only owner??
         require(isSupportedToken[_token], "Token is not supported");
         IERC20Upgradeable(_token).safeTransfer(_user, _amount);
     }

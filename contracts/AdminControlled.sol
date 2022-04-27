@@ -54,6 +54,7 @@ contract AdminControlled is Initializable {
         destination.transfer(amount);
     }
 
+    // TODO(MarX): Can you explain this better please?
     function adminReceiveEth() public payable onlyAdmin {}
     // function adminDelegatecall(address target, bytes memory data) public payable onlyAdmin returns (bytes memory) {
     //     /// @custom:oz-upgrades-unsafe-allow delegatecall
