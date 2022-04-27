@@ -17,10 +17,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         auroraAddress = (await hre.ethers.getContract("Token")).address
     } else {
         auroraAddress = AURORA_TOKEN
+        console.log(auroraAddress)
     }
-
-    console.log(auroraAddress)
-
     await deploy('Treasury', {
         log: true,
         from: owner,
@@ -40,20 +38,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         const treasury = await hre.ethers.getContract("Treasury")
         await treasury.deployed()
         const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
-        const defaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
         await treasury.grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
         console.log(
             'ADDRESS ', 
             TREASURY_MANAGER_ROLE_ADDRESS,
             `Has a role ${treasuryManagerRole}? `,
             await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
-        )
-        await treasury.grantRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
-        console.log(
-            'ADDRESS ', 
-            DEFAULT_ADMIN_ROLE_ADDRESS,
-            `Has a role ${defaultAdminRole}? `,
-            await treasury.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
         )
     }
 }

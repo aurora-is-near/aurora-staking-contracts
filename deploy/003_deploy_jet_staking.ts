@@ -24,7 +24,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     let startTime: any
     const { owner } = await hre.getNamedAccounts()
     SCHEDULE_START_TIME ? startTime = parseInt(SCHEDULE_START_TIME as string) :  startTime = Math.floor(Date.now()/ 1000) + 60 
-    const treasury = (await hre.ethers.getContract("Treasury")).address
+    const treasury = await hre.ethers.getContract("Treasury")
     const scheduleTimes = [
         startTime,
         startTime + parseInt(ONE_YEAR as string),
@@ -57,7 +57,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             scheduleRewards,
             parseInt(TAU_PER_STREAM as string),
             parseInt(FLAGS as string),
-            treasury,
+            treasury.address,
             parseInt(MAX_WEIGHT as string),
             parseInt(MIN_WEIGHT as string)
         ]
@@ -68,42 +68,78 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         const claimRole = await jetStakingV1.CLAIM_ROLE()
         const airdropRole = await jetStakingV1.AIRDROP_ROLE()
         const pauseRole = await jetStakingV1.PAUSE_ROLE()
-        // const streamManagerRole = await jetStakingV1.STREAM_MANAGER_ROLE()
+        const streamManagerRole = await jetStakingV1.STREAM_MANAGER_ROLE()
+        console.log(jetStakingV1.address)
         const defaultAdminRole = await jetStakingV1.DEFAULT_ADMIN_ROLE()
         console.log(`CLAIM_ROLE: ${claimRole}`)
         console.log(`AIRDROP_ROLE: ${airdropRole}`)
         console.log(`PAUSE_ROLE: ${pauseRole}`)
         console.log(`DEFAULT ADMIN ROLE: ${defaultAdminRole}`)
-        // // await jetStakingV1.connect(owner).grantRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
+        await jetStakingV1.grantRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
+        console.log(
+            'Contract: ', 
+            'JetStaking',
+            'ADDRESS: ', 
+            STREAM_MANAGER_ROLE_ADDRESS,
+            `Has a role ${streamManagerRole}? `,
+            await jetStakingV1.hasRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
+        )
         await jetStakingV1.grantRole(claimRole, CLAIM_ROLE_ADDRESS)
         console.log(
-            'ADDRESS ', 
+            'Contract: ', 
+            'JetStaking',
+            'ADDRESS: ', 
             CLAIM_ROLE_ADDRESS,
             `Has a role ${claimRole}? `,
             await jetStakingV1.hasRole(claimRole, CLAIM_ROLE_ADDRESS)
         )
         await jetStakingV1.grantRole(airdropRole, AIRDROP_ROLE_ADDRESS)
         console.log(
-            'ADDRESS ', 
+            'Contract: ', 
+            'JetStaking',
+            'ADDRESS: ', 
             AIRDROP_ROLE_ADDRESS,
             `Has a role ${airdropRole}? `,
             await jetStakingV1.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)
         )
         await jetStakingV1.grantRole(pauseRole, PAUSER_ROLE_ADDRESS)
         console.log(
-            'ADDRESS ', 
+            'Contract: ', 
+            'JetStaking',
+            'ADDRESS: ', 
             PAUSER_ROLE_ADDRESS,
             `Has a role ${pauseRole}? `,
             await jetStakingV1.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)
         )
         await jetStakingV1.transferOwnership(DEFAULT_ADMIN_ROLE_ADDRESS)
         console.log(
-            'ADDRESS ', 
+            'Contract: ', 
+            'JetStaking',
+            'ADDRESS: ', 
             DEFAULT_ADMIN_ROLE_ADDRESS,
             `Has a role ${defaultAdminRole}? `,
             await jetStakingV1.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
         )
-
+        // assign jet staking address an admin role
+        const treasuryDefaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+        await treasury.grantRole(treasuryDefaultAdminRole, jetStakingV1.address)
+        console.log(
+            'Contract: ', 
+            'JetStaking',
+            'ADDRESS: ', 
+            jetStakingV1.address,
+            `Has a role ${treasuryDefaultAdminRole}? `,
+            await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV1.address)
+        )
+        await treasury.transferOwnership(DEFAULT_ADMIN_ROLE_ADDRESS)
+        console.log(
+            'Contract: ', 
+            'Treasury',
+            'ADDRESS: ', 
+            DEFAULT_ADMIN_ROLE_ADDRESS,
+            `Has a role ${defaultAdminRole}? `,
+            await treasury.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+        )
     }
 }
 
