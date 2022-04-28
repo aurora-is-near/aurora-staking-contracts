@@ -7,18 +7,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { owner } = await hre.getNamedAccounts()
     const flags = 0
     const { 
-        TESTING,
         AURORA_TOKEN,
-        TREASURY_MANAGER_ROLE_ADDRESS,
-        DEFAULT_ADMIN_ROLE_ADDRESS
+        TREASURY_MANAGER_ROLE_ADDRESS
     } = process.env;
     let auroraAddress: any
-    if(TESTING) {
-        auroraAddress = (await hre.ethers.getContract("Token")).address
-    } else {
-        auroraAddress = AURORA_TOKEN
-        console.log(auroraAddress)
-    }
+    AURORA_TOKEN? auroraAddress = AURORA_TOKEN : auroraAddress = (await hre.ethers.getContract("Token")).address
     await deploy('Treasury', {
         log: true,
         from: owner,
