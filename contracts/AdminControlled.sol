@@ -111,6 +111,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(destination != address(0), "ZERO_ADDRESS");
         //slither-disable-next-line arbitrary-send
         destination.transfer(amount);
     }
@@ -132,6 +133,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         onlyDelegateCall
         returns (bytes memory)
     {
+        require(target != address(0), "ZERO_ADDRESS");
         (bool success, bytes memory rdata) = target.delegatecall(data);
         require(success);
         return rdata;
