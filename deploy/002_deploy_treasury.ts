@@ -34,18 +34,19 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             flags
         ],
     })
-    if(!TESTING) {
-        const treasury = await hre.ethers.getContract("Treasury")
-        await treasury.deployed()
-        const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
-        await treasury.grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
-        console.log(
-            'ADDRESS ', 
-            TREASURY_MANAGER_ROLE_ADDRESS,
-            `Has a role ${treasuryManagerRole}? `,
-            await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
-        )
-    }
+    await new Promise(f => setTimeout(f, 3000));
+    const treasury = await hre.ethers.getContract("Treasury")
+    await treasury.deployed()
+    const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
+    await treasury.grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
+    console.log(
+        'CONTRSCT: ',
+        'Treasury ',
+        'ADDRESS ', 
+        TREASURY_MANAGER_ROLE_ADDRESS,
+        `Has a role ${treasuryManagerRole}? `,
+        await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
+    )
 }
 
 module.exports = func
