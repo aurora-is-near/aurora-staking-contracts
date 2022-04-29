@@ -74,6 +74,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log(`AIRDROP_ROLE: ${airdropRole}`)
     console.log(`PAUSE_ROLE: ${pauseRole}`)
     console.log(`DEFAULT ADMIN ROLE: ${defaultAdminRole}`)
+    // sleep for 3 seconds
+    await new Promise(f => setTimeout(f, 1000));
     await jetStakingV1.grantRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
     console.log(
         'Contract: ', 
@@ -83,6 +85,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         `Has a role ${streamManagerRole}? `,
         await jetStakingV1.hasRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
     )
+    // sleep for 3 seconds
+    await new Promise(f => setTimeout(f, 1000));
     await jetStakingV1.grantRole(claimRole, CLAIM_ROLE_ADDRESS)
     console.log(
         'Contract: ', 
@@ -92,6 +96,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         `Has a role ${claimRole}? `,
         await jetStakingV1.hasRole(claimRole, CLAIM_ROLE_ADDRESS)
     )
+    // sleep for 3 seconds
+    await new Promise(f => setTimeout(f, 1000));
     await jetStakingV1.grantRole(airdropRole, AIRDROP_ROLE_ADDRESS)
     console.log(
         'Contract: ', 
@@ -101,6 +107,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         `Has a role ${airdropRole}? `,
         await jetStakingV1.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)
     )
+    // sleep for 3 seconds
+    await new Promise(f => setTimeout(f, 1000));
     await jetStakingV1.grantRole(pauseRole, PAUSER_ROLE_ADDRESS)
     console.log(
         'Contract: ', 
@@ -110,6 +118,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         `Has a role ${pauseRole}? `,
         await jetStakingV1.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)
     )
+    // sleep for 3 seconds
+    await new Promise(f => setTimeout(f, 1000));
     await jetStakingV1.transferOwnership(DEFAULT_ADMIN_ROLE_ADDRESS)
     console.log(
         'Contract: ', 
@@ -119,7 +129,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         `Has a role ${defaultAdminRole}? `,
         await jetStakingV1.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
     )
-    // assign jet staking address an admin role
+    // assign jet staking address an admin role in the treasury contract
+    // sleep for 3 seconds
+    await new Promise(f => setTimeout(f, 1000));
     const treasuryDefaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
     await treasury.grantRole(treasuryDefaultAdminRole, jetStakingV1.address)
     console.log(
@@ -130,6 +142,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         `Has a role ${treasuryDefaultAdminRole}? `,
         await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV1.address)
     )
+    // sleep for 3 seconds
+    await new Promise(f => setTimeout(f, 1000));
     await treasury.transferOwnership(DEFAULT_ADMIN_ROLE_ADDRESS)
     console.log(
         'Contract: ', 
