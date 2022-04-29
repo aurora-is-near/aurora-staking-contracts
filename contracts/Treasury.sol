@@ -20,6 +20,9 @@ contract Treasury is ITreasury, AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     bytes32 public constant TREASURY_MANAGER_ROLE =
         keccak256("TREASURY_MANAGER_ROLE");
+    // TODO(Question): What is the logic behind supported tokens? what is it trying to prevent?
+    //                 Note that on JetStaking contract only an special role can propose a new stream,
+    //                 but if the token proposed is not whitelisted rewards can't be claimed.
     mapping(address => bool) public isSupportedToken;
     //events
     event TokenAdded(
@@ -57,6 +60,7 @@ contract Treasury is ITreasury, AdminControlled {
         address _token,
         uint256 _amount
     ) external pausable(1) onlyRole(DEFAULT_ADMIN_ROLE) {
+        // TODO(Fix): Either remove this `require` or check the token is supported before proposing a new stream on the JetStaking contract.
         require(isSupportedToken[_token], "TOKEN_IS_NOT_SUPPORTED");
         IERC20Upgradeable(_token).safeTransfer(_user, _amount);
     }

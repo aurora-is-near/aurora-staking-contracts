@@ -23,21 +23,29 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
  */
 contract JetStakingV1 is AdminControlled {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+
     bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
     bytes32 public constant CLAIM_ROLE = keccak256("CLAIM_ROLE");
     bytes32 public constant STREAM_MANAGER_ROLE =
         keccak256("STREAM_MANAGER_ROLE");
+
+    /// Numbers of seconds in one month
     uint256 constant ONE_MONTH = 2629746;
+    // TODO(Question): FOUR_YEARS != ONE_MONTH * 12 * 4?
+    /// Numbers of seconds in four years
     uint256 constant FOUR_YEARS = 126227704;
-    // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
+
+    // TODO(Question): It is not clear how this constant was computed. What is weight(1000)? What is 10?
+    // RPS_MULTIPLIER = Aurora_max_supply * weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
     uint256 constant RPS_MULTIPLIER = 1e31;
+
+    address public auroraToken;
+    address public treasury;
     uint256 public totalAmountOfStakedAurora;
-    uint256 public touchedAt;
     uint256 public totalAuroraShares;
     uint256 public totalStreamShares;
-    address public treasury;
-    address public auroraToken;
+    uint256 public touchedAt;
     uint256 maxWeight;
     uint256 minWeight;
 
@@ -52,18 +60,25 @@ contract JetStakingV1 is AdminControlled {
 
     struct Schedule {
         uint256[] time;
+        // TODO(Fix): Use uint128. Promote to uint256 before multiplication and cast back after division. This way we avoid all uint256 potential overflows. In uint128 we can fit > 3e38 which mean we can support a 1 Trillion (1e18) market cap token with 18 decimals.
         uint256[] reward;
     }
 
     struct Stream {
         address owner;
         address rewardToken;
+        // TODO(Fix): Use uint128.
         uint256 auroraDepositAmount;
+        // TODO(Fix): Use uint128.
         uint256 auroraClaimedAmount;
+        // TODO(Fix): Use uint128.
         uint256 rewardDepositAmount;
+        // TODO(Fix): Use uint128.
         uint256 rewardClaimedAmount;
+        // TODO(Fix): Use uint128.
         uint256 maxDepositAmount;
         uint256 lastTimeOwnerClaimed;
+        // TODO(Fix): Use different name. For example (for example: `withdrawTime` or `pendingTime`)
         uint256 tau;
         uint256 rps; // Reward per share for a stream j>0
         Schedule schedule;
@@ -71,6 +86,7 @@ contract JetStakingV1 is AdminControlled {
         bool isActive;
     }
 
+    // TODO(Proposal): Having this private makes it hard to monitor. I suggest to make these variables public.
     mapping(address => User) users;
     Stream[] streams;
 
@@ -157,11 +173,16 @@ contract JetStakingV1 is AdminControlled {
                 streamOwner != address(0),
             "INVALID_ADDRESS"
         );
+        require(tauAuroraStream != 0, "INVALID_TAU_PERIOD");
+
+        // TODO(Fix): Part of this code is duplicated in _validateStreamParameters
+        // TODO(Proposal): Move schedule checks to Schedule constructor.
         require(
             scheduleTimes.length == scheduleRewards.length,
             "INVALID_SCHEDULE_VALUES"
         );
-        require(tauAuroraStream != 0, "INVALID_TAU_PERIOD");
+        require(scheduleTimes[0] > block.timestamp, "INVALID_SCHEDULE_START");
+        require(scheduleTimes.length >= 2, "INVALID_SCHEDULE_TOO_SHORT");
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1],
@@ -176,15 +197,22 @@ contract JetStakingV1 is AdminControlled {
             scheduleRewards[scheduleRewards.length - 1] == 0,
             "INVALID_SCHEDULE_END_REWARD"
         );
+
         __AdminControlled_init(_flags);
+
         _grantRole(AIRDROP_ROLE, msg.sender);
         _grantRole(CLAIM_ROLE, msg.sender);
         _grantRole(STREAM_MANAGER_ROLE, msg.sender);
-        treasury = _treasury;
+
         auroraToken = aurora;
+        treasury = _treasury;
+
+        // TODO(Question): Should we initialize other variables as well? or are we using the default constructor? totalAmountOfStakedAurora, totalAuroraShares, totalStreamShares, touchedAt;
+
         maxWeight = _maxWeight;
         minWeight = _minWeight;
-        //init AURORA default stream
+
+        // Init AURORA default stream
         // This is a special stream where the reward token is the aurora token itself.
         uint256 streamId = 0;
         streams.push();
@@ -193,14 +221,16 @@ contract JetStakingV1 is AdminControlled {
         stream.rewardToken = aurora;
         stream.auroraDepositAmount = 0;
         stream.auroraClaimedAmount = 0;
-        stream.maxDepositAmount = 0;
         stream.rewardDepositAmount = 0;
         stream.rewardClaimedAmount = 0;
+        stream.maxDepositAmount = 0;
         stream.lastTimeOwnerClaimed = block.timestamp;
+        stream.tau = tauAuroraStream;
+        stream.rps = 0;
         stream.schedule = Schedule(scheduleTimes, scheduleRewards);
         stream.isProposed = true;
         stream.isActive = true;
-        stream.tau = tauAuroraStream;
+
         emit StreamProposed(streamId, streamOwner, block.timestamp);
         emit StreamCreated(streamId, streamOwner, block.timestamp);
     }
@@ -216,8 +246,8 @@ contract JetStakingV1 is AdminControlled {
     /// @param rewardToken the address of the ERC-20 tokens to be deposited in the stream
     /// @param auroraDepositAmount Amount of the AURORA deposited by the Admin.
     /// @param maxDepositAmount The upper amount of the tokens that should be deposited by the stream owner
-    /// @param scheduleTimes array of block heights for each schedule time
-    /// @param scheduleRewards array of reward amounts that are kept on the staking contract at each block height
+    /// @param scheduleTimes timestamp denoting the start of each scheduled interval. Last element is the end of the stream.
+    /// @param scheduleRewards remaining rewards to be delivered at the beginning of each scheduled interval. Last element is always zero.
     /// @param tau the tau is (pending release period) for this stream (e.g one day)
     function proposeStream(
         address streamOwner,
@@ -237,21 +267,27 @@ contract JetStakingV1 is AdminControlled {
             tau
         );
         uint256 streamId = streams.length;
+
+        // TODO(Fix): This code is duplicated in initialize. Use a common function for this.
         streams.push();
         Stream storage stream = streams[streamId];
         stream.owner = streamOwner;
         stream.rewardToken = rewardToken;
         stream.auroraDepositAmount = auroraDepositAmount;
         stream.auroraClaimedAmount = 0;
-        stream.maxDepositAmount = maxDepositAmount;
         stream.rewardDepositAmount = 0;
         stream.rewardClaimedAmount = 0;
+        stream.maxDepositAmount = maxDepositAmount;
         stream.lastTimeOwnerClaimed = scheduleTimes[0];
+        stream.tau = tau;
+        stream.rps = 0;
         stream.schedule = Schedule(scheduleTimes, scheduleRewards);
         stream.isProposed = true;
         stream.isActive = false;
-        stream.tau = tau;
+
+        // TODO(Proposal): IMO it is more relevant to add ERC-20 token address an amount to the event
         emit StreamProposed(streamId, streamOwner, block.timestamp);
+
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
             address(this),
@@ -275,12 +311,17 @@ contract JetStakingV1 is AdminControlled {
         stream.auroraDepositAmount = 0;
         emit StreamProposalCancelled(streamId, stream.owner, block.timestamp);
         // refund admin wallet with the stream aurora deposit
+        // TODO(Fix): We should refund the proposer of the stream rather than the admin.
         IERC20Upgradeable(auroraToken).safeTransfer(admin, refundAmount);
     }
 
     /// @dev create new stream (only stream owner)
     /// stream owner must approve reward tokens to this contract.
     /// @param streamId stream id
+
+    // TODO(Question): What about using pausing flags more granulary?
+    //                 Right now it is all or nothing.
+    // TODO(Fix): Use uint128 for `rewardTokenAmount`
     function createStream(uint256 streamId, uint256 rewardTokenAmount)
         external
         pausable(1)
@@ -293,13 +334,15 @@ contract JetStakingV1 is AdminControlled {
             stream.schedule.time[0] >= block.timestamp,
             "STREAM_PROPOSAL_EXPIRED"
         );
+        // TODO(Question): Should we have a lower limit? It can be ridiculous to have a stream with epsilon reward.
         require(
-            rewardTokenAmount <= stream.maxDepositAmount,
+            0 < rewardTokenAmount &&
+                rewardTokenAmount <= stream.maxDepositAmount,
             "INVALID_REWARD_TOKEN_AMOUNT"
         );
         stream.isActive = true;
         stream.rewardDepositAmount = rewardTokenAmount;
-        emit StreamCreated(streamId, msg.sender, block.timestamp);
+
         if (rewardTokenAmount < stream.maxDepositAmount) {
             // refund staking admin if deposited reward tokens less than the upper limit of deposit
             uint256 refundAuroraAmount = ((stream.maxDepositAmount -
@@ -308,11 +351,22 @@ contract JetStakingV1 is AdminControlled {
             stream.auroraDepositAmount -= refundAuroraAmount;
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
+
+            // TODO(Fix): We should refund the proposer of the stream rather than the admin.
             IERC20Upgradeable(auroraToken).safeTransfer(
                 admin,
                 refundAuroraAmount
             );
         }
+
+        // This should always be true at this point
+        assert(
+            stream.schedule.reward[0] == stream.rewardDepositAmount,
+            "INVALID_STARTING_REWARD"
+        );
+
+        emit StreamCreated(streamId, msg.sender, block.timestamp);
+
         // move Aurora tokens to treasury
         IERC20Upgradeable(auroraToken).safeTransfer(
             address(treasury),
@@ -345,6 +399,7 @@ contract JetStakingV1 is AdminControlled {
         stream.isActive = false;
         stream.isProposed = false;
         emit StreamRemoved(streamId, stream.owner, block.timestamp);
+        // TODO(Question): Should we try to think of a way to keep unclaimed but earned rewards at this step?
         uint256 releaseAuroraAmount = stream.auroraDepositAmount -
             stream.auroraClaimedAmount;
         uint256 releaseRewardAmount = stream.rewardDepositAmount -
@@ -352,18 +407,26 @@ contract JetStakingV1 is AdminControlled {
         // check enough treasury balance
         uint256 auroraTreasury = getTreasuryBalance(auroraToken);
         uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
+
+        // TODO(Fix): Panic instead of this behaviour which might be harder to revert in the future.
+        //            This behavior = giving away remaining treasury funds.
+
+        // TODO(Fix): We should refund the proposer of the stream rather than the admin.
         // move rest of the unclaimed aurora to the admin
         ITreasury(treasury).payRewards(
             admin,
             auroraToken,
+            // TODO(Fix): Remove and panic instead
             releaseAuroraAmount <= auroraTreasury
                 ? releaseAuroraAmount
                 : auroraTreasury // should not happen
         );
+
         // move the rest of rewards to the stream owner
         ITreasury(treasury).payRewards(
             streamFundReceiver,
             stream.rewardToken,
+            // TODO(Fix): Remove and panic instead
             releaseRewardAmount <= rewardTreasury
                 ? releaseRewardAmount
                 : rewardTreasury // should not happen
@@ -383,6 +446,7 @@ contract JetStakingV1 is AdminControlled {
             streamId,
             stream.lastTimeOwnerClaimed
         );
+        // TODO(Fix): Use before multiplication
         return
             (scheduledReward * stream.auroraDepositAmount) /
             stream.rewardDepositAmount;
@@ -414,6 +478,8 @@ contract JetStakingV1 is AdminControlled {
         );
     }
 
+    // TODO(Fix): Make the function public
+    // TODO(Question: What are the stake slots limitations?)
     /// @dev get the stream data
     /// @notice this function doesn't return the stream
     /// schedule due to some stake slots limitations. To
@@ -437,6 +503,7 @@ contract JetStakingV1 is AdminControlled {
         )
     {
         Stream storage stream = streams[streamId];
+        // TODO(Question): Should we return rps as well?
         return (
             stream.owner,
             stream.rewardToken,
@@ -474,6 +541,8 @@ contract JetStakingV1 is AdminControlled {
         return streams.length;
     }
 
+    // TODO(Question): Why should the admin pause the contract before changing the treasury if this works atomically?
+    // TODO(Note): In case pausing is mandatory for some reason, we can enforce it with code rather than with comment.
     /// @notice updates treasury account
     /// @dev restricted for the admin only. Admin should pause this
     /// contract before changing the treasury address by setting the
@@ -487,10 +556,12 @@ contract JetStakingV1 is AdminControlled {
         treasury = _treasury;
     }
 
+    // TODO(Fix): For consistency with other methods use as name `batchStakeOnBehalfOfAnotherUser`
     /// @dev stakeOnBehalfOfOtherUsers called for airdropping Aurora users
     /// @param accounts the account address
     /// @param amounts in AURORA tokens
     /// @param batchAmount equals to the sum of amounts
+    // TODO(Question): I don't get the next WARNING! o_O
     /// WARNING: rewards are not claimed during stake. Airdrop script must claim or
     /// only distribute to accounts without stake
     function stakeOnBehalfOfOtherUsers(
@@ -498,13 +569,16 @@ contract JetStakingV1 is AdminControlled {
         uint256[] memory amounts,
         uint256 batchAmount
     ) external pausable(1) onlyRole(AIRDROP_ROLE) {
-        _before();
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
+
+        _before();
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < amounts.length; i++) {
             totalAmount += amounts[i];
             _stake(accounts[i], amounts[i]);
         }
+
+        // TODO(Fix): Remove batchAmount and use totalAmount directly.
         require(totalAmount == batchAmount, "INVALID_BATCH_AMOUNT");
         IERC20Upgradeable(auroraToken).safeTransferFrom(
             msg.sender,
@@ -603,10 +677,12 @@ contract JetStakingV1 is AdminControlled {
         address account,
         uint256[] memory streamIds
     ) external onlyRole(CLAIM_ROLE) {
+        // TODO(Question): Why do we need to protect this function with a role?
         _before();
         _batchClaimRewards(account, streamIds);
     }
 
+    // TODO(Question): How was decided if a function needs to be pausable or not? For example why is this no pausable?
     /// @dev Claim all stream rewards on behalf of other users.
     /// @param accounts the user account addresses.
     function batchClaimOnBehalfOfOtherUsers(
@@ -633,7 +709,7 @@ contract JetStakingV1 is AdminControlled {
         );
     }
 
-    /// @dev withdraw amount in the pending. User should wait for
+    /// @dev withdraw amount in the pending pool. User should wait for
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
     function withdraw(uint256 streamId) external pausable(1) {
@@ -733,6 +809,7 @@ contract JetStakingV1 is AdminControlled {
         return streams[streamId].rps;
     }
 
+    // TODO(MarX): Think if it is possible to make this function such that independently of how it is called the sum of all "intervals" is the whole amount.
     /// @dev calculates and gets the latest released rewards.
     /// @param streamId stream index
     /// @return rewards released since last update.
@@ -741,6 +818,8 @@ contract JetStakingV1 is AdminControlled {
         view
         returns (uint256)
     {
+        assert(lastUpdate <= block.timestamp, "INVALID_LAST_UPDATE");
+
         if (lastUpdate == block.timestamp) return 0; // No more rewards since last update
         uint256 streamStart = streams[streamId].schedule.time[0];
         if (block.timestamp <= streamStart) return 0; // Stream didn't start
@@ -792,6 +871,7 @@ contract JetStakingV1 is AdminControlled {
         return users[account].rpsDuringLastClaim[streamId];
     }
 
+    // TODO(Question): Is this function used at all? Is it intended to be public?
     /// @dev gets the user's stream claimable amount
     /// @param streamId stream index
     /// @return (latesRPS - user.rpsDuringLastClaim) * user.shares
@@ -804,6 +884,8 @@ contract JetStakingV1 is AdminControlled {
         User storage userAccount = users[account];
         uint256 userRps = userAccount.rpsDuringLastClaim[streamId];
         uint256 userShares = userAccount.streamShares;
+        // TODO(Fix): This computation is not safe and prone to overflow due to multiplier.
+        //            Because of the scaling rps variables don't fit in u128.
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
 
@@ -838,6 +920,8 @@ contract JetStakingV1 is AdminControlled {
         return totalAmountOfStakedAurora + getRewardsAmount(0, touchedAt);
     }
 
+    // TODO(Fix): Make a comment with regard if the intervals are treated semi-open.
+    //            I'll assume i-th interval is of the form `[time[i], time[i+1])`
     /// @dev gets start index and end index in a stream schedule
     /// @param streamId stream index
     /// @param start start time (in seconds)
@@ -849,20 +933,21 @@ contract JetStakingV1 is AdminControlled {
     ) public view returns (uint256 startIndex, uint256 endIndex) {
         Schedule storage schedule = streams[streamId].schedule;
         require(schedule.time.length > 0, "NO_SCHEDULE");
-        require(end > start, "INVALID_REWARD_QUERY_PERIODE");
+        require(end > start, "INVALID_REWARD_QUERY_PERIOD");
         require(start >= schedule.time[0], "QUERY_BEFORE_SCHEDULE_START");
         require(
             end <= schedule.time[schedule.time.length - 1],
             "QUERY_AFTER_SCHEDULE_END"
         );
         // find start index and end index
-        for (uint256 i = 0; i < schedule.time.length - 1; i++) {
+        for (uint256 i = 1; i < schedule.time.length; i++) {
             if (start < schedule.time[i]) {
                 startIndex = i - 1;
                 break;
             }
         }
 
+        // TODO(Proposal): start from `startIndex` onwards. Rationale: it will be cheaper for users that claim frequently. In that case "break" condition should be changed.
         for (uint256 i = schedule.time.length - 1; i > 0; i--) {
             if (end >= schedule.time[i]) {
                 endIndex = i;
@@ -893,32 +978,41 @@ contract JetStakingV1 is AdminControlled {
             reward =
                 schedule.reward[startIndex] -
                 schedule.reward[startIndex + 1];
+
+            // TODO(Fix): Members fo the numerator/denominator should be u128 before getting to this point
             rewardScheduledAmount =
                 (reward * (end - start)) /
                 (schedule.time[startIndex + 1] - schedule.time[startIndex]);
         } else {
             // start and end are not within the same schedule period
+
             // Reward during the startIndex period
-            reward = (schedule.reward[startIndex] -
-                schedule.reward[startIndex + 1]);
+            reward =
+                schedule.reward[startIndex] -
+                schedule.reward[startIndex + 1];
+
             rewardScheduledAmount =
                 (reward * (schedule.time[startIndex + 1] - start)) /
                 (schedule.time[startIndex + 1] - schedule.time[startIndex]);
+
             // Reward during the period from startIndex + 1  to endIndex - 1
-            for (uint256 i = startIndex + 1; i < endIndex; i++) {
-                reward = schedule.reward[i] - schedule.reward[i + 1];
-                rewardScheduledAmount += reward;
-            }
+            rewardScheduledAmount +=
+                schedule.reward[startIndex + 1] -
+                schedule.reward[endIndex];
+
             // Reward during the endIndex period
-            if (end > schedule.time[endIndex]) {
+            if (endIndex < schedule.time.length - 1) {
+                // If endIndex represents a non-empty interval
                 reward =
                     schedule.reward[endIndex] -
                     schedule.reward[endIndex + 1];
+
                 rewardScheduledAmount +=
                     (reward * (end - schedule.time[endIndex])) /
-                    (schedule.time[startIndex + 1] - schedule.time[startIndex]);
+                    (schedule.time[endIndex + 1] - schedule.time[endIndex]);
             }
         }
+
         return rewardScheduledAmount;
     }
 
@@ -935,6 +1029,7 @@ contract JetStakingV1 is AdminControlled {
                 }
             }
         }
+        // TODO(Note): Probably it is already too late, but I think it would be better to depend on block.height than on block.timestamp. However block producers on NEAR have a short margin of time manipulation and this short deltas doesn't matter much for our contract.
         touchedAt = block.timestamp;
     }
 
@@ -969,6 +1064,7 @@ contract JetStakingV1 is AdminControlled {
         if (reward == 0) return; // All rewards claimed or stream schedule didn't start
         userAccount.pendings[streamId] += reward;
         userAccount.rpsDuringLastClaim[streamId] = streams[streamId].rps;
+        // TODO(Question): Can you remember me why we couldn't immediately withdraw the rewards and need tau?
         userAccount.releaseTime[streamId] =
             block.timestamp +
             streams[streamId].tau;
@@ -1018,11 +1114,11 @@ contract JetStakingV1 is AdminControlled {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
             _amountOfShares = amount;
         } else {
-            // Round up (+1) so users don't get less sharesValue than their staked amount
+            // TODO(Question): Why do we need to round up? Users can get 0 but not negative. And they will only get 0 for really small amounts.
+            // Round up so users don't get less sharesValue than their staked amount
             _amountOfShares =
-                (amount * totalAuroraShares) /
-                totalAmountOfStakedAurora +
-                1;
+                (amount * totalAuroraShares + totalAmountOfStakedAurora - 1) /
+                totalAmountOfStakedAurora;
         }
         userAccount.auroraShares += _amountOfShares;
         totalAuroraShares += _amountOfShares;
@@ -1036,6 +1132,7 @@ contract JetStakingV1 is AdminControlled {
         );
         totalStreamShares += weightedAmountOfSharesPerStream;
         userAccount.streamShares += weightedAmountOfSharesPerStream;
+        // TODO(Fix): Lost rewards if not claimed. Why not to move rewards to pending in this loop? This issue seems unacceptable to me.
         for (uint256 i = 1; i < streams.length; i++) {
             userAccount.rpsDuringLastClaim[i] = streams[i].rps; // The new shares should not claim old rewards
         }
@@ -1045,6 +1142,7 @@ contract JetStakingV1 is AdminControlled {
     /// WARNING: rewards are not claimed during unstake.
     /// The UI must make sure to claim rewards before unstaking.
     /// Unclaimed rewards will be lost.
+    /// `_before()` must be called before `_unstake` to update streams rps
     function _unstake(uint256 amount, uint256 stakeValue) internal {
         require(amount != 0, "ZERO_AMOUNT");
         require(amount <= stakeValue, "NOT_ENOUGH_STAKE_BALANCE");
@@ -1102,6 +1200,10 @@ contract JetStakingV1 is AdminControlled {
             "INVALID_SCHEDULE_VALUES"
         );
         require(tau != 0, "INVALID_TAU_PERIOD");
+        require(
+            scheduleRewards[0] == maxDepositAmount,
+            "INVALID_STARTING_REWARD"
+        );
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1],
@@ -1126,11 +1228,15 @@ contract JetStakingV1 is AdminControlled {
         uint256 streamId,
         uint256 rewardTokenAmount
     ) internal {
+        // TODO(Question): Is this the intended behavior? I was expecting to keep the same schedule and stop it at the new `rewardTokenAmount`.
         for (uint256 i = 0; i < streams[streamId].schedule.reward.length; i++) {
             streams[streamId].schedule.reward[i] =
                 (streams[streamId].schedule.reward[i] * rewardTokenAmount) /
                 streams[streamId].maxDepositAmount;
         }
+
+        // TODO(Performace): Avoid two multiplications and divisions by avoiding first and last steps of the cycle. Update first element using:
+        streams[streamId].schedule.reward[0] = rewardTokenAmount;
     }
 
     /// @dev withdraw stream rewards after the release time.
