@@ -5,7 +5,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     
     const {
         FLAGS,
-        ONE_YEAR,
+        SCHEDULE_PERIOD,
         TAU_PER_STREAM,
         MIN_WEIGHT,
         MAX_WEIGHT,
@@ -26,10 +26,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasury = await hre.ethers.getContract("Treasury")
     const scheduleTimes = [
         startTime,
-        startTime + parseInt(ONE_YEAR as string),
-        startTime + 2 * parseInt(ONE_YEAR as string),
-        startTime + 3 * parseInt(ONE_YEAR as string),
-        startTime + 4 * parseInt(ONE_YEAR as string)
+        startTime + parseInt(SCHEDULE_PERIOD as string),
+        startTime + 2 * parseInt(SCHEDULE_PERIOD as string),
+        startTime + 3 * parseInt(SCHEDULE_PERIOD as string),
+        startTime + 4 * parseInt(SCHEDULE_PERIOD as string)
     ]
     // TODO: update schedule rewards before the deployment
     const scheduleRewards = [
