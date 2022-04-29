@@ -33,7 +33,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
     await treasury.grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
     console.log(
-        'CONTRSCT: ',
+        'CONTRACT: ',
         'Treasury ',
         'ADDRESS ', 
         TREASURY_MANAGER_ROLE_ADDRESS,
