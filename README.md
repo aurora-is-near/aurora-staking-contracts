@@ -38,7 +38,7 @@ yarn coverage
 ```
 ## Deployment
 
-For more details about the deployment and the supported network, check out this [doc](deployments/README.md).
+For more details about the deployments and the supported networks, check out this [doc](deployments/README.md).
 ### Generate docs
 Execute the following command to regenerate the contracts documentation:
 ```
