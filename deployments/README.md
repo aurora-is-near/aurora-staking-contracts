@@ -1,10 +1,10 @@
 # Deployment 
 
-Before calling `yarn deploy:NETWORK`. The deployer should follow the steps below.
+Before calling `yarn deploy:<NETWORK>`. The deployer should follow the steps below.
 
 ### Configurateion
 
-Update the environment variables:
+Update the environment variables as follows:
 
 ```bash
 cp .env.example .env
@@ -20,7 +20,7 @@ MNEMONIC= # This is an alternative for the private key (the deployer address is 
 AURORA_API_KEY= # AURORA API KEY
 AURORA_TOKEN= # Aurora token address (not needed in case of testing)
 FLAGS=0 # pause flag 
-ONE_YEAR=31556926 # one year in seconds
+SCHEDULE_PERIOD=31556926 # one year in seconds
 TAU_PER_STREAM=2629746 # 1 month in seconds
 MIN_WEIGHT=256 # min weighting factor for streams
 MAX_WEIGHT=1024 # max weighting factor for streams
@@ -41,3 +41,42 @@ yarn deploy:local # default hardhat network
 yarn deploy:auroraTestnet # Aurora Testnet
 yarn deploy:auroraMainnet # Aurora Mainnet
 ```
+
+## Aurora Mainnet
+
+Please update the following tables after the official mainnet deployment:
+
+The mainnet deployment: 
+| Contract Name                  |Contract Address           |
+| ---------------------- |:---------------------------------------:|
+| Treasury      | TBD |
+| JetStakingV1      | TBD     |
+
+The mainnet admin keys:
+
+| Role                  | Role Manager Address          |
+| ---------------------- |:---------------------------------------:|
+| Default Admin role      | TBD |
+| Pause role      | TBD     |
+| Airdrop role      | TBD     |
+| Treasury manager role      | TBD     |
+| Stream manager role      | TBD     |
+
+
+## Aurora Testnet
+Please update the following tables after the official staging deployment:
+
+The testnet deployment: 
+| Contract Name                  |Contract Address           |
+| ---------------------- |:---------------------------------------:|
+| Treasury      | TBD |
+| JetStakingV1      | TBD     |
+
+
+| Role                  | Role Manager Address          |
+| ---------------------- |:---------------------------------------:|
+| Default Admin role      | TBD |
+| Pause role      | TBD     |
+| Airdrop role      | TBD     |
+| Treasury manager role      | TBD     |
+| Stream manager role      | TBD     |
