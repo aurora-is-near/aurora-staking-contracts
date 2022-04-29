@@ -17,7 +17,6 @@ jobs:
       PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
       MNEMONIC: ${{secrets.MNEMONIC}}
       AURORA_API_KEY: ${{secrets.AURORA_API_KEY}}
-      TESTING: ${{secrets.TESTING}}
       AURORA_TOKEN: ${{secrets.AURORA_TOKEN}}
       FLAGS: ${{secrets.FLAGS}}
       ONE_YEAR: ${{secrets.ONE_YEAR}}
