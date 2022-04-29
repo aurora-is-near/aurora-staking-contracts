@@ -38,12 +38,7 @@ yarn coverage
 ```
 ## Deployment
 
-```
-yarn deploy:local # default hardhat network
-yarn deploy:auroraTestnet # Aurora Testnet
-yarn deploy:auroraMainnet # Aurora Mainnet
-```
-
+For more details about the deployments and the supported networks, check out this [doc](deployments/README.md).
 ### Generate docs
 Execute the following command to regenerate the contracts documentation:
 ```
