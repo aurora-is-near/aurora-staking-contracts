@@ -151,30 +151,14 @@ contract JetStakingV1 is AdminControlled {
         uint256 _minWeight
     ) public initializer {
         require(_maxWeight > _minWeight, "INVALID_WEIGHTS");
-        require(
-            aurora != address(0) &&
-                _treasury != address(0) &&
-                streamOwner != address(0),
-            "INVALID_ADDRESS"
-        );
-        require(
-            scheduleTimes.length == scheduleRewards.length,
-            "INVALID_SCHEDULE_VALUES"
-        );
-        require(tauAuroraStream != 0, "INVALID_TAU_PERIOD");
-        for (uint256 i = 1; i < scheduleTimes.length; i++) {
-            require(
-                scheduleTimes[i] > scheduleTimes[i - 1],
-                "INVALID_SCHEDULE_TIMES"
-            );
-            require(
-                scheduleRewards[i] <= scheduleRewards[i - 1],
-                "INVALID_SCHEDULE_REWARDS"
-            );
-        }
-        require(
-            scheduleRewards[scheduleRewards.length - 1] == 0,
-            "INVALID_SCHEDULE_END_REWARD"
+        require(_treasury != address(0), "INVALID_ADDRESS");
+        _validateStreamParameters(
+            streamOwner,
+            aurora,
+            scheduleRewards[0],
+            scheduleTimes,
+            scheduleRewards,
+            tauAuroraStream
         );
         __AdminControlled_init(_flags);
         _grantRole(AIRDROP_ROLE, msg.sender);

@@ -54,7 +54,7 @@ describe("JetStakingV1", function () {
         oneYear = 31556926
         tauPerStream = 10
 
-        startTime = (await ethers.provider.getBlock("latest")).timestamp
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 10
         const JetStakingV1 = await ethers.getContractFactory('JetStakingTesting')
         const minWeight = 256
         const maxWeight = 1024
