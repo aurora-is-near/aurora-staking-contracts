@@ -907,24 +907,25 @@ contract JetStakingV1 is AdminControlled {
         } else {
             // start and end are not within the same schedule period
             // Reward during the startIndex period
-            reward = (schedule.reward[startIndex] -
-                schedule.reward[startIndex + 1]);
+            reward =
+                schedule.reward[startIndex] -
+                schedule.reward[startIndex + 1];
             rewardScheduledAmount =
                 (reward * (schedule.time[startIndex + 1] - start)) /
                 (schedule.time[startIndex + 1] - schedule.time[startIndex]);
             // Reward during the period from startIndex + 1  to endIndex - 1
-            for (uint256 i = startIndex + 1; i < endIndex; i++) {
-                reward = schedule.reward[i] - schedule.reward[i + 1];
-                rewardScheduledAmount += reward;
-            }
+            rewardScheduledAmount +=
+                schedule.reward[startIndex + 1] -
+                schedule.reward[endIndex];
             // Reward during the endIndex period
-            if (end > schedule.time[endIndex]) {
+            if (endIndex < schedule.time.length - 1) {
+                // If endIndex represents a non-empty interval
                 reward =
                     schedule.reward[endIndex] -
                     schedule.reward[endIndex + 1];
                 rewardScheduledAmount +=
                     (reward * (end - schedule.time[endIndex])) /
-                    (schedule.time[startIndex + 1] - schedule.time[startIndex]);
+                    (schedule.time[endIndex + 1] - schedule.time[endIndex]);
             }
         }
         return rewardScheduledAmount;
