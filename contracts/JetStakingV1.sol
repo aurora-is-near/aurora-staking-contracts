@@ -72,7 +72,7 @@ contract JetStakingV1 is AdminControlled {
         bool isActive;
     }
 
-    mapping(address => User) users;
+    mapping(address => User) public users;
     Stream[] streams;
 
     // events
