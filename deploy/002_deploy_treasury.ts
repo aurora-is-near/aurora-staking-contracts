@@ -7,20 +7,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { owner } = await hre.getNamedAccounts()
     const flags = 0
     const { 
-        TESTING,
         AURORA_TOKEN,
-        TREASURY_MANAGER_ROLE_ADDRESS,
-        DEFAULT_ADMIN_ROLE_ADDRESS
+        TREASURY_MANAGER_ROLE_ADDRESS
     } = process.env;
     let auroraAddress: any
-    if(TESTING) {
-        auroraAddress = (await hre.ethers.getContract("Token")).address
-    } else {
-        auroraAddress = AURORA_TOKEN
-    }
-
-    console.log(auroraAddress)
-
+    AURORA_TOKEN? auroraAddress = AURORA_TOKEN : auroraAddress = (await hre.ethers.getContract("Token")).address
     await deploy('Treasury', {
         log: true,
         from: owner,
@@ -36,26 +27,19 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             flags
         ],
     })
-    if(!TESTING) {
-        const treasury = await hre.ethers.getContract("Treasury")
-        await treasury.deployed()
-        const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
-        const defaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
-        await treasury.grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
-        console.log(
-            'ADDRESS ', 
-            TREASURY_MANAGER_ROLE_ADDRESS,
-            `Has a role ${treasuryManagerRole}? `,
-            await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
-        )
-        await treasury.grantRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
-        console.log(
-            'ADDRESS ', 
-            DEFAULT_ADMIN_ROLE_ADDRESS,
-            `Has a role ${defaultAdminRole}? `,
-            await treasury.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
-        )
-    }
+    await new Promise(f => setTimeout(f, 3000));
+    const treasury = await hre.ethers.getContract("Treasury")
+    await treasury.deployed()
+    const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
+    await treasury.grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
+    console.log(
+        'CONTRACT: ',
+        'Treasury ',
+        'ADDRESS ', 
+        TREASURY_MANAGER_ROLE_ADDRESS,
+        `Has a role ${treasuryManagerRole}? `,
+        await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
+    )
 }
 
 module.exports = func

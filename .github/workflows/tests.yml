@@ -17,10 +17,9 @@ jobs:
       PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
       MNEMONIC: ${{secrets.MNEMONIC}}
       AURORA_API_KEY: ${{secrets.AURORA_API_KEY}}
-      TESTING: ${{secrets.TESTING}}
       AURORA_TOKEN: ${{secrets.AURORA_TOKEN}}
       FLAGS: ${{secrets.FLAGS}}
-      ONE_YEAR: ${{secrets.ONE_YEAR}}
+      SCHEDULE_PERIOD: ${{secrets.SCHEDULE_PERIOD}}
       TAU_PER_STREAM: ${{secrets.TAU_PER_STREAM}}
       MIN_WEIGHT: ${{secrets.MIN_WEIGHT}}
       MAX_WEIGHT: ${{secrets.MAX_WEIGHT}}
