@@ -28,7 +28,7 @@ contract JetStakingV1 is AdminControlled {
     bytes32 public constant STREAM_MANAGER_ROLE =
         keccak256("STREAM_MANAGER_ROLE");
     uint256 constant ONE_MONTH = 2629746;
-    uint256 constant FOUR_YEARS = 126227704;
+    uint256 constant FOUR_YEARS = 126227808;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
     uint256 constant RPS_MULTIPLIER = 1e31;
