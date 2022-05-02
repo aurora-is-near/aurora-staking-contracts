@@ -29,9 +29,9 @@ describe("AdminControlled", function () {
     })
     it('should allow admin to change the storage layout using admin SSTORE', async() => {
         const changeMeBefore = await adminControlled.changeMe()
-        const storageSlot = 153
+        const storageSlot = 152
         const newValue = 1
-        await adminControlled.adminSstore(storageSlot, newValue)
+        await adminControlled.connect(admin).adminSstore(storageSlot, newValue)
         const changeMeAfter = await adminControlled.changeMe()
         expect(changeMeBefore).to.not.eq(changeMeAfter)
         expect(changeMeAfter).to.be.eq(newValue)
