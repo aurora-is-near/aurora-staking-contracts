@@ -56,7 +56,8 @@ contract JetStakingV1 is AdminControlled {
     }
 
     struct Stream {
-        address owner;
+        address owner; // stream owned by the ERC-20 reward token owner
+        address manager; // stream manager handled by AURORA stream manager role
         address rewardToken;
         uint256 auroraDepositAmount;
         uint256 auroraClaimedAmount;
@@ -64,7 +65,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 rewardClaimedAmount;
         uint256 maxDepositAmount;
         uint256 lastTimeOwnerClaimed;
-        uint256 tau;
+        uint256 tau; // pending time prior reward release
         uint256 rps; // Reward per share for a stream j>0
         Schedule schedule;
         bool isProposed;
@@ -190,6 +191,7 @@ contract JetStakingV1 is AdminControlled {
         streams.push();
         Stream storage stream = streams[streamId];
         stream.owner = streamOwner;
+        stream.manager = streamOwner;
         stream.rewardToken = aurora;
         stream.auroraDepositAmount = 0;
         stream.auroraClaimedAmount = 0;
@@ -207,7 +209,7 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev An admin of the staking contract can whitelist (propose) a stream.
     /// Whitelisting of the stream provides the option for the stream
-    /// creator (presumably the issuing party of a specific token) to
+    /// owner (presumably the issuing party of a specific token) to
     /// deposit some ERC-20 tokens on the staking contract and potentially
     /// get in return some AURORA tokens. Deposited ERC-20 tokens will be
     /// distributed to the stakers over some period of time.
@@ -240,6 +242,7 @@ contract JetStakingV1 is AdminControlled {
         streams.push();
         Stream storage stream = streams[streamId];
         stream.owner = streamOwner;
+        stream.manager = msg.sender;
         stream.rewardToken = rewardToken;
         stream.auroraDepositAmount = auroraDepositAmount;
         stream.auroraClaimedAmount = 0;
@@ -274,8 +277,11 @@ contract JetStakingV1 is AdminControlled {
         uint256 refundAmount = stream.auroraDepositAmount;
         stream.auroraDepositAmount = 0;
         emit StreamProposalCancelled(streamId, stream.owner, block.timestamp);
-        // refund admin wallet with the stream aurora deposit
-        IERC20Upgradeable(auroraToken).safeTransfer(admin, refundAmount);
+        // refund stream manager wallet with the stream aurora deposit
+        IERC20Upgradeable(auroraToken).safeTransfer(
+            stream.manager,
+            refundAmount
+        );
     }
 
     /// @dev create new stream (only stream owner)
@@ -309,7 +315,7 @@ contract JetStakingV1 is AdminControlled {
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
             IERC20Upgradeable(auroraToken).safeTransfer(
-                admin,
+                stream.manager,
                 refundAuroraAmount
             );
         }
@@ -352,9 +358,9 @@ contract JetStakingV1 is AdminControlled {
         // check enough treasury balance
         uint256 auroraTreasury = getTreasuryBalance(auroraToken);
         uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
-        // move rest of the unclaimed aurora to the admin
+        // move rest of the unclaimed aurora to the stream manager
         ITreasury(treasury).payRewards(
-            admin,
+            stream.manager,
             auroraToken,
             releaseAuroraAmount <= auroraTreasury
                 ? releaseAuroraAmount
@@ -388,9 +394,9 @@ contract JetStakingV1 is AdminControlled {
             stream.rewardDepositAmount;
     }
 
-    /// @dev the release of AURORA tokens to the stream creator is subjected to the same schedule as rewards.
+    /// @dev the release of AURORA tokens to the stream owner is subjected to the same schedule as rewards.
     /// Thus if for a specific moment in time 30% of the rewards are distributed, then it means that 30% of
-    /// the AURORA deposit can be withdrawn by the stream creator too.
+    /// the AURORA deposit can be withdrawn by the stream owner too.
     /// called by the stream owner
     /// @param streamId the stream index
     function releaseAuroraRewardsToStreamOwner(uint256 streamId)
@@ -431,6 +437,7 @@ contract JetStakingV1 is AdminControlled {
             uint256 rewardClaimedAmount,
             uint256 maxDepositAmount,
             uint256 lastTimeOwnerClaimed,
+            uint256 rps,
             uint256 tau,
             bool isProposed,
             bool isActive
@@ -446,6 +453,7 @@ contract JetStakingV1 is AdminControlled {
             stream.rewardClaimedAmount,
             stream.maxDepositAmount,
             stream.lastTimeOwnerClaimed,
+            stream.rps,
             stream.tau,
             stream.isProposed,
             stream.isActive
