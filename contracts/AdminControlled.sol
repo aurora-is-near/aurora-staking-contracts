@@ -28,7 +28,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
 
     modifier pausable(uint256 flag) {
         require(
-            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
             "Paused"
         );
         _;

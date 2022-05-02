@@ -150,7 +150,7 @@ contract JetStakingV1 is AdminControlled {
         address _treasury,
         uint256 _maxWeight,
         uint256 _minWeight
-    ) public initializer {
+    ) external initializer {
         require(_maxWeight > _minWeight, "INVALID_WEIGHTS");
         require(
             aurora != address(0) &&
@@ -463,7 +463,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev get the stream schedule data
     /// @param streamId the stream index
     function getStreamSchedule(uint256 streamId)
-        public
+        external
         view
         returns (
             uint256[] memory scheduleTimes,
@@ -576,6 +576,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamId to claim.
     function claimOnBehalfOfAnotherUser(address account, uint256 streamId)
         external
+        pausable(1)
         onlyRole(CLAIM_ROLE)
     {
         _before();
@@ -586,6 +587,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param account the user account address.
     function claimAllOnBehalfOfAnotherUser(address account)
         external
+        pausable(1)
         onlyRole(CLAIM_ROLE)
     {
         _before();
@@ -596,6 +598,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param accounts the user account addresses.
     function claimAllOnBehalfOfOtherUsers(address[] memory accounts)
         external
+        pausable(1)
         onlyRole(CLAIM_ROLE)
     {
         _before();
@@ -610,7 +613,7 @@ contract JetStakingV1 is AdminControlled {
     function batchClaimOnBehalfOfAnotherUser(
         address account,
         uint256[] memory streamIds
-    ) external onlyRole(CLAIM_ROLE) {
+    ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         _batchClaimRewards(account, streamIds);
     }
@@ -620,7 +623,7 @@ contract JetStakingV1 is AdminControlled {
     function batchClaimOnBehalfOfOtherUsers(
         address[] memory accounts,
         uint256[] memory streamIds
-    ) external onlyRole(CLAIM_ROLE) {
+    ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         for (uint256 i = 0; i < accounts.length; i++) {
             _batchClaimRewards(accounts[i], streamIds);
