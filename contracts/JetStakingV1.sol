@@ -64,6 +64,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 rewardDepositAmount;
         uint256 rewardClaimedAmount;
         uint256 maxDepositAmount;
+        uint256 minDepositAmount;
         uint256 lastTimeOwnerClaimed;
         uint256 tau; // pending time prior reward release
         uint256 rps; // Reward per share for a stream j>0
@@ -226,6 +227,7 @@ contract JetStakingV1 is AdminControlled {
         address rewardToken,
         uint256 auroraDepositAmount,
         uint256 maxDepositAmount,
+        uint256 minDepositAmount,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tau
@@ -247,6 +249,7 @@ contract JetStakingV1 is AdminControlled {
         stream.auroraDepositAmount = auroraDepositAmount;
         stream.auroraClaimedAmount = 0;
         stream.maxDepositAmount = maxDepositAmount;
+        stream.minDepositAmount = minDepositAmount;
         stream.rewardDepositAmount = 0;
         stream.rewardClaimedAmount = 0;
         stream.lastTimeOwnerClaimed = scheduleTimes[0];
@@ -301,17 +304,19 @@ contract JetStakingV1 is AdminControlled {
         );
         require(
             rewardTokenAmount <= stream.maxDepositAmount,
-            "INVALID_REWARD_TOKEN_AMOUNT"
+            "REWARD_TOO_HIGH"
         );
+        require(rewardTokenAmount >= stream.minDepositAmount, "REWARD_TOO_LOW");
         stream.isActive = true;
         stream.rewardDepositAmount = rewardTokenAmount;
         emit StreamCreated(streamId, msg.sender, block.timestamp);
         if (rewardTokenAmount < stream.maxDepositAmount) {
             // refund staking admin if deposited reward tokens less than the upper limit of deposit
-            uint256 refundAuroraAmount = ((stream.maxDepositAmount -
-                rewardTokenAmount) * stream.auroraDepositAmount) /
-                stream.maxDepositAmount;
-            stream.auroraDepositAmount -= refundAuroraAmount;
+            uint256 newAuroraDepositAmount = (rewardTokenAmount *
+                stream.auroraDepositAmount) / stream.maxDepositAmount;
+            uint256 refundAuroraAmount = stream.auroraDepositAmount -
+                newAuroraDepositAmount;
+            stream.auroraDepositAmount = newAuroraDepositAmount;
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
             IERC20Upgradeable(auroraToken).safeTransfer(
