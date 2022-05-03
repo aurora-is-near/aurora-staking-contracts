@@ -21,7 +21,6 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
  *      - Transfering its ownership to a new admin
  */
 contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
-    address public admin;
     uint256 public paused;
 
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
@@ -50,25 +49,6 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
     /// @param flags flags variable is used for pausing this contract.
     function adminPause(uint256 flags) external onlyRole(PAUSE_ROLE) {
         paused = flags;
-    }
-
-    /// @dev transferOwnership updates the current admin address with a new
-    /// one. This admin is used for colleting dust tokens,
-    /// and releasing some locked funds. It is used
-    /// by the staking contract. It must be assinged to the community
-    /// treasury wallet that will be governed by DAO.
-    /// @param newAdmin new admin address.
-    function transferOwnership(address newAdmin)
-        external
-        virtual
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(newAdmin != address(0), "INVALID_ADDRESS");
-        require(admin != newAdmin, "SAME_ADMIN_ADDRESS");
-        _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
-        admin = newAdmin;
-        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        emit OwnershipTransferred(msg.sender, newAdmin);
     }
 
     /// @dev adminSstore updates the state variable value.

@@ -86,7 +86,8 @@ describe("JetStakingV1Upgrade", function () {
             ]
         )
         await jet.deployed();
-        await jet.transferOwnership(stakingAdmin.address)        
+        const defaultAdminRole = await jet.DEFAULT_ADMIN_ROLE()
+        await jet.grantRole(defaultAdminRole, stakingAdmin.address)    
         // fund users wallet
         await auroraToken.connect(auroraOwner).transfer(user1.address, ethers.utils.parseUnits("10000", 18))
         await auroraToken.connect(auroraOwner).transfer(user2.address, ethers.utils.parseUnits("10000", 18))
@@ -99,8 +100,8 @@ describe("JetStakingV1Upgrade", function () {
         const balanceOfAurorOwner = await auroraToken.balanceOf(auroraOwner.address)
         await auroraToken.connect(auroraOwner).transfer(user5.address, balanceOfAurorOwner)
         // transfer ownership of the treasury to the jet staking contract
-        await treasury.connect(auroraOwner).transferOwnership(jet.address)
-        
+        const treasuryDefaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+        await treasury.grantRole(treasuryDefaultAdminRole, jet.address)        
     })
 
     it('should test JetStakingV1 change function signature', async() => {

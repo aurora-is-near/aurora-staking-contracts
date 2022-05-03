@@ -49,8 +49,9 @@ describe("Treasury", function () {
     })
 
     it('should allow transfer ownership', async () => {
-        await treasury.connect(admin).transferOwnership(newOwner.address)
-        expect(await treasury.admin()).to.be.eq(newOwner.address)
+        const treasuryDefaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+        await treasury.connect(admin).grantRole(treasuryDefaultAdminRole, newOwner.address)
+        expect(await treasury.hasRole(treasuryDefaultAdminRole, newOwner.address)).to.be.eq(true)
     })
 
     it("should allow only owner pay rewards", async () => {
