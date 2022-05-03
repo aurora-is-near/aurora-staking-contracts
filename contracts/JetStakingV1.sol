@@ -177,16 +177,11 @@ contract JetStakingV1 is AdminControlled {
             scheduleRewards[scheduleRewards.length - 1] == 0,
             "INVALID_SCHEDULE_END_REWARD"
         );
-        // check aurora is supportedToken in the treasury
+        // check aurora token address is supportedToken in the treasury
         require(
             ITreasury(_treasury).isSupportedToken(aurora),
-            'INVALID_AURORA_TOKEN_ADDRESS'
+            "INVALID_SUPPORTED_TOKEN_ADDRESS"
         );
-        require(
-            IERC20Upgradeable(aurora).balanceOf(_treasury) >= scheduleRewards[0],
-            'INSUFFICIENT_FUNDS_IN_TREASURY'
-        );
-        // check that treasury has enough balance
         __AdminControlled_init(_flags);
         _grantRole(AIRDROP_ROLE, msg.sender);
         _grantRole(CLAIM_ROLE, msg.sender);
@@ -247,6 +242,11 @@ contract JetStakingV1 is AdminControlled {
             scheduleTimes,
             scheduleRewards,
             tau
+        );
+        // check aurora token address is supportedToken in the treasury
+        require(
+            ITreasury(treasury).isSupportedToken(rewardToken),
+            "INVALID_SUPPORTED_TOKEN_ADDRESS"
         );
         uint256 streamId = streams.length;
         streams.push();
