@@ -28,7 +28,7 @@ contract JetStakingV1 is AdminControlled {
     bytes32 public constant STREAM_MANAGER_ROLE =
         keccak256("STREAM_MANAGER_ROLE");
     uint256 constant ONE_MONTH = 2629746;
-    uint256 constant FOUR_YEARS = 126227704;
+    uint256 constant FOUR_YEARS = 126227808;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
     uint256 constant RPS_MULTIPLIER = 1e31;
@@ -56,7 +56,8 @@ contract JetStakingV1 is AdminControlled {
     }
 
     struct Stream {
-        address owner;
+        address owner; // stream owned by the ERC-20 reward token owner
+        address manager; // stream manager handled by AURORA stream manager role
         address rewardToken;
         uint256 auroraDepositAmount;
         uint256 auroraClaimedAmount;
@@ -64,14 +65,14 @@ contract JetStakingV1 is AdminControlled {
         uint256 rewardClaimedAmount;
         uint256 maxDepositAmount;
         uint256 lastTimeOwnerClaimed;
-        uint256 tau;
+        uint256 tau; // pending time prior reward release
         uint256 rps; // Reward per share for a stream j>0
         Schedule schedule;
         bool isProposed;
         bool isActive;
     }
 
-    mapping(address => User) users;
+    mapping(address => User) public users;
     Stream[] streams;
 
     // events
@@ -149,7 +150,7 @@ contract JetStakingV1 is AdminControlled {
         address _treasury,
         uint256 _maxWeight,
         uint256 _minWeight
-    ) public initializer {
+    ) external initializer {
         require(_maxWeight > _minWeight, "INVALID_WEIGHTS");
         require(_treasury != address(0), "INVALID_ADDRESS");
         _validateStreamParameters(
@@ -174,6 +175,7 @@ contract JetStakingV1 is AdminControlled {
         streams.push();
         Stream storage stream = streams[streamId];
         stream.owner = streamOwner;
+        stream.manager = streamOwner;
         stream.rewardToken = aurora;
         stream.auroraDepositAmount = 0;
         stream.auroraClaimedAmount = 0;
@@ -191,7 +193,7 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev An admin of the staking contract can whitelist (propose) a stream.
     /// Whitelisting of the stream provides the option for the stream
-    /// creator (presumably the issuing party of a specific token) to
+    /// owner (presumably the issuing party of a specific token) to
     /// deposit some ERC-20 tokens on the staking contract and potentially
     /// get in return some AURORA tokens. Deposited ERC-20 tokens will be
     /// distributed to the stakers over some period of time.
@@ -224,6 +226,7 @@ contract JetStakingV1 is AdminControlled {
         streams.push();
         Stream storage stream = streams[streamId];
         stream.owner = streamOwner;
+        stream.manager = msg.sender;
         stream.rewardToken = rewardToken;
         stream.auroraDepositAmount = auroraDepositAmount;
         stream.auroraClaimedAmount = 0;
@@ -258,8 +261,11 @@ contract JetStakingV1 is AdminControlled {
         uint256 refundAmount = stream.auroraDepositAmount;
         stream.auroraDepositAmount = 0;
         emit StreamProposalCancelled(streamId, stream.owner, block.timestamp);
-        // refund admin wallet with the stream aurora deposit
-        IERC20Upgradeable(auroraToken).safeTransfer(admin, refundAmount);
+        // refund stream manager wallet with the stream aurora deposit
+        IERC20Upgradeable(auroraToken).safeTransfer(
+            stream.manager,
+            refundAmount
+        );
     }
 
     /// @dev create new stream (only stream owner)
@@ -293,7 +299,7 @@ contract JetStakingV1 is AdminControlled {
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
             IERC20Upgradeable(auroraToken).safeTransfer(
-                admin,
+                stream.manager,
                 refundAuroraAmount
             );
         }
@@ -336,9 +342,9 @@ contract JetStakingV1 is AdminControlled {
         // check enough treasury balance
         uint256 auroraTreasury = getTreasuryBalance(auroraToken);
         uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
-        // move rest of the unclaimed aurora to the admin
+        // move rest of the unclaimed aurora to the stream manager
         ITreasury(treasury).payRewards(
-            admin,
+            stream.manager,
             auroraToken,
             releaseAuroraAmount <= auroraTreasury
                 ? releaseAuroraAmount
@@ -372,9 +378,9 @@ contract JetStakingV1 is AdminControlled {
             stream.rewardDepositAmount;
     }
 
-    /// @dev the release of AURORA tokens to the stream creator is subjected to the same schedule as rewards.
+    /// @dev the release of AURORA tokens to the stream owner is subjected to the same schedule as rewards.
     /// Thus if for a specific moment in time 30% of the rewards are distributed, then it means that 30% of
-    /// the AURORA deposit can be withdrawn by the stream creator too.
+    /// the AURORA deposit can be withdrawn by the stream owner too.
     /// called by the stream owner
     /// @param streamId the stream index
     function releaseAuroraRewardsToStreamOwner(uint256 streamId)
@@ -415,6 +421,7 @@ contract JetStakingV1 is AdminControlled {
             uint256 rewardClaimedAmount,
             uint256 maxDepositAmount,
             uint256 lastTimeOwnerClaimed,
+            uint256 rps,
             uint256 tau,
             bool isProposed,
             bool isActive
@@ -430,6 +437,7 @@ contract JetStakingV1 is AdminControlled {
             stream.rewardClaimedAmount,
             stream.maxDepositAmount,
             stream.lastTimeOwnerClaimed,
+            stream.rps,
             stream.tau,
             stream.isProposed,
             stream.isActive
@@ -439,7 +447,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev get the stream schedule data
     /// @param streamId the stream index
     function getStreamSchedule(uint256 streamId)
-        public
+        external
         view
         returns (
             uint256[] memory scheduleTimes,
@@ -465,9 +473,11 @@ contract JetStakingV1 is AdminControlled {
     /// @param _treasury treasury contract address for the reward tokens
     function updateTreasury(address _treasury)
         external
+        pausable(1)
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(_treasury != address(0), "INVALID_ADDRESS");
+        require(_treasury != treasury, "SAME_ADDRESS");
         treasury = _treasury;
     }
 
@@ -552,6 +562,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamId to claim.
     function claimOnBehalfOfAnotherUser(address account, uint256 streamId)
         external
+        pausable(1)
         onlyRole(CLAIM_ROLE)
     {
         _before();
@@ -562,6 +573,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param account the user account address.
     function claimAllOnBehalfOfAnotherUser(address account)
         external
+        pausable(1)
         onlyRole(CLAIM_ROLE)
     {
         _before();
@@ -572,6 +584,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param accounts the user account addresses.
     function claimAllOnBehalfOfOtherUsers(address[] memory accounts)
         external
+        pausable(1)
         onlyRole(CLAIM_ROLE)
     {
         _before();
@@ -586,7 +599,7 @@ contract JetStakingV1 is AdminControlled {
     function batchClaimOnBehalfOfAnotherUser(
         address account,
         uint256[] memory streamIds
-    ) external onlyRole(CLAIM_ROLE) {
+    ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         _batchClaimRewards(account, streamIds);
     }
@@ -596,7 +609,7 @@ contract JetStakingV1 is AdminControlled {
     function batchClaimOnBehalfOfOtherUsers(
         address[] memory accounts,
         uint256[] memory streamIds
-    ) external onlyRole(CLAIM_ROLE) {
+    ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         for (uint256 i = 0; i < accounts.length; i++) {
             _batchClaimRewards(accounts[i], streamIds);
@@ -883,24 +896,25 @@ contract JetStakingV1 is AdminControlled {
         } else {
             // start and end are not within the same schedule period
             // Reward during the startIndex period
-            reward = (schedule.reward[startIndex] -
-                schedule.reward[startIndex + 1]);
+            reward =
+                schedule.reward[startIndex] -
+                schedule.reward[startIndex + 1];
             rewardScheduledAmount =
                 (reward * (schedule.time[startIndex + 1] - start)) /
                 (schedule.time[startIndex + 1] - schedule.time[startIndex]);
             // Reward during the period from startIndex + 1  to endIndex - 1
-            for (uint256 i = startIndex + 1; i < endIndex; i++) {
-                reward = schedule.reward[i] - schedule.reward[i + 1];
-                rewardScheduledAmount += reward;
-            }
+            rewardScheduledAmount +=
+                schedule.reward[startIndex + 1] -
+                schedule.reward[endIndex];
             // Reward during the endIndex period
-            if (end > schedule.time[endIndex]) {
+            if (endIndex < schedule.time.length - 1) {
+                // If endIndex represents a non-empty interval
                 reward =
                     schedule.reward[endIndex] -
                     schedule.reward[endIndex + 1];
                 rewardScheduledAmount +=
                     (reward * (end - schedule.time[endIndex])) /
-                    (schedule.time[startIndex + 1] - schedule.time[startIndex]);
+                    (schedule.time[endIndex + 1] - schedule.time[endIndex]);
             }
         }
         return rewardScheduledAmount;

@@ -29,7 +29,7 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
 
     modifier pausable(uint256 flag) {
         require(
-            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
             "Paused"
         );
         _;
@@ -67,8 +67,8 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         require(admin != newAdmin, "SAME_ADMIN_ADDRESS");
         _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         admin = newAdmin;
-        _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        emit OwnershipTransferred(_msgSender(), newAdmin);
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        emit OwnershipTransferred(msg.sender, newAdmin);
     }
 
     /// @dev adminSstore updates the state variable value.
