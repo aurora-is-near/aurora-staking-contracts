@@ -34,10 +34,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     // sleep for 3 seconds
     await new Promise(f => setTimeout(f, 1000));
     const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
-    await treasury.connect(deployer).grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
+    if(!await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)) {
+        await treasury.connect(deployer).grantRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
+    }
     console.log(
-        'CONTRACT: ',
-        'Treasury ',
+        'Contract: ',
+        'Treasury, ',
         'ADDRESS ', 
         TREASURY_MANAGER_ROLE_ADDRESS,
         `Has a role ${treasuryManagerRole}? `,
@@ -46,10 +48,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasuryDefaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
     // sleep for 3 seconds
     await new Promise(f => setTimeout(f, 1000));
-    await treasury.connect(deployer).grantRole(treasuryDefaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+    if(!await treasury.hasRole(treasuryDefaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)) {
+        await treasury.connect(deployer).grantRole(treasuryDefaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+    }
     console.log(
         'Contract: ', 
-        'Treasury',
+        'Treasury, ',
         'ADDRESS: ', 
         DEFAULT_ADMIN_ROLE_ADDRESS,
         `Has a role ${treasuryDefaultAdminRole}? `,
