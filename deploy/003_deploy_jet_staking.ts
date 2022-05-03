@@ -1,3 +1,4 @@
+import { assert } from "console";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -40,7 +41,15 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
         hre.ethers.utils.parseUnits("0", 18), // 0M
     ]
-
+    let token: any
+    AURORA_TOKEN ?
+        token = await hre.ethers.getContractAt("Token", AURORA_TOKEN) :
+        token = await hre.ethers.getContractAt("Token", (await hre.ethers.getContract("Token")).address)
+    const treasuryBalance = await token.balanceOf(treasury.address)
+    assert(
+        treasuryBalance >= scheduleRewards[0],
+        'Insufficient treasury balance'
+    )
     await deploy('JetStakingV1', {
         log: true,
         from: deployer.address,
