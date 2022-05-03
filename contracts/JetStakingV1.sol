@@ -987,6 +987,10 @@ contract JetStakingV1 is AdminControlled {
     function _moveRewardsToPending(address account, uint256 streamId) internal {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         User storage userAccount = users[account];
+        require(
+            userAccount.auroraShares != 0,
+            "USER_DOES_NOT_HAVE_ACTUAL_STAKE"
+        );
         uint256 reward = ((streams[streamId].rps -
             userAccount.rpsDuringLastClaim[streamId]) *
             userAccount.streamShares) / RPS_MULTIPLIER;

@@ -924,8 +924,8 @@ describe("JetStakingV1", function () {
             scheduleRewards,
             tauPerStream
         )
-        await jet.tempMoveRewardsToPending(user2.address, Ids[0])
-        expect(parseInt(await jet.getPending(Ids[0], user2.address))).to.be.eq(0)
+        await expect(jet.tempMoveRewardsToPending(user2.address, Ids[0]))
+        .to.be.revertedWith("USER_DOES_NOT_HAVE_ACTUAL_STAKE")
     })
     it('should return if _before called twice whithin the same block', async() => {
         await jet.callBeforeTwice()
