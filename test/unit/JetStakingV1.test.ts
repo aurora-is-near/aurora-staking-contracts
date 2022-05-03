@@ -101,7 +101,7 @@ describe("JetStakingV1", function () {
         await jet.connect(deployer).grantRole(airdropRole, stakingAdmin.address)
         await jet.connect(deployer).grantRole(pauseRole, stakingAdmin.address)
         await jet.connect(deployer).grantRole(streamManagerRole, streamManager.address)
-        await jet.connect(deployer).transferOwnership(stakingAdmin.address)
+        await jet.connect(deployer).grantRole(defaultAdminRole, stakingAdmin.address)
         
         expect(await jet.hasRole(claimRole, stakingAdmin.address)).to.be.eq(true)
         expect(await jet.hasRole(airdropRole, stakingAdmin.address)).to.be.eq(true)
