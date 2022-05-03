@@ -144,6 +144,23 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         `Has a role ${treasuryDefaultAdminRole}? `,
         await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV1.address)
     )
+    // drop deployer address from the default admin role in the treasury contract
+    await new Promise(f => setTimeout(f, 1000));
+    await treasury.connect(deployer).revokeRole(treasuryDefaultAdminRole, deployer.address)
+    console.log(
+        'Drop deployer address from the default admin role in treasury contract',
+        '... Dropped?',
+        await treasury.hasRole(treasuryDefaultAdminRole, deployer.address) ? false: true
+    )
+
+    // drop deployer address from the default admin role in the jet-staking contract
+    await new Promise(f => setTimeout(f, 1000));
+    await jetStakingV1.connect(deployer).revokeRole(defaultAdminRole, deployer.address)
+    console.log(
+        'Drop deployer address from the default admin role in jet-staking contract',
+        '... Dropped?',
+        await jetStakingV1.hasRole(defaultAdminRole, jetStakingV1.address) ? false: true
+    )
 }
 
 module.exports = func
