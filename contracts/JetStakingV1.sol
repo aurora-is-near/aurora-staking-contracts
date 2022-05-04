@@ -485,9 +485,11 @@ contract JetStakingV1 is AdminControlled {
     /// @param _treasury treasury contract address for the reward tokens
     function updateTreasury(address _treasury)
         external
+        pausable(1)
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(_treasury != address(0), "INVALID_ADDRESS");
+        require(_treasury != treasury, "SAME_ADDRESS");
         treasury = _treasury;
     }
 
