@@ -54,7 +54,7 @@ describe("JetStakingV1", function () {
         oneYear = 31556926
         tauPerStream = 10
 
-        startTime = (await ethers.provider.getBlock("latest")).timestamp
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 10
         const JetStakingV1 = await ethers.getContractFactory('JetStakingTesting')
         const minWeight = 256
         const maxWeight = 1024
@@ -140,6 +140,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -155,6 +156,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -170,6 +172,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -185,6 +188,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -198,11 +202,44 @@ describe("JetStakingV1", function () {
         expect(streamId.toNumber()).to.be.eq(id)
         expect(await jet.getStreamsCount()).to.be.eq(2)
     })
+    it('should refund stream owner when stream created with less rewards', async () => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = 2
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, minRewardProposalAmountForAStream)
+        // create a stream and refund half to stream manager without rounding error.
+        await expect(jet.connect(user1).createStream(id, minRewardProposalAmountForAStream))
+            .to.emit(auroraToken, "Transfer").withArgs(jet.address, streamManager.address, 1)
+    })
     it('should create stream and refund staking admin if deposit reward is less than the upper amount', async () => {
         const id = 1
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -218,6 +255,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -255,6 +293,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -270,6 +309,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -382,7 +422,7 @@ describe("JetStakingV1", function () {
     })
     it('should schedule from 0 to now (200 days)', async () => {
         const startTime = (await ethers.provider.getBlock("latest")).timestamp
-        await network.provider.send("evm_increaseTime", [200 * oneDay]) // increase time for 20 days
+        await network.provider.send("evm_increaseTime", [200 * oneDay]) // increase time for 200 days
         await network.provider.send("evm_mine")
         const currentTime = (await ethers.provider.getBlock("latest")).timestamp + 19
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[0], (await ethers.provider.getBlock("latest")).timestamp)
@@ -598,6 +638,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
         const scheduleTimes = [
@@ -614,6 +655,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -625,6 +667,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -637,6 +680,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -683,6 +727,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
         const scheduleTimes = [
@@ -699,6 +744,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -724,6 +770,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
         const scheduleTimes = [
@@ -740,6 +787,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -751,13 +799,14 @@ describe("JetStakingV1", function () {
          // propose stream 1
          await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
          await jet.connect(streamManager).proposeStream(
-             user1.address,
-             streamToken1.address,
-             auroraProposalAmountForAStream,
-             maxRewardProposalAmountForAStream,
-             scheduleTimes,
-             scheduleRewards,
-             tauPerStream
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
          )
          // approve reward tokens & create streams
          await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
@@ -794,6 +843,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
         const scheduleTimes = [
@@ -810,6 +860,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -823,6 +874,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
         const scheduleTimes = [
@@ -839,6 +891,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -872,6 +925,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + oneDay
         const scheduleTimes = [
@@ -888,6 +942,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -904,6 +959,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + oneDay
         const scheduleTimes = [
@@ -920,6 +976,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -955,6 +1012,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -970,6 +1028,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -996,6 +1055,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1011,6 +1071,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1063,6 +1124,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         await jet.connect(streamManager).proposeStream(
@@ -1070,6 +1132,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1093,6 +1156,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1108,6 +1172,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1135,6 +1200,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1150,6 +1216,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1201,6 +1268,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1216,6 +1284,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1251,6 +1320,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1266,6 +1336,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1300,6 +1371,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         await jet.connect(streamManager).proposeStream(
@@ -1307,6 +1379,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1363,6 +1436,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1378,6 +1452,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1394,6 +1469,7 @@ describe("JetStakingV1", function () {
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
         await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
         // propose a stream
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1409,6 +1485,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1419,13 +1496,14 @@ describe("JetStakingV1", function () {
         // cancel stream proposal
         await jet.connect(streamManager).cancelStreamProposal(id)
         const stream = await jet.getStream(id)
-        expect(stream.isProposed).to.be.eq(false)
+        expect(stream.status).to.be.eq(0)
     })
     it('admin can claim streams on behalf of another user', async() => {
         const Ids = [1, 2, 3]
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
+        const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
         // propose a stream
         const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
         const scheduleTimes = [
@@ -1442,6 +1520,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1453,6 +1532,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1465,6 +1545,7 @@ describe("JetStakingV1", function () {
             streamToken1.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
             scheduleTimes,
             scheduleRewards,
             tauPerStream
@@ -1501,6 +1582,7 @@ describe("JetStakingV1", function () {
             // approve aurora tokens to the stream proposal
             const auroraProposalAmountForAStream = ethers.utils.parseUnits("10", 18)
             const maxRewardProposalAmountForAStream = scheduleRewards[0]
+            const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
             await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
             // propose a stream
             startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1516,6 +1598,7 @@ describe("JetStakingV1", function () {
                 streamToken1.address,
                 auroraProposalAmountForAStream,
                 maxRewardProposalAmountForAStream,
+                minRewardProposalAmountForAStream,
                 scheduleTimes,
                 scheduleRewards,
                 tauPerStream
@@ -1568,6 +1651,7 @@ describe("JetStakingV1", function () {
             // approve aurora tokens to the stream proposal
             const auroraProposalAmountForAStream = ethers.utils.parseUnits("10", 18)
             const maxRewardProposalAmountForAStream = scheduleRewards[0]
+            const minRewardProposalAmountForAStream = scheduleRewards[0].div(2)
             await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
             // propose a stream
             startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
@@ -1583,6 +1667,7 @@ describe("JetStakingV1", function () {
                 streamToken1.address,
                 auroraProposalAmountForAStream,
                 maxRewardProposalAmountForAStream,
+                minRewardProposalAmountForAStream,
                 scheduleTimes,
                 scheduleRewards,
                 tauPerStream
