@@ -1,14 +1,15 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
-import * as dotenv from 'dotenv';
-const func: DeployFunction = async ({ getNamedAccounts, deployments }) => {
-    const { deploy } = deployments
-    const { owner } = await getNamedAccounts()
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+
+const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
+    const { deploy } = hre.deployments
+    const [ deployer ] = await hre.ethers.getSigners()
     const auroraSupply = ethers.utils.parseUnits("1000000", 18)
     const name = "AuroraToken"
     const symbol = "AURORA"
     await deploy('Token', {
-        from: owner,
+        from: deployer.address,
         args: [
             auroraSupply,
             name,

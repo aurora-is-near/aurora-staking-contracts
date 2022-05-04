@@ -30,7 +30,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     })
     await new Promise(f => setTimeout(f, 3000));
     const treasury = await hre.ethers.getContract("Treasury")
-    await treasury.deployed()
+    // await treasury.deployed()
     // sleep for 3 seconds
     await new Promise(f => setTimeout(f, 1000));
     const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
