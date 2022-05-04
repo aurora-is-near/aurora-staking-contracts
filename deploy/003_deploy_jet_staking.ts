@@ -45,11 +45,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     AURORA_TOKEN ?
         token = await hre.ethers.getContractAt("Token", AURORA_TOKEN) :
         token = await hre.ethers.getContractAt("Token", (await hre.ethers.getContract("Token")).address)
-    const treasuryBalance = await token.balanceOf(treasury.address)
-    assert(
-        treasuryBalance >= scheduleRewards[0],
-        'Insufficient treasury balance'
-    )
+    // const treasuryBalance = await token.balanceOf(treasury.address)
+    // assert(
+    //     treasuryBalance >= scheduleRewards[0],
+    //     'Insufficient treasury balance'
+    // )
     await deploy('JetStakingV1', {
         log: true,
         from: deployer.address,
