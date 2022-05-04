@@ -25,7 +25,7 @@ describe("AdminControlled", function () {
     })
     it('should admin able to pause the contract', async () => {
         await adminControlled.adminPause(1)
-        await expect(adminControlled.connect(user).pauseMe()).to.be.revertedWith('Paused')
+        await expect(adminControlled.connect(user).pauseMe()).to.be.revertedWith('CONTRACT_IS_PAUSED')
     })
     it('should allow admin to change the storage layout using admin SSTORE', async() => {
         const changeMeBefore = await adminControlled.changeMe()
