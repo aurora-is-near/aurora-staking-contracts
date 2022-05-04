@@ -218,8 +218,8 @@ contract JetStakingV1 is AdminControlled {
     /// @param rewardToken the address of the ERC-20 tokens to be deposited in the stream
     /// @param auroraDepositAmount Amount of the AURORA deposited by the Admin.
     /// @param maxDepositAmount The upper amount of the tokens that should be deposited by the stream owner
-    /// @param scheduleTimes array of block heights for each schedule time
-    /// @param scheduleRewards array of reward amounts that are kept on the staking contract at each block height
+    /// @param scheduleTimes timestamp denoting the start of each scheduled interval. Last element is the end of the stream.
+    /// @param scheduleRewards remaining rewards to be delivered at the beginning of each scheduled interval. Last element is always zero.
     /// @param tau the tau is (pending release period) for this stream (e.g one day)
     function proposeStream(
         address streamOwner,
@@ -305,7 +305,6 @@ contract JetStakingV1 is AdminControlled {
         );
         stream.isActive = true;
         stream.rewardDepositAmount = rewardTokenAmount;
-        emit StreamCreated(streamId, msg.sender, block.timestamp);
         if (rewardTokenAmount < stream.maxDepositAmount) {
             // refund staking admin if deposited reward tokens less than the upper limit of deposit
             uint256 refundAuroraAmount = ((stream.maxDepositAmount -
@@ -319,6 +318,11 @@ contract JetStakingV1 is AdminControlled {
                 refundAuroraAmount
             );
         }
+        emit StreamCreated(streamId, msg.sender, block.timestamp);
+        require(
+            stream.schedule.reward[0] == stream.rewardDepositAmount,
+            "INVALID_STARTING_REWARD"
+        );
         // move Aurora tokens to treasury
         IERC20Upgradeable(auroraToken).safeTransfer(
             address(treasury),
@@ -508,8 +512,8 @@ contract JetStakingV1 is AdminControlled {
         uint256[] memory amounts,
         uint256 batchAmount
     ) external pausable(1) onlyRole(AIRDROP_ROLE) {
-        _before();
         require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
+        _before();
         uint256 totalAmount = 0;
         for (uint256 i = 0; i < amounts.length; i++) {
             totalAmount += amounts[i];
@@ -646,7 +650,7 @@ contract JetStakingV1 is AdminControlled {
         );
     }
 
-    /// @dev withdraw amount in the pending. User should wait for
+    /// @dev withdraw amount in the pending pool. User should wait for
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
     function withdraw(uint256 streamId) external pausable(1) {
@@ -754,6 +758,7 @@ contract JetStakingV1 is AdminControlled {
         view
         returns (uint256)
     {
+        require(lastUpdate <= block.timestamp, "INVALID_LAST_UPDATE");
         if (lastUpdate == block.timestamp) return 0; // No more rewards since last update
         uint256 streamStart = streams[streamId].schedule.time[0];
         if (block.timestamp <= streamStart) return 0; // Stream didn't start
@@ -1032,11 +1037,10 @@ contract JetStakingV1 is AdminControlled {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
             _amountOfShares = amount;
         } else {
-            // Round up (+1) so users don't get less sharesValue than their staked amount
+            // Round up so users don't get less sharesValue than their staked amount
             _amountOfShares =
-                (amount * totalAuroraShares) /
-                totalAmountOfStakedAurora +
-                1;
+                (amount * totalAuroraShares + totalAmountOfStakedAurora - 1) /
+                totalAmountOfStakedAurora;
         }
         userAccount.auroraShares += _amountOfShares;
         totalAuroraShares += _amountOfShares;
@@ -1059,6 +1063,7 @@ contract JetStakingV1 is AdminControlled {
     /// WARNING: rewards are not claimed during unstake.
     /// The UI must make sure to claim rewards before unstaking.
     /// Unclaimed rewards will be lost.
+    /// `_before()` must be called before `_unstake` to update streams rps
     function _unstake(uint256 amount, uint256 stakeValue) internal {
         require(amount != 0, "ZERO_AMOUNT");
         require(amount <= stakeValue, "NOT_ENOUGH_STAKE_BALANCE");
