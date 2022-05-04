@@ -54,7 +54,7 @@ describe("JetStakingV1", function () {
         oneYear = 31556926
         tauPerStream = 10
 
-        startTime = (await ethers.provider.getBlock("latest")).timestamp
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 10
         const JetStakingV1 = await ethers.getContractFactory('JetStakingTesting')
         const minWeight = 256
         const maxWeight = 1024
@@ -101,7 +101,7 @@ describe("JetStakingV1", function () {
         await jet.connect(deployer).grantRole(airdropRole, stakingAdmin.address)
         await jet.connect(deployer).grantRole(pauseRole, stakingAdmin.address)
         await jet.connect(deployer).grantRole(streamManagerRole, streamManager.address)
-        await jet.connect(deployer).transferOwnership(stakingAdmin.address)
+        await jet.connect(deployer).grantRole(defaultAdminRole, stakingAdmin.address)
         
         expect(await jet.hasRole(claimRole, stakingAdmin.address)).to.be.eq(true)
         expect(await jet.hasRole(airdropRole, stakingAdmin.address)).to.be.eq(true)
@@ -1497,7 +1497,7 @@ describe("JetStakingV1", function () {
         // cancel stream proposal
         await jet.connect(streamManager).cancelStreamProposal(id)
         const stream = await jet.getStream(id)
-        expect(stream.isProposed).to.be.eq(false)
+        expect(stream.status).to.be.eq(0)
     })
     it('admin can claim streams on behalf of another user', async() => {
         const Ids = [1, 2, 3]
