@@ -982,6 +982,13 @@ describe("JetStakingV1", function () {
             tauPerStream
         )
         await expect(jet.tempMoveRewardsToPending(user2.address, Ids[0]))
+        .to.be.revertedWith("INACTIVE_OR_PROPOSED_STREAM")
+
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(Ids[0], maxRewardProposalAmountForAStream)
+        await expect(jet.tempMoveRewardsToPending(user2.address, Ids[0]))
         .to.be.revertedWith("USER_DOES_NOT_HAVE_ACTUAL_STAKE")
     })
     it('should return if _before called twice whithin the same block', async() => {

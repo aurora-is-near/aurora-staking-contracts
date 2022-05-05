@@ -129,14 +129,6 @@ contract JetStakingV1 is AdminControlled {
         uint256 timestamp
     );
 
-    modifier onlyActiveStream(uint256 streamId) {
-        require(
-            streams[streamId].status == StreamStatus.ACTIVE,
-            "INACTIVE_OR_PROPOSED_STREAM"
-        );
-        _;
-    }
-
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @notice By calling this function, the deployer of this contract must
     /// make sure that the AURORA reward amount was deposited to the treasury
@@ -562,11 +554,7 @@ contract JetStakingV1 is AdminControlled {
     /// It will require a waiting time untill it get released. Users call
     /// this in function in order to claim rewards.
     /// @param streamId stream index
-    function moveRewardsToPending(uint256 streamId)
-        external
-        pausable(1)
-        onlyActiveStream(streamId)
-    {
+    function moveRewardsToPending(uint256 streamId) external pausable(1) {
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
@@ -993,6 +981,10 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamId the stream index
     function _moveRewardsToPending(address account, uint256 streamId) internal {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
+        require(
+            streams[streamId].status == StreamStatus.ACTIVE,
+            "INACTIVE_OR_PROPOSED_STREAM"
+        );
         User storage userAccount = users[account];
         require(
             userAccount.auroraShares != 0,
