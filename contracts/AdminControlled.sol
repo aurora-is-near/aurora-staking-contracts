@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.10;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 /**
@@ -18,7 +19,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
  *      - Changing state variable value using its storage slot
  *      - Transfering its ownership to a new admin
  */
-contract AdminControlled is AccessControlUpgradeable {
+contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     uint256 public paused;
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
@@ -113,4 +114,7 @@ contract AdminControlled is AccessControlUpgradeable {
         require(success);
         return rdata;
     }
+
+    ///@dev required by the OZ UUPS module
+   function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 }

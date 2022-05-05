@@ -8,7 +8,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const auroraSupply = ethers.utils.parseUnits("1000000", 18)
     const name = "AuroraToken"
     const symbol = "AURORA"
-    await deploy('Token', {
+    const token = await deploy('Token', {
         from: deployer.address,
         args: [
             auroraSupply,
@@ -17,6 +17,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         ],
         log: true,
     })
+    await new Promise(f => setTimeout(f, 3000));
+    console.log(`Sample Aurora Token : ${token.address}`)
 }
 
 module.exports = func
