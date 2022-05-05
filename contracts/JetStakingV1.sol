@@ -129,6 +129,12 @@ contract JetStakingV1 is AdminControlled {
         uint256 timestamp
     );
 
+    modifier onlyValidSharesAmount() {
+        require(totalAuroraShares != 0, "ZERO_TOTAL_AURORA_SHARES");
+        require(users[msg.sender].auroraShares != 0, "ZERO_USER_SHARES");
+        _;
+    }
+
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @notice By calling this function, the deployer of this contract must
     /// make sure that the AURORA reward amount was deposited to the treasury
@@ -711,7 +717,11 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev unstake amount from user shares value. The rest is re-staked
     /// @param amount to unstake
-    function unstake(uint256 amount) external pausable(1) {
+    function unstake(uint256 amount)
+        external
+        pausable(1)
+        onlyValidSharesAmount
+    {
         _before();
         uint256 stakeValue = (totalAmountOfStakedAurora *
             users[msg.sender].auroraShares) / totalAuroraShares;
@@ -719,7 +729,7 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @dev unstake all the user's shares
-    function unstakeAll() external pausable(1) {
+    function unstakeAll() external pausable(1) onlyValidSharesAmount {
         _before();
         uint256 stakeValue = (totalAmountOfStakedAurora *
             users[msg.sender].auroraShares) / totalAuroraShares;
@@ -1046,10 +1056,22 @@ contract JetStakingV1 is AdminControlled {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
             _amountOfShares = amount;
         } else {
-            // Round up so users don't get less sharesValue than their staked amount
             _amountOfShares =
-                (amount * totalAuroraShares + totalAmountOfStakedAurora - 1) /
+                (amount * totalAuroraShares) /
                 totalAmountOfStakedAurora;
+            // check that rounding is needed (result * denominator < numerator).
+            if (
+                _amountOfShares * totalAmountOfStakedAurora <
+                amount * totalAuroraShares
+            ) {
+                // Round up so users don't get less sharesValue than their staked amount
+                _amountOfShares =
+                    (amount *
+                        totalAuroraShares +
+                        totalAmountOfStakedAurora -
+                        1) /
+                    totalAmountOfStakedAurora;
+            }
         }
         userAccount.auroraShares += _amountOfShares;
         totalAuroraShares += _amountOfShares;

@@ -1727,4 +1727,72 @@ describe("JetStakingV1", function () {
         // Conclusion: claim all for 5 users (airdrop batch) is possible with up to 4 streams.
         // It will be better for the airdrop script to use multiple signing keys for processing requests in parallel.
     })
+
+    it('should not return zero stake value when a user unstakeAll', async () => {
+        // init the staking contract and the streams
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        // user4 stakes 1 Aurora
+        const amountStaked = ethers.utils.parseUnits("1", 18)
+        console.log(`user 1 stakes: ${ethers.utils.formatEther(amountStaked)} AURORA`)
+        const user1BalanceBefore = ethers.utils.formatEther(await auroraToken.balanceOf(user4.address))
+        await auroraToken.connect(user4).approve(jet.address, amountStaked)
+        await jet.connect(user4).stake(amountStaked)
+        // user 5 stakes 1 Aurora
+        console.log(`user 2 stakes: ${ethers.utils.formatEther(amountStaked)} AURORA`)
+        const user2BalanceBefore = ethers.utils.formatEther(await auroraToken.balanceOf(user5.address))
+        await auroraToken.connect(user5).approve(jet.address, amountStaked)
+        await jet.connect(user5).stake(amountStaked)
+        // user 4 unstakeAll 
+        console.log(`user 1 shares: ${ethers.utils.formatEther(await jet.getUserShares(user4.address))}`)
+        console.log(`user 2 shares: ${ethers.utils.formatEther(await jet.getUserShares(user5.address))}`)
+        // user 5 trying to unstakeAll
+        console.log(`user 1 unstakeAll`)
+        await jet.connect(user4).unstakeAll()
+        console.log(`user 2 unstakeAll`)
+        await jet.connect(user5).unstakeAll()
+         // withdraw
+         await network.provider.send("evm_increaseTime", [tauPerStream + 1])
+         await network.provider.send("evm_mine")
+         const streamId = 0 // main aurora rewards
+         await jet.connect(user4).withdraw(streamId)
+         await jet.connect(user5).withdraw(streamId)
+         const user1BalanceAfter = ethers.utils.formatEther(await auroraToken.balanceOf(user4.address))
+         const user2BalanceAfter = ethers.utils.formatEther(await auroraToken.balanceOf(user5.address))
+         console.log(`user 1 balance before ${user1BalanceBefore} and after ${user1BalanceAfter}`)
+         console.log(`user 2 balance before ${user2BalanceBefore} and after ${user2BalanceAfter}`)
+         console.log(`total user shares ${await jet.totalAuroraShares()}`)
+        // user 5 trying to unstakeAll again
+        console.log(`user 2 shares after unstaking all: ${ethers.utils.formatEther(await jet.getUserShares(user5.address))}`)
+        await expect(jet.connect(user5).unstakeAll()).to.be.revertedWith(
+            'ZERO_TOTAL_AURORA_SHARES'
+        )
+    })
 });
