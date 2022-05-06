@@ -98,7 +98,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 amount
     );
 
-    event OwnerReleased(
+    event StreamOwnerRewardReleased(
         uint256 indexed streamId,
         address indexed owner,
         uint256 amount
@@ -454,7 +454,11 @@ contract JetStakingV1 is AdminControlled {
         stream.lastTimeOwnerClaimed = block.timestamp;
         stream.auroraClaimedAmount += auroraStreamOwnerReward;
         // check enough treasury balance
-        emit OwnerReleased(streamId, stream.owner, auroraStreamOwnerReward);
+        emit StreamOwnerRewardReleased(
+            streamId,
+            stream.owner,
+            auroraStreamOwnerReward
+        );
         ITreasury(treasury).payRewards(
             stream.owner,
             auroraToken,
