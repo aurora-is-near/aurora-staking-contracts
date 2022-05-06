@@ -863,14 +863,15 @@ contract JetStakingV1 is AdminControlled {
             }
         }
         // find end index
-        for (uint256 i = startIndex + 1; i < schedule.time.length; i++) {
-            if (end < schedule.time[i]) {
-                // Users most often claim rewards within the same index which can last several months.
-                endIndex = i - 1;
-                break;
-            } else if (end == schedule.time[i]) {
-                endIndex = i;
-                break;
+        if (end == schedule.time[schedule.time.length - 1]) {
+            endIndex = schedule.time.length - 1;
+        } else {
+            for (uint256 i = startIndex + 1; i < schedule.time.length; i++) {
+                if (end < schedule.time[i]) {
+                    // Users most often claim rewards within the same index which can last several months.
+                    endIndex = i - 1;
+                    break;
+                }
             }
         }
         require(startIndex <= endIndex, "INVALID_INDEX_CALCULATION");
