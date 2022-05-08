@@ -2301,4 +2301,115 @@ describe("JetStakingV1", function () {
         // user 5 trying to unstakeAll again
         console.log(`user 2 shares after unstaking all: ${ethers.utils.formatEther(await jet.getUserShares(user5.address))}`)
     })
+    
+    it('should not have a possible race condition', async () => {
+        // init the staking contract and the streams
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        let user1BalanceBefore = ethers.utils.formatEther(await auroraToken.balanceOf(user4.address))
+        let user2BalanceBefore = ethers.utils.formatEther(await auroraToken.balanceOf(user5.address))
+        let user1StakeAmount = ethers.utils.parseUnits("1", 0) // 1 aurora
+        let user2StakeAmount = ethers.utils.parseUnits("1", 18) // 1 ** 18 aurora
+        let totalUsersStake = user1StakeAmount.add(user2StakeAmount);
+        await auroraToken.connect(user1).approve(jet.address, totalUsersStake)
+        await jet.connect(user1).stakeOnBehalfOfOtherUsers(
+            [
+                user4.address,
+                user5.address
+            ],
+            [
+                user1StakeAmount,
+                user2StakeAmount
+            ],
+            totalUsersStake
+        )
+        // user 5 stakes (1**-17) Aurora same amount but after 1 second.
+        console.log(`user 1 stakes: ${ethers.utils.formatEther(user1StakeAmount)} AURORA`)
+        console.log(`user 2 stakes: ${ethers.utils.formatEther(user2StakeAmount)} AURORA`)
+        // user 4 unstakeAll 
+        console.log(`user 1 shares: ${ethers.utils.formatEther(await jet.getUserShares(user4.address))}`)
+        console.log(`user 2 shares: ${ethers.utils.formatEther(await jet.getUserShares(user5.address))}`)
+        // user 5 trying to unstakeAll
+        console.log(`user 1 & 2 unstakeAll`)
+        await jet.connect(user4).unstakeAllOnBehalfOfOthers([user4.address, user5.address])
+        // withdraw
+        await network.provider.send("evm_increaseTime", [tauPerStream + 1])
+        await network.provider.send("evm_mine")
+        const streamId = 0 // main aurora rewards
+        await jet.connect(user4).withdraw(streamId)
+        await jet.connect(user5).withdraw(streamId)
+        let user1BalanceAfter = ethers.utils.formatEther(await auroraToken.balanceOf(user4.address))
+        let user2BalanceAfter = ethers.utils.formatEther(await auroraToken.balanceOf(user5.address))
+        console.log(`user 1 balance before ${user1BalanceBefore} and after ${user1BalanceAfter}`)
+        let user1Rewards = parseFloat(user1BalanceAfter) - parseFloat(user1BalanceBefore)
+        console.log(`user 2 balance before ${user2BalanceBefore} and after ${user2BalanceAfter}`)
+        let user2Rewards = parseFloat(user2BalanceAfter) - parseFloat(user2BalanceBefore)
+        console.log(`user 1 reward: ${user1Rewards.toFixed(18)}`)
+        console.log(`user 2 reward: ${user2Rewards.toFixed(18)}`)
+        console.log('Reversing the order of the staking and unstaking')
+        user1BalanceBefore = user1BalanceAfter
+        user2BalanceBefore = user2BalanceAfter
+        await auroraToken.connect(user1).approve(jet.address, totalUsersStake)
+        await jet.connect(user1).stakeOnBehalfOfOtherUsers(
+            [
+                user5.address,
+                user4.address
+            ],
+            [
+                user2StakeAmount,
+                user1StakeAmount
+            ],
+            totalUsersStake
+        )
+        // user 5 stakes (1**-17) Aurora same amount but after 1 second.
+        console.log(`user 1 stakes: ${ethers.utils.formatEther(user1StakeAmount)} AURORA`)
+        console.log(`user 2 stakes: ${ethers.utils.formatEther(user2StakeAmount)} AURORA`)
+        // user 4 unstakeAll 
+        console.log(`user 1 shares: ${ethers.utils.formatEther(await jet.getUserShares(user4.address))}`)
+        console.log(`user 2 shares: ${ethers.utils.formatEther(await jet.getUserShares(user5.address))}`)
+        // user 5 trying to unstakeAll
+        console.log(`user 1 & 2 unstakeAll`)
+        await jet.connect(user4).unstakeAllOnBehalfOfOthers([user4.address, user5.address])
+         // withdraw
+        await network.provider.send("evm_increaseTime", [tauPerStream + 1])
+        await network.provider.send("evm_mine")
+        await jet.connect(user4).withdraw(streamId)
+        await jet.connect(user5).withdraw(streamId)
+        user1BalanceAfter = ethers.utils.formatEther(await auroraToken.balanceOf(user4.address))
+        user2BalanceAfter = ethers.utils.formatEther(await auroraToken.balanceOf(user5.address))
+        console.log(`user 1 balance before ${user1BalanceBefore} and after ${user1BalanceAfter}`)
+        user1Rewards = parseFloat(user1BalanceAfter) - parseFloat(user1BalanceBefore)
+        console.log(`user 2 balance before ${user2BalanceBefore} and after ${user2BalanceAfter}`)
+        user2Rewards = parseFloat(user2BalanceAfter) - parseFloat(user2BalanceBefore)
+        console.log(`user 1 reward: ${user1Rewards.toFixed(19)}`)
+        console.log(`user 2 reward: ${user2Rewards.toFixed(19)}`)
+
+    })
 });
