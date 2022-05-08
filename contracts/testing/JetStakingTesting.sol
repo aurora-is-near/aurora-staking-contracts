@@ -71,7 +71,7 @@ contract JetStakingTesting is JetStakingV1 {
         // move unstaked AURORA to pending.
         userAccount.pendings[0] += stakeValue;
         userAccount.releaseTime[0] = block.timestamp + streams[0].tau;
-        emit Pending(0, account, userAccount.pendings[0], block.timestamp);
-        emit Unstaked(account, stakeValue, block.timestamp);
+        emit Pending(0, account, userAccount.pendings[0]);
+        emit Unstaked(account, stakeValue);
     }
 }
