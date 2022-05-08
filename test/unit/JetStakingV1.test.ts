@@ -1436,6 +1436,7 @@ describe("JetStakingV1", function () {
                 0 // flags
             ]
         )
+        await jet.connect(stakingAdmin).adminPause(1)
         await jet.connect(stakingAdmin).updateTreasury(newTreasury.address)
         expect(newTreasury.address).to.be.eq(await jet.treasury())
     })

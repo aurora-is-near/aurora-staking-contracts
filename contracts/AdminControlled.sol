@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.10;
 
-import "./DelegateCallGuard.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 /**
@@ -20,24 +18,22 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
  *      - Changing state variable value using its storage slot
  *      - Transfering its ownership to a new admin
  */
-contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
+contract AdminControlled is AccessControlUpgradeable {
     uint256 public paused;
-
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
-    event OwnershipTransferred(address oldAdmin, address newAdmin);
 
     modifier pausable(uint256 flag) {
         require(
             (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "Paused"
+            "CONTRACT_IS_PAUSED"
         );
         _;
     }
 
     /// @dev __AdminControlled_init initializes this contract, setting pause flags
-    /// and granting admin roles.
+    /// and granting admin and pause roles.
     /// @param _flags flags variable will be used for pausing this contract.
-    function __AdminControlled_init(uint256 _flags) public initializer {
+    function __AdminControlled_init(uint256 _flags) internal {
         __AccessControl_init();
         paused = _flags;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -110,7 +106,6 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         external
         payable
         onlyRole(DEFAULT_ADMIN_ROLE)
-        onlyDelegateCall
         returns (bytes memory)
     {
         require(target != address(0), "ZERO_ADDRESS");
