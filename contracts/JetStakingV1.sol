@@ -1056,21 +1056,12 @@ contract JetStakingV1 is AdminControlled {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
             _amountOfShares = amount;
         } else {
-            _amountOfShares =
-                (amount * totalAuroraShares) /
-                totalAmountOfStakedAurora;
+            uint256 numerator = amount * totalAuroraShares;
+            _amountOfShares = numerator / totalAmountOfStakedAurora;
             // check that rounding is needed (result * denominator < numerator).
-            if (
-                _amountOfShares * totalAmountOfStakedAurora <
-                amount * totalAuroraShares
-            ) {
+            if (_amountOfShares * totalAmountOfStakedAurora < numerator) {
                 // Round up so users don't get less sharesValue than their staked amount
-                _amountOfShares =
-                    (amount *
-                        totalAuroraShares +
-                        totalAmountOfStakedAurora -
-                        1) /
-                    totalAmountOfStakedAurora;
+                _amountOfShares += 1;
             }
         }
         userAccount.auroraShares += _amountOfShares;
