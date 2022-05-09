@@ -151,6 +151,16 @@ describe("JetStakingV1", function () {
             startTime + 3 * oneYear, 
             startTime + 4 * oneYear
         ]
+        await expect(jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes.slice(0,1),
+            scheduleRewards.slice(0,1),
+            tauPerStream
+        )).to.be.revertedWith("SCHEDULE_TOO_SHORT")
         const tx = await jet.connect(streamManager).proposeStream(
             user1.address,
             streamToken1.address,
