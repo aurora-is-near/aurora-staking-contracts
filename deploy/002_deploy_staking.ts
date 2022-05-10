@@ -21,10 +21,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     } = process.env
 
     const [ deployer ] = await hre.ethers.getSigners()
-    let startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME as string) : Math.floor(Date.now()/ 1000) + 60 
+    const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME as string) : Math.floor(Date.now()/ 1000) + 60 
     const flags = 0
     await new Promise(f => setTimeout(f, 1000));
-    let auroraAddress = AURORA_TOKEN? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address
+    const auroraAddress = AURORA_TOKEN? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address
     await new Promise(f => setTimeout(f, 1000));
     const Treasury = await ethers.getContractFactory("Treasury")
     const treasury = await upgrades.deployProxy(

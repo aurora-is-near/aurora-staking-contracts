@@ -116,5 +116,9 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     }
 
     ///@dev required by the OZ UUPS module
-   function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {}
 }
