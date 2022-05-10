@@ -13,10 +13,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
  *      in which provides a role based access control (RBAC) for admin priveleges.
  *      It also provides other privileges such as:
  *      - Pausing the contract
- *      - Sending and receiving ETH to/from this contract
- *      - Delegating contract calls
+ *      - Delegating contract calls to trusted targets (only managed by the default admin role)
  *      - Changing state variable value using its storage slot
- *      - Transfering its ownership to a new admin
+ *      - Role management using AccessControlled ABIs
  */
 contract AdminControlled is AccessControlUpgradeable {
     uint256 public paused;
@@ -78,23 +77,6 @@ contract AdminControlled is AccessControlUpgradeable {
             sstore(key, xor(and(xor(value, oldval), mask), oldval))
         }
     }
-
-    /// @dev adminSendEth sends ETH from this contract to destination
-    /// only default admin role can call this function
-    /// @param destination is the receiver address
-    /// @param amount of ETH
-    function adminSendEth(address payable destination, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(destination != address(0), "ZERO_ADDRESS");
-        //slither-disable-next-line arbitrary-send
-        destination.transfer(amount);
-    }
-
-    /// @dev adminReceiveEth allows this contract to receive ETH
-    /// anyone can call this function
-    function adminReceiveEth() external payable {}
 
     /// @dev adminDelegatecall allows this contract to delegate calls
     /// to a target contract and execute it in the context of this
