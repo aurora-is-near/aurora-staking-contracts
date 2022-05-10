@@ -35,7 +35,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         ],
         {
             initializer: "initialize",
-        }
+            kind : "uups",
+        },
     )
     console.log(treasury.address)
     await new Promise(f => setTimeout(f, 1000));
