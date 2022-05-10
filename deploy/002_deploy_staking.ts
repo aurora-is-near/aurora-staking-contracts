@@ -43,8 +43,6 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     await treasury.deployed()
 
     await new Promise(f => setTimeout(f, 3000));
-    // const treasury = await hre.ethers.getContract("Treasury")
-    // await treasury.deployed()
     // sleep for 3 seconds
     await new Promise(f => setTimeout(f, 1000));
     const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
@@ -91,11 +89,6 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
         hre.ethers.utils.parseUnits("0", 18), // 0M
     ]
-    // const Pizza = await ethers.getContractFactory("Pizza");
-    // const pizza = await upgrades.deployProxy(Pizza, [SLICES], {
-    //  initializer: "initialize",
-    // });
-    // await pizza.deployed();
 
     const JetStakingV1 = await ethers.getContractFactory("JetStakingV1")
     const jetStakingV1 = await upgrades.deployProxy(
@@ -113,31 +106,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         ],
         {
             initializer: "initialize",
+            kind : "uups",
         }
     )
     await new Promise(f => setTimeout(f, 1000));
     await jetStakingV1.deployed()
     console.log(`JetStakingV1 address : ${jetStakingV1.address}`)
-    // await deploy('JetStakingV1', {
-    //     log: true,
-    //     from: deployer.address,
-    //     proxy: {
-    //         owner: deployer.address,
-    //         proxyContract: 'OpenZeppelinTransparentProxy',
-    //         methodName: 'initialize',    
-    //     },
-    //     args: [
-    //         AURORA_TOKEN ? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address,
-    //         AURORA_STREAM_OWNER ? AURORA_STREAM_OWNER : deployer.address,
-    //         scheduleTimes,
-    //         scheduleRewards,
-    //         parseInt(TAU_PER_STREAM as string),
-    //         parseInt(FLAGS as string),
-    //         treasury.address,
-    //         parseInt(MAX_WEIGHT as string),
-    //         parseInt(MIN_WEIGHT as string)
-    //     ]
-    // })
+    
     // sleep for 3 seconds
     await new Promise(f => setTimeout(f, 3000));
     // const jetStakingV1 = await hre.ethers.getContract("JetStakingV1")
