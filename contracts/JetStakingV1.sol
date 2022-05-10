@@ -161,6 +161,7 @@ contract JetStakingV1 is AdminControlled {
             streamOwner,
             aurora,
             scheduleRewards[0],
+            scheduleRewards[0],
             scheduleTimes,
             scheduleRewards,
             tauAuroraStream
@@ -244,6 +245,7 @@ contract JetStakingV1 is AdminControlled {
             streamOwner,
             rewardToken,
             maxDepositAmount,
+            minDepositAmount,
             scheduleTimes,
             scheduleRewards,
             tau
@@ -451,6 +453,7 @@ contract JetStakingV1 is AdminControlled {
         uint256 auroraStreamOwnerReward = getStreamOwnerClaimableAmount(
             streamId
         );
+        require(auroraStreamOwnerReward > 0, "ZERO_REWARDS");
         stream.lastTimeOwnerClaimed = block.timestamp;
         stream.auroraClaimedAmount += auroraStreamOwnerReward;
         // check enough treasury balance
@@ -1135,6 +1138,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamOwner stream owner address
     /// @param rewardToken stream reward token address
     /// @param maxDepositAmount the max reward token deposit
+    /// @param minDepositAmount the min reward token deposit
     /// @param scheduleTimes the stream schedule time list
     /// @param scheduleRewards the stream schedule reward list
     /// @param tau the tau is (pending release period) for this stream (e.g one day)
@@ -1142,6 +1146,7 @@ contract JetStakingV1 is AdminControlled {
         address streamOwner,
         address rewardToken,
         uint256 maxDepositAmount,
+        uint256 minDepositAmount,
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tau
@@ -1149,6 +1154,8 @@ contract JetStakingV1 is AdminControlled {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
         require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
+        require(minDepositAmount > 0, "ZERO_MIN_DEPOSIT");
+        require(minDepositAmount <= maxDepositAmount, "INVALID_MIN_DEPOSIT");
         require(
             maxDepositAmount == scheduleRewards[0],
             "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE"
@@ -1162,6 +1169,7 @@ contract JetStakingV1 is AdminControlled {
             scheduleTimes.length == scheduleRewards.length,
             "INVALID_SCHEDULE_VALUES"
         );
+        require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
         require(tau != 0, "INVALID_TAU_PERIOD");
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
