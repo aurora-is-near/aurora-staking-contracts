@@ -908,24 +908,29 @@ contract JetStakingV1 is AdminControlled {
     ) public view returns (uint256 startIndex, uint256 endIndex) {
         Schedule storage schedule = streams[streamId].schedule;
         require(schedule.time.length > 0, "NO_SCHEDULE");
-        require(end > start, "INVALID_REWARD_QUERY_PERIODE");
+        require(end > start, "INVALID_REWARD_QUERY_PERIOD");
         require(start >= schedule.time[0], "QUERY_BEFORE_SCHEDULE_START");
         require(
             end <= schedule.time[schedule.time.length - 1],
             "QUERY_AFTER_SCHEDULE_END"
         );
-        // find start index and end index
-        for (uint256 i = 0; i < schedule.time.length - 1; i++) {
+        // find start index
+        for (uint256 i = 1; i < schedule.time.length; i++) {
             if (start < schedule.time[i]) {
                 startIndex = i - 1;
                 break;
             }
         }
-
-        for (uint256 i = schedule.time.length - 1; i > 0; i--) {
-            if (end >= schedule.time[i]) {
-                endIndex = i;
-                break;
+        // find end index
+        if (end == schedule.time[schedule.time.length - 1]) {
+            endIndex = schedule.time.length - 1;
+        } else {
+            for (uint256 i = startIndex + 1; i < schedule.time.length; i++) {
+                if (end < schedule.time[i]) {
+                    // Users most often claim rewards within the same index which can last several months.
+                    endIndex = i - 1;
+                    break;
+                }
             }
         }
         require(startIndex <= endIndex, "INVALID_INDEX_CALCULATION");
