@@ -139,4 +139,5 @@ The full code documentation can be found [here](contracts/index.html). It can be
 
 ## References
 - [AURORA staking and the community treasury](https://forum.aurora.dev/t/aurora-staking-and-the-community-treasury/75)
-- [AURORA staking V2](https://forum.aurora.dev/t/aurora-staking-v2/243)
+- [AURORA staking V2 mechanics](https://forum.aurora.dev/t/aurora-staking-v2/243)
+- [AURORA staking: setting-up-the-aurora-staking](https://forum.aurora.dev/t/setting-up-the-aurora-staking/254)
