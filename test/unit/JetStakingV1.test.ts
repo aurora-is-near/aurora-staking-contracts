@@ -193,11 +193,11 @@ describe("JetStakingV1", function () {
         const user1Pending2 = await jet.getPending(id, user1.address)
         const user2Pending2 = await jet.getPending(id, user2.address)
         expect(user1Pending2).to.equal(
-            user1Pending1.add(secondYearRewards.div(2).mul(totalDeposit.sub(amount2)).div(totalDeposit))
+            user1Pending1.add(secondYearRewards.div(2).mul(amount1).div(totalDeposit))
         )
         expect(user2Pending2).to.equal(
-            firstYearRewards.mul(totalDeposit.sub(amount1)).div(totalDeposit)
-            .add(secondYearRewards.div(2).mul(totalDeposit.sub(amount1)).div(totalDeposit))
+            firstYearRewards.mul(amount2).div(totalDeposit)
+            .add(secondYearRewards.div(2).mul(amount2).div(totalDeposit))
         )
 
         // After 5 years (all rewards distributed after 4 years)
@@ -212,10 +212,10 @@ describe("JetStakingV1", function () {
         // or `(getRewardsAmount(streamId, touchedAt) * RPS_MULTIPLIER) / totalStreamShares;`
         // Fewer rewards distributed than allocated so this should not prevent everyone from withdrawing.
         expect(user1Pending3).to.equal(
-            scheduleRewards[0].mul(totalDeposit.sub(amount2)).div(totalDeposit)
+            scheduleRewards[0].mul(amount1).div(totalDeposit)
         )
         expect(user2Pending3).to.equal(
-            scheduleRewards[0].mul(totalDeposit.sub(amount1)).div(totalDeposit)
+            scheduleRewards[0].mul(amount2).div(totalDeposit)
             .sub(2)
         )
         expect(user1Pending3.add(user2Pending3)).to.equal(scheduleRewards[0].sub(3))
