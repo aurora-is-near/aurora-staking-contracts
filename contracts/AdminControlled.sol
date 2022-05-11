@@ -32,6 +32,7 @@ contract AdminControlled is AccessControlUpgradeable {
     /// @dev __AdminControlled_init initializes this contract, setting pause flags
     /// and granting admin and pause roles.
     /// @param _flags flags variable will be used for pausing this contract.
+    /// the default flags value is zero.
     function __AdminControlled_init(uint256 _flags) internal {
         __AccessControl_init();
         paused = _flags;
@@ -43,6 +44,11 @@ contract AdminControlled is AccessControlUpgradeable {
     /// admin role can access this function.
     /// @param flags flags variable is used for pausing this contract.
     function adminPause(uint256 flags) external onlyRole(PAUSE_ROLE) {
+        // pause role can pause the contract, however only default admin role can unpause
+        require(
+            (paused & flags) == 1 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "ONLY_DEFAULT_ADMIN_CAN_UNPAUSE"
+        );
         paused = flags;
     }
 
