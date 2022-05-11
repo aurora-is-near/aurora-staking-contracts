@@ -33,9 +33,11 @@ Each admin key(s) is/are assigned to a specific role. The following table lists 
 | DEFAULT_ADMIN_ROLE      | only used by DAO with the highest privilege | ALL |
 | PAUSE_ROLE      | can be used by AURORA team to pause the contract in case of risking AURORA funds or independent trusted watchdogs too.      |   PAUSE |
 | AIRDROP_ROLE | only used by third-party service for airdroping users      |    AIRDROP |
-| MANAGER_ROLE | only used to manage the treasury supported reward tokens      |    TREASURY |
+| STREAM_MANAGER_ROLE | only used to manage the reward streams      |    STREAMS |
+| CLAIM_ROLE | only used to claim rewards on behalf of another/other user(s)      |    CLAIM |
+| TREASURY_MANAGER_ROLE | only used to manage the treasury supported reward tokens      |    TREASURY |
 
-`proxyAdminOwner` this one is not managed by the `adminControlled` contract, however it is managed by the hardhat-openzeppllin upgradeability plugin. It is only used for updating the `proxyAdmin` owner address.
+The `AdminControlled` contract inherits the `UUPSUpgradeable` proxy contract and only `DEFAULT_ADMIN_ROLE` has the right to upgrade the contract.
 
 ## Staking and Unstaking
 
@@ -137,3 +139,5 @@ The full code documentation can be found [here](contracts/index.html). It can be
 
 ## References
 - [AURORA staking and the community treasury](https://forum.aurora.dev/t/aurora-staking-and-the-community-treasury/75)
+- [AURORA staking V2 mechanics](https://forum.aurora.dev/t/aurora-staking-v2/243)
+- [AURORA staking: setting-up-the-aurora-staking](https://forum.aurora.dev/t/setting-up-the-aurora-staking/254)

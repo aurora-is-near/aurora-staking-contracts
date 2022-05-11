@@ -12,16 +12,14 @@ dotenv.config();
 
 const {
   INFURA_KEY,
-  // ALCHEMY_KEY,
   MNEMONIC,
   ETHERSCAN_API_KEY,
   PRIVATE_KEY,
-  PRIVATE_KEY_TESTNET,
   AURORA_API_KEY,
 } = process.env;
 
-const accountsTestnet = PRIVATE_KEY_TESTNET
-  ? [PRIVATE_KEY_TESTNET]
+const accountsTestnet = PRIVATE_KEY
+  ? [PRIVATE_KEY]
   : { mnemonic: MNEMONIC };
 
 const accountsMainnet = PRIVATE_KEY
@@ -36,6 +34,11 @@ module.exports = {
       optimizer: {
         enabled: true,
         runs: 1
+      },
+      outputSelection: {
+        "*": {
+          "*": ["storageLayout"],
+        },
       }
     }
   },
@@ -49,13 +52,6 @@ module.exports = {
   },
   networks: {
     hardhat: {},
-    // hardhat: {
-    //   forking: {
-    //     url: `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_KEY}`,
-    //     blockNumber: Number(process.env.HARDHAT_FORKING_BLOCKNUMBER) || undefined,
-    //     accounts: accountsTestnet
-    //   }
-    // },
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
       accounts: accountsTestnet,

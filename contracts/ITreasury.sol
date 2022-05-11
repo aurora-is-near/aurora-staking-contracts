@@ -7,4 +7,6 @@ interface ITreasury {
         address _token,
         uint256 _deposit
     ) external;
+
+    function isSupportedToken(address token) external view returns (bool);
 }

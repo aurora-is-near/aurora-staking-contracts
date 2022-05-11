@@ -1,54 +1,63 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.10;
 
-import "./DelegateCallGuard.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
-    address public admin;
+/**
+ * @title AdminControlled
+ * @author Aurora Team
+ *
+ * @dev Implementation of Admin controlled contract
+ *
+ *      This contract implements inherits access control upgradeable contract,
+ *      in which provides a role based access control (RBAC) for admin priveleges.
+ *      It also provides other privileges such as:
+ *      - Pausing the contract
+ *      - Delegating contract calls to trusted targets (only managed by the default admin role)
+ *      - Changing state variable value using its storage slot
+ *      - Role management using AccessControlled ABIs
+ */
+contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     uint256 public paused;
-
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
-    event OwnershipTransferred(address oldAdmin, address newAdmin);
 
     modifier pausable(uint256 flag) {
         require(
-            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-            "Paused"
+            (paused & flag) == 0 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "CONTRACT_IS_PAUSED"
         );
         _;
     }
 
-    function __AdminControlled_init(uint256 _flags) public initializer {
+    /// @dev __AdminControlled_init initializes this contract, setting pause flags
+    /// and granting admin and pause roles.
+    /// @param _flags flags variable will be used for pausing this contract.
+    /// the default flags value is zero.
+    function __AdminControlled_init(uint256 _flags) internal {
+        __UUPSUpgradeable_init();
         __AccessControl_init();
-        paused = _flags;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSE_ROLE, msg.sender);
+        paused = _flags;
     }
 
+    /// @dev adminPause pauses this contract. Only pause role or default
+    /// admin role can access this function.
+    /// @param flags flags variable is used for pausing this contract.
     function adminPause(uint256 flags) external onlyRole(PAUSE_ROLE) {
+        // pause role can pause the contract, however only default admin role can unpause
+        require(
+            (paused & flags) != 0 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "ONLY_DEFAULT_ADMIN_CAN_UNPAUSE"
+        );
         paused = flags;
     }
 
-    function transferOwnership(address newAdmin)
-        external
-        virtual
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(newAdmin != address(0), "INVALID_ADDRESS");
-        require(admin != newAdmin, "SAME_ADMIN_ADDRESS");
-        _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
-        // This admin is used for colleting dust tokens,
-        // and releasing some locked funds. It is used
-        // by the staking contract. It must be assinged to
-        // the community treasury wallet that will be governed
-        // by DAO.
-        admin = newAdmin;
-        _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        emit OwnershipTransferred(_msgSender(), newAdmin);
-    }
-
+    /// @dev adminSstore updates the state variable value.
+    /// only default admin role can call this function.
+    /// @param key is the storage slot of the state variable
+    /// @param value is the state variable value
     function adminSstore(uint256 key, uint256 value)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -58,6 +67,14 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         }
     }
 
+    /// @dev adminSstoreWithMask similar to adminSstore except
+    /// it updates the state variable value after xor-ing this value
+    /// with the old value and the mask, so the new value should be
+    /// a result of xor(and(xor(value, oldval), mask), oldval).
+    /// Only default admin role can call this function.
+    /// @param key is the storage slot of the state variable
+    /// @param value is the state variable value
+    /// @param mask this value is used in calculating the new value
     function adminSstoreWithMask(
         uint256 key,
         uint256 value,
@@ -69,26 +86,28 @@ contract AdminControlled is DelegateCallGuard, AccessControlUpgradeable {
         }
     }
 
-    function adminSendEth(address payable destination, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        //slither-disable-next-line arbitrary-send
-        destination.transfer(amount);
-    }
-
-    function adminReceiveEth() external payable {}
-
+    /// @dev adminDelegatecall allows this contract to delegate calls
+    /// to a target contract and execute it in the context of this
+    /// contract. Only default admin role can call this function.
+    /// @param target the target contract address
+    /// @param data is the ABI encoded function signature and its values.
     /// @custom:oz-upgrades-unsafe-allow delegatecall
     function adminDelegatecall(address target, bytes memory data)
         external
         payable
         onlyRole(DEFAULT_ADMIN_ROLE)
-        onlyDelegateCall
         returns (bytes memory)
     {
+        require(target != address(0), "ZERO_ADDRESS");
         (bool success, bytes memory rdata) = target.delegatecall(data);
         require(success);
         return rdata;
     }
+
+    ///@dev required by the OZ UUPS module
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {}
 }
