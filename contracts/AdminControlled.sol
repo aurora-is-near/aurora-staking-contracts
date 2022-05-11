@@ -37,9 +37,9 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     function __AdminControlled_init(uint256 _flags) internal {
         __UUPSUpgradeable_init();
         __AccessControl_init();
-        paused = _flags;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSE_ROLE, msg.sender);
+        paused = _flags;
     }
 
     /// @dev adminPause pauses this contract. Only pause role or default
