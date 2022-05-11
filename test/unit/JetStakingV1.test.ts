@@ -1622,8 +1622,12 @@ describe("JetStakingV1", function () {
                 0 // flags
             ]
         )
+        await expect(jet.connect(stakingAdmin).updateTreasury(newTreasury.address))
+        .to.be.revertedWith("REQUIRE_PAUSE")
         await jet.connect(stakingAdmin).adminPause(1)
         await jet.connect(stakingAdmin).updateTreasury(newTreasury.address)
+        await expect(jet.connect(stakingAdmin).updateTreasury(newTreasury.address))
+        .to.be.revertedWith("SAME_ADDRESS")
         expect(newTreasury.address).to.be.eq(await jet.treasury())
     })
     it('should admin remove stream', async () => {

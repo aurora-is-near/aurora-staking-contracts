@@ -449,13 +449,13 @@ contract JetStakingV1 is AdminControlled {
         external
         pausable(1)
     {
+        require(streamId != 0, "AURORA_STREAM_NA");
         Stream storage stream = streams[streamId];
         require(msg.sender == stream.owner, "INVALID_STREAM_OWNER");
         require(
             stream.status == StreamStatus.ACTIVE,
             "INACTIVE_OR_PROPOSED_STREAM"
         );
-        require(streamId != 0, "AURORA_STREAM_NA");
         uint256 auroraStreamOwnerReward = getStreamOwnerClaimableAmount(
             streamId
         );
@@ -545,8 +545,8 @@ contract JetStakingV1 is AdminControlled {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         // enforce pausing this contract before updating the address.
-        // This mitigate the risk of invalid reward claims
-        require(paused == 1, "REQUIRE_PAUSE");
+        // This mitigates the risk of future invalid reward claims
+        require(paused != 0, "REQUIRE_PAUSE");
         require(_treasury != address(0), "INVALID_ADDRESS");
         require(_treasury != treasury, "SAME_ADDRESS");
         treasury = _treasury;
