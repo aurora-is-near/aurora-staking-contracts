@@ -5,12 +5,13 @@ describe("AdminControlled", function () {
     let admin: any
     let newAdmin: any
     let user: any
+    let pauseRoleAdmin: any
     let adminControlled: any
     let targetContract: any
 
     before(async () => {
         // deploys the contracts
-        [admin, newAdmin, user] = await ethers.getSigners()
+        [admin, newAdmin, user, pauseRoleAdmin] = await ethers.getSigners()
         const AdminControlled = await ethers.getContractFactory("AdminControlledTesting")
         const TargetContract = await ethers.getContractFactory("TargetContract")
         const supply = ethers.utils.parseUnits("1000000000", 18)
@@ -22,10 +23,20 @@ describe("AdminControlled", function () {
                 flags
             ]
         )
+        const pauseRole = await adminControlled.PAUSE_ROLE()
+        await adminControlled.grantRole(pauseRole, pauseRoleAdmin.address)
     })
     it('should admin able to pause the contract', async () => {
-        await adminControlled.adminPause(1)
+        await adminControlled.connect(admin).adminPause(1)
         await expect(adminControlled.connect(user).pauseMe()).to.be.revertedWith('CONTRACT_IS_PAUSED')
+    })
+    it('should pause role able to pause the contract and only admin can unpause the contract', async () => {
+        await adminControlled.connect(pauseRoleAdmin).adminPause(1)
+        // should fail to unpasue
+        await expect(adminControlled.connect(pauseRoleAdmin).adminPause(0))
+        .to.be.revertedWith("ONLY_DEFAULT_ADMIN_CAN_UNPAUSE")
+        // unpause with admin only
+        await adminControlled.connect(admin).adminPause(0)
     })
     it('should allow admin to change the storage layout using admin SSTORE', async() => {
         const changeMeBefore = await adminControlled.changeMe()
