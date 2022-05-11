@@ -57,15 +57,4 @@ describe("AdminControlled", function () {
             data
         )
     })
-    it('should allow admin to send and receive eth', async () => {
-        await adminControlled.adminReceiveEth({value: ethers.utils.parseEther("1.0")})
-        expect(await ethers.provider.getBalance(adminControlled.address)).to.be.eq(
-            ethers.utils.parseEther("1.0")
-        )
-        const balanceBefore = await ethers.provider.getBalance(user.address)
-        await adminControlled.adminSendEth(user.address, ethers.utils.parseEther("0.5"))
-        expect(parseInt((await ethers.provider.getBalance(user.address)).toString())).to.be.lessThanOrEqual(
-            parseInt(ethers.utils.parseEther("0.5").toString()) + parseInt(balanceBefore.toString())
-        )
-    })
 });
