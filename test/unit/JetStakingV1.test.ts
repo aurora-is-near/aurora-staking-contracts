@@ -132,6 +132,182 @@ describe("JetStakingV1", function () {
         await treasury.connect(auroraOwner).grantRole(defaultAdminRole, jet.address)
     })
 
+    it('should test multiple stakers reward calculation', async () => {
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = 0
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
+        const amount1 = ethers.utils.parseUnits("1", 0)
+        const amount2 = ethers.utils.parseUnits("1002", 18)
+        const totalDeposit = amount1.add(amount2)
+        await auroraToken.connect(user1).approve(jet.address, amount1)
+        await auroraToken.connect(user2).approve(jet.address, amount2)
+        await network.provider.send("evm_setAutomine", [false])
+        // Users stake in the same block to compare rewards with the same stream weight
+        await jet.connect(user1).stake(amount1)
+        await jet.connect(user2).stake(amount2)
+        await network.provider.send("evm_mine")
+        await network.provider.send("evm_setAutomine", [true])
+        // create a stream
+        const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        const scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        await network.provider.send("evm_setAutomine", [false])
+
+        // After 1 year (1st year rewards)
+        await jet.connect(user1).moveRewardsToPending(id)
+        await jet.connect(user2).moveRewardsToPending(id)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        // Check rewards are distributed proportionally
+        const firstYearRewards = scheduleRewards[0].sub(scheduleRewards[1])
+        const user1Pending1 = await jet.getPending(id, user1.address)
+        const user2Pending1 = await jet.getPending(id, user2.address)
+        expect(user1Pending1).to.equal(firstYearRewards.mul(amount1).div(totalDeposit))
+        expect(user2Pending1).to.equal(firstYearRewards.mul(amount2).div(totalDeposit))
+
+        // After 1.5 years (1st chedule rewards + half of 2nd schedule rewards)
+        await jet.connect(user1).moveRewardsToPending(id)
+        await jet.connect(user2).moveRewardsToPending(id)
+        await network.provider.send("evm_mine", [startTime + oneYear + oneYear / 2])
+        // Check rewards are distributed proportionally
+        const secondYearRewards = scheduleRewards[1].sub(scheduleRewards[2])
+        const user1Pending2 = await jet.getPending(id, user1.address)
+        const user2Pending2 = await jet.getPending(id, user2.address)
+        expect(user1Pending2).to.equal(
+            user1Pending1.add(secondYearRewards.div(2).mul(amount1).div(totalDeposit))
+        )
+        expect(user2Pending2).to.equal(
+            firstYearRewards.mul(amount2).div(totalDeposit)
+            .add(secondYearRewards.div(2).mul(amount2).div(totalDeposit))
+        )
+
+        // After 5 years (all rewards distributed after 4 years)
+        await jet.connect(user1).moveRewardsToPending(id)
+        await jet.connect(user2).moveRewardsToPending(id)
+        await network.provider.send("evm_mine", [startTime + oneYear * 5])
+        const user1Pending3 = await jet.getPending(id, user1.address)
+        const user2Pending3 = await jet.getPending(id, user2.address)
+        await network.provider.send("evm_setAutomine", [true])
+        // Dust difference due to rounding ?
+        // `(reward * (schedule.time[startIndex + 1] - start)) / (schedule.time[startIndex + 1] - schedule.time[startIndex])`
+        // or `(getRewardsAmount(streamId, touchedAt) * RPS_MULTIPLIER) / totalStreamShares;`
+        // Fewer rewards distributed than allocated so this should not prevent everyone from withdrawing.
+        expect(user1Pending3).to.equal(
+            scheduleRewards[0].mul(amount1).div(totalDeposit)
+        )
+        expect(user2Pending3).to.equal(
+            scheduleRewards[0].mul(amount2).div(totalDeposit)
+            .sub(2)
+        )
+        expect(user1Pending3.add(user2Pending3)).to.equal(scheduleRewards[0].sub(3))
+    })
+    it('should test multiple stakers compound reward during 6 months', async () => {
+        const id = 0
+        const amount1 = ethers.utils.parseUnits("1", 0)
+        const amount2 = ethers.utils.parseUnits("102", 18)
+        const totalDeposit = amount1.add(amount2)
+        await auroraToken.connect(user1).approve(jet.address, amount1)
+        await auroraToken.connect(user2).approve(jet.address, amount2)
+        await network.provider.send("evm_setAutomine", [false])
+        // Users stake in the same block to compare rewards with the same stream weight
+        await jet.connect(user1).stake(amount1)
+        await jet.connect(user2).stake(amount2)
+        await network.provider.send("evm_mine", [startTime + oneYear / 2])
+
+        // After 6 months
+        await jet.connect(user1).unstakeAll()
+        await jet.connect(user2).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        const firstYearRewards = scheduleRewards[0].sub(scheduleRewards[1])
+        const user1Pending = await jet.getPending(id, user1.address)
+        const user2Pending = await jet.getPending(id, user2.address)
+        await network.provider.send("evm_setAutomine", [true])
+        const totalStakeValue = totalDeposit.add(firstYearRewards.div(2))
+        expect(user1Pending).to.equal(
+            totalStakeValue.mul(amount1).div(totalDeposit)
+        )
+        expect(user2Pending).to.equal(
+            totalStakeValue.mul(amount2).div(totalDeposit)
+            // When user1 unstakeAll, unstake amount is rounded down.
+            // `stakeValue = totalAmountOfStakedAurora * users[msg.sender].auroraShares) / totalAuroraShares`
+            // becomes larger for the next user to unstake (because totalAmountOfStakedAurora reduced less compared to totalAuroraShares)
+            .add(1)
+        )
+        expect(user1Pending.add(user2Pending)).to.equal(firstYearRewards.div(2).add(amount1).add(amount2))
+    })
+    it('should test multiple stakers compound reward during 1 year', async () => {
+        const id = 0
+        const amount1 = ethers.utils.parseUnits("11", 15)
+        const amount2 = ethers.utils.parseUnits("2", 18)
+        const amount3 = ethers.utils.parseUnits("333", 18)
+        const totalDeposit1 = amount1.add(amount2)
+        await auroraToken.connect(user1).approve(jet.address, amount1)
+        await auroraToken.connect(user2).approve(jet.address, amount2)
+        await network.provider.send("evm_setAutomine", [false])
+        // Users stake in the same block to compare rewards with the same stream weight
+        await jet.connect(user1).stake(amount1)
+        await jet.connect(user2).stake(amount2)
+        await network.provider.send("evm_mine", [startTime + oneYear / 2])
+
+        // After 6 months
+        await auroraToken.connect(user3).approve(jet.address, amount3)
+        await jet.connect(user3).stake(amount3)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+
+        const totalShares = await jet.totalAuroraShares()
+
+        // After 1 year (1/2 year with 2 stakers + 1/2 year with 3 stakers)
+        await jet.connect(user1).unstakeAll()
+        await jet.connect(user2).unstakeAll()
+        await jet.connect(user3).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + oneYear + oneYear / 2])
+        const firstYearRewards = scheduleRewards[0].sub(scheduleRewards[1])
+        const secondYearRewards = scheduleRewards[1].sub(scheduleRewards[2])
+        const user1Pending = await jet.getPending(id, user1.address)
+        const user2Pending = await jet.getPending(id, user2.address)
+        const user3Pending = await jet.getPending(id, user3.address)
+        await network.provider.send("evm_setAutomine", [true])
+        const totalStakeValue1 = totalDeposit1.add(firstYearRewards.div(2))
+        const totalDeposit2 = totalStakeValue1.add(amount3)
+        const totalStakeValue2 = totalDeposit2.add(secondYearRewards.div(2))
+        const user1StakeValue = totalStakeValue1.mul(amount1).div(totalDeposit1)
+        const user2StakeValue = totalStakeValue1.mul(amount2).div(totalDeposit1)
+        const oneShareValue = totalStakeValue2.div(totalShares)
+        // When user2 stakes after user1, no AURORA rewards were issued so shares are not rounded up.
+        // When user3 stakes after user2, user3 shares are rounded up which dilutes user1 and user2. ???
+        const expectedUser1Pending = totalStakeValue2.mul(user1StakeValue).div(totalDeposit2)
+        expect(user1Pending).to.be.lte(expectedUser1Pending)
+        expect(user1Pending).to.be.gt(expectedUser1Pending.sub(oneShareValue))
+        const expectedUser2Pending = totalStakeValue2.mul(user2StakeValue).div(totalDeposit2)
+        expect(user2Pending).to.be.lte(expectedUser2Pending)
+        expect(user2Pending).to.be.gt(expectedUser2Pending.sub(oneShareValue))
+        const expectedUser3Pending = totalStakeValue2.mul(amount3).div(totalDeposit2)
+        expect(user3Pending).to.be.lte(expectedUser3Pending.add(oneShareValue))
+        expect(user3Pending).to.be.gt(expectedUser3Pending)
+        expect(user1Pending.add(user2Pending).add(user3Pending)).to.equal(
+            firstYearRewards.div(2).add(secondYearRewards.div(2)).add(amount1).add(amount2).add(amount3)
+        )
+    })
+
     it("should return treasury account", async () => {
         expect(await jet.treasury()).to.eq(treasury.address)
     })
