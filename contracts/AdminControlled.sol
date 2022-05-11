@@ -35,6 +35,7 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     /// @param _flags flags variable will be used for pausing this contract.
     /// the default flags value is zero.
     function __AdminControlled_init(uint256 _flags) internal {
+        __UUPSUpgradeable_init();
         __AccessControl_init();
         paused = _flags;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
