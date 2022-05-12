@@ -19,7 +19,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         STREAM_MANAGER_ROLE_ADDRESS,
         TREASURY_MANAGER_ROLE_ADDRESS
     } = process.env
-
+    const { save } = hre.deployments;
     const [ deployer ] = await hre.ethers.getSigners()
     const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME as string) : Math.floor(Date.now()/ 1000) + 60 
     const flags = 0
@@ -38,7 +38,16 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             kind : "uups",
         },
     )
-    console.log(treasury.address)
+    console.log('Deploy Treasury Proxy done @ ' + treasury.address)
+    const treasuryImpl = await upgrades.upgradeProxy(treasury, Treasury)
+    console.log('Deploy Treasury Implementation  done @ ' + treasuryImpl.address)
+    const treasuryArtifact = await hre.deployments.getExtendedArtifact('Treasury');
+    let treasuryProxyDeployments = {
+        address: treasury.address,
+        ...treasuryArtifact
+    }
+    await save('Treasury', treasuryProxyDeployments)
+
     await new Promise(f => setTimeout(f, 1000));
     await treasury.deployed()
 
@@ -109,6 +118,17 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             kind : "uups",
         }
     )
+
+    console.log('Deploy JetStakingV1 Proxy done @ ' + jetStakingV1.address)
+    const jetStakingV1Impl = await upgrades.upgradeProxy(jetStakingV1, JetStakingV1)
+    console.log('Deploy JetStakingV1 Implementation  done @ ' + jetStakingV1Impl.address)
+    const jetStakingV1Artifact = await hre.deployments.getExtendedArtifact('JetStakingV1');
+    let jetStakingV1ProxyDeployments = {
+        address: jetStakingV1.address,
+        ...jetStakingV1Artifact
+    }
+    await save('JetStakingV1', jetStakingV1ProxyDeployments)
+
     await new Promise(f => setTimeout(f, 1000));
     await jetStakingV1.deployed()
     console.log(`JetStakingV1 address : ${jetStakingV1.address}`)
