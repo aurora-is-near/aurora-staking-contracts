@@ -559,8 +559,8 @@ contract JetStakingV1 is AdminControlled {
     /// WARNING: rewards are not claimed during stake. Airdrop script must claim or
     /// only distribute to accounts without stake
     function stakeOnBehalfOfOtherUsers(
-        address[] memory accounts,
-        uint256[] memory amounts,
+        address[] calldata accounts,
+        uint256[] calldata amounts,
         uint256 batchAmount
     ) external pausable(1) onlyRole(AIRDROP_ROLE) {
         uint256 accountsLength = accounts.length;
@@ -617,7 +617,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev moves a set of stream Id rewards to pending.
     /// Allows user to select stream ids to claim from UI.
     /// @param streamIds stream indexes
-    function batchMoveRewardsToPending(uint256[] memory streamIds)
+    function batchMoveRewardsToPending(uint256[] calldata streamIds)
         external
         pausable(1)
     {
@@ -650,7 +650,7 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev Claim all stream rewards on behalf of other users.
     /// @param accounts the user account addresses.
-    function claimAllOnBehalfOfOtherUsers(address[] memory accounts)
+    function claimAllOnBehalfOfOtherUsers(address[] calldata accounts)
         external
         pausable(1)
         onlyRole(CLAIM_ROLE)
@@ -667,7 +667,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamIds to claim.
     function batchClaimOnBehalfOfAnotherUser(
         address account,
-        uint256[] memory streamIds
+        uint256[] calldata streamIds
     ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         _batchClaimRewards(account, streamIds);
@@ -676,8 +676,8 @@ contract JetStakingV1 is AdminControlled {
     /// @dev Claim all stream rewards on behalf of other users.
     /// @param accounts the user account addresses.
     function batchClaimOnBehalfOfOtherUsers(
-        address[] memory accounts,
-        uint256[] memory streamIds
+        address[] calldata accounts,
+        uint256[] calldata streamIds
     ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         uint256 accountsLength = accounts.length;
@@ -730,7 +730,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev withdraw a set of stream Ids.
     /// Allows user to select stream ids to withdraw from UI.
     /// @param streamIds to withdraw.
-    function batchWithdraw(uint256[] memory streamIds) external pausable(1) {
+    function batchWithdraw(uint256[] calldata streamIds) external pausable(1) {
         User storage userAccount = users[msg.sender];
         for (uint256 i = 0; i < streamIds.length; i++) {
             if (
@@ -1080,7 +1080,7 @@ contract JetStakingV1 is AdminControlled {
     /// `_before` must be called before to update the streams rps.
     /// @param account the user account address.
     /// @param streamIds to claim.
-    function _batchClaimRewards(address account, uint256[] memory streamIds)
+    function _batchClaimRewards(address account, uint256[] calldata streamIds)
         internal
     {
         for (uint256 i = 0; i < streamIds.length; i++) {
