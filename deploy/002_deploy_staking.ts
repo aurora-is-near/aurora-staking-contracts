@@ -42,7 +42,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasuryImpl = await upgrades.upgradeProxy(treasury, Treasury)
     console.log('Deploy Treasury Implementation  done @ ' + treasuryImpl.address)
     const treasuryArtifact = await hre.deployments.getExtendedArtifact('Treasury');
-    let treasuryProxyDeployments = {
+    const treasuryProxyDeployments = {
         address: treasury.address,
         ...treasuryArtifact
     }
@@ -123,7 +123,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const jetStakingV1Impl = await upgrades.upgradeProxy(jetStakingV1, JetStakingV1)
     console.log('Deploy JetStakingV1 Implementation  done @ ' + jetStakingV1Impl.address)
     const jetStakingV1Artifact = await hre.deployments.getExtendedArtifact('JetStakingV1');
-    let jetStakingV1ProxyDeployments = {
+    const jetStakingV1ProxyDeployments = {
         address: jetStakingV1.address,
         ...jetStakingV1Artifact
     }
