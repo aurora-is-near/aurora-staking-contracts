@@ -27,19 +27,19 @@ contract JetStakingV1 is AdminControlled {
     bytes32 public constant CLAIM_ROLE = keccak256("CLAIM_ROLE");
     bytes32 public constant STREAM_MANAGER_ROLE =
         keccak256("STREAM_MANAGER_ROLE");
-    uint256 constant ONE_MONTH = 2629746;
-    uint256 constant FOUR_YEARS = 126227808;
+    uint256 public constant ONE_MONTH = 2629746;
+    uint256 public constant FOUR_YEARS = 126227808;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
-    uint256 constant RPS_MULTIPLIER = 1e31;
+    uint256 private constant RPS_MULTIPLIER = 1e31;
     uint256 public totalAmountOfStakedAurora;
     uint256 public touchedAt;
     uint256 public totalAuroraShares;
     uint256 public totalStreamShares;
     address public treasury;
     address public auroraToken;
-    uint256 maxWeight;
-    uint256 minWeight;
+    uint256 public maxWeight;
+    uint256 public minWeight;
 
     enum StreamStatus {
         INACTIVE,
@@ -137,6 +137,9 @@ contract JetStakingV1 is AdminControlled {
         require(users[msg.sender].auroraShares != 0, "ZERO_USER_SHARES");
         _;
     }
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
 
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @notice By calling this function, the deployer of this contract must
@@ -236,6 +239,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param maxDepositAmount The upper amount of the tokens that should be deposited by the stream owner
     /// @param scheduleTimes timestamp denoting the start of each scheduled interval. Last element is the end of the stream.
     /// @param scheduleRewards remaining rewards to be delivered at the beginning of each scheduled interval. Last element is always zero.
+    /// First value (in scheduleRewards) from array is supposed to be a total amount of rewards for stream.
     /// @param tau the tau is (pending release period) for this stream (e.g one day)
     function proposeStream(
         address streamOwner,
