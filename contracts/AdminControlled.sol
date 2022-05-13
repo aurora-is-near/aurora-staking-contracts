@@ -48,7 +48,8 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     function adminPause(uint256 flags) external onlyRole(PAUSE_ROLE) {
         // pause role can pause the contract, however only default admin role can unpause
         require(
-            (paused & flags) != 0 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            (paused & flags) == paused ||
+                hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
             "ONLY_DEFAULT_ADMIN_CAN_UNPAUSE"
         );
         paused = flags;
