@@ -573,7 +573,7 @@ describe("JetStakingV1", function () {
         expect(Math.round(parseFloat(ethers.utils.formatUnits(total)))).to.be.eq(parseFloat(expectedScheduleReward.toString()))
         expect(Math.round(parseFloat(ethers.utils.formatUnits(rewardPerShareAurora)))).to.be.eq(parseFloat(expectedScheduleReward.toString()))
         expect(startIndex.toNumber()).to.be.eq(0)
-        expect(endIndex.toNumber()).to.be.eq(4)
+        expect(endIndex.toNumber()).to.be.eq(3)
     })
     it('should schedule from 1 to 2 years', async () => {
         const { total, rewardPerShareAurora, scheduleCalculated } = await jet.before(scheduleTimes[1], scheduleTimes[2])
@@ -691,7 +691,7 @@ describe("JetStakingV1", function () {
         expect(scheduleCalculated.toNumber()).to.be.eq(expectedScheduledReward)
         expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.eq(expectedScheduledReward)
         expect(startIndex.toNumber()).to.be.eq(0)
-        expect(endIndex.toNumber()).to.be.eq(4)
+        expect(endIndex.toNumber()).to.be.eq(3)
     })
     it('should schedule from 200 to end (3 years)', async () => {
         const {total, rewardPerShareAurora, scheduleCalculated} = await jet.before(scheduleTimes[0] + 200 * oneDay, scheduleTimes[3])

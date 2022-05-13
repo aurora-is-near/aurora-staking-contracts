@@ -942,7 +942,7 @@ contract JetStakingV1 is AdminControlled {
         }
         // find end index
         if (end == schedule.time[scheduleTimeLength - 1]) {
-            endIndex = scheduleTimeLength - 1;
+            endIndex = scheduleTimeLength - 2;
         } else {
             for (uint256 i = startIndex + 1; i < scheduleTimeLength; i++) {
                 if (end < schedule.time[i]) {
@@ -993,15 +993,10 @@ contract JetStakingV1 is AdminControlled {
                 schedule.reward[startIndex + 1] -
                 schedule.reward[endIndex];
             // Reward during the endIndex period
-            if (endIndex < schedule.time.length - 1) {
-                // If endIndex represents a non-empty interval
-                reward =
-                    schedule.reward[endIndex] -
-                    schedule.reward[endIndex + 1];
-                rewardScheduledAmount +=
-                    (reward * (end - schedule.time[endIndex])) /
-                    (schedule.time[endIndex + 1] - schedule.time[endIndex]);
-            }
+            reward = schedule.reward[endIndex] - schedule.reward[endIndex + 1];
+            rewardScheduledAmount +=
+                (reward * (end - schedule.time[endIndex])) /
+                (schedule.time[endIndex + 1] - schedule.time[endIndex]);
         }
         return rewardScheduledAmount;
     }
