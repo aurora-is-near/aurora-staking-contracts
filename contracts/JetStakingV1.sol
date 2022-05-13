@@ -236,6 +236,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param maxDepositAmount The upper amount of the tokens that should be deposited by the stream owner
     /// @param scheduleTimes timestamp denoting the start of each scheduled interval. Last element is the end of the stream.
     /// @param scheduleRewards remaining rewards to be delivered at the beginning of each scheduled interval. Last element is always zero.
+    /// First value (in scheduleRewards) from array is supposed to be a total amount of rewards for stream.
     /// @param tau the tau is (pending release period) for this stream (e.g one day)
     function proposeStream(
         address streamOwner,
