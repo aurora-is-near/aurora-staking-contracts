@@ -27,19 +27,19 @@ contract JetStakingV1 is AdminControlled {
     bytes32 public constant CLAIM_ROLE = keccak256("CLAIM_ROLE");
     bytes32 public constant STREAM_MANAGER_ROLE =
         keccak256("STREAM_MANAGER_ROLE");
-    uint256 constant ONE_MONTH = 2629746;
-    uint256 constant FOUR_YEARS = 126227808;
+    uint256 public constant ONE_MONTH = 2629746;
+    uint256 public constant FOUR_YEARS = 126227808;
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
-    uint256 constant RPS_MULTIPLIER = 1e31;
+    uint256 private constant RPS_MULTIPLIER = 1e31;
     uint256 public totalAmountOfStakedAurora;
     uint256 public touchedAt;
     uint256 public totalAuroraShares;
     uint256 public totalStreamShares;
     address public treasury;
     address public auroraToken;
-    uint256 maxWeight;
-    uint256 minWeight;
+    uint256 public maxWeight;
+    uint256 public minWeight;
 
     enum StreamStatus {
         INACTIVE,
@@ -560,14 +560,15 @@ contract JetStakingV1 is AdminControlled {
     /// WARNING: rewards are not claimed during stake. Airdrop script must claim or
     /// only distribute to accounts without stake
     function stakeOnBehalfOfOtherUsers(
-        address[] memory accounts,
-        uint256[] memory amounts,
+        address[] calldata accounts,
+        uint256[] calldata amounts,
         uint256 batchAmount
     ) external pausable(1) onlyRole(AIRDROP_ROLE) {
-        require(accounts.length == amounts.length, "INVALID_ARRAY_LENGTH");
+        uint256 accountsLength = accounts.length;
+        require(accountsLength == amounts.length, "INVALID_ARRAY_LENGTH");
         _before();
         uint256 totalAmount = 0;
-        for (uint256 i = 0; i < amounts.length; i++) {
+        for (uint256 i = 0; i < accountsLength; i++) {
             totalAmount += amounts[i];
             _stake(accounts[i], amounts[i]);
         }
@@ -617,7 +618,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev moves a set of stream Id rewards to pending.
     /// Allows user to select stream ids to claim from UI.
     /// @param streamIds stream indexes
-    function batchMoveRewardsToPending(uint256[] memory streamIds)
+    function batchMoveRewardsToPending(uint256[] calldata streamIds)
         external
         pausable(1)
     {
@@ -650,13 +651,14 @@ contract JetStakingV1 is AdminControlled {
 
     /// @dev Claim all stream rewards on behalf of other users.
     /// @param accounts the user account addresses.
-    function claimAllOnBehalfOfOtherUsers(address[] memory accounts)
+    function claimAllOnBehalfOfOtherUsers(address[] calldata accounts)
         external
         pausable(1)
         onlyRole(CLAIM_ROLE)
     {
         _before();
-        for (uint256 i = 0; i < accounts.length; i++) {
+        uint256 accountsLength = accounts.length;
+        for (uint256 i = 0; i < accountsLength; i++) {
             _moveAllRewardsToPending(accounts[i]);
         }
     }
@@ -666,7 +668,7 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamIds to claim.
     function batchClaimOnBehalfOfAnotherUser(
         address account,
-        uint256[] memory streamIds
+        uint256[] calldata streamIds
     ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         _batchClaimRewards(account, streamIds);
@@ -675,11 +677,12 @@ contract JetStakingV1 is AdminControlled {
     /// @dev Claim all stream rewards on behalf of other users.
     /// @param accounts the user account addresses.
     function batchClaimOnBehalfOfOtherUsers(
-        address[] memory accounts,
-        uint256[] memory streamIds
+        address[] calldata accounts,
+        uint256[] calldata streamIds
     ) external pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
-        for (uint256 i = 0; i < accounts.length; i++) {
+        uint256 accountsLength = accounts.length;
+        for (uint256 i = 0; i < accountsLength; i++) {
             _batchClaimRewards(accounts[i], streamIds);
         }
     }
@@ -714,7 +717,8 @@ contract JetStakingV1 is AdminControlled {
     /// so the frontend will allow individual stream withdrawals and disable withdrawAll.
     function withdrawAll() external pausable(1) {
         User storage userAccount = users[msg.sender];
-        for (uint256 i = 0; i < streams.length; i++) {
+        uint256 streamsLength = streams.length;
+        for (uint256 i = 0; i < streamsLength; i++) {
             if (
                 userAccount.pendings[i] != 0 &&
                 block.timestamp > userAccount.releaseTime[i]
@@ -727,7 +731,7 @@ contract JetStakingV1 is AdminControlled {
     /// @dev withdraw a set of stream Ids.
     /// Allows user to select stream ids to withdraw from UI.
     /// @param streamIds to withdraw.
-    function batchWithdraw(uint256[] memory streamIds) external pausable(1) {
+    function batchWithdraw(uint256[] calldata streamIds) external pausable(1) {
         User storage userAccount = users[msg.sender];
         for (uint256 i = 0; i < streamIds.length; i++) {
             if (
@@ -918,25 +922,26 @@ contract JetStakingV1 is AdminControlled {
         uint256 end
     ) public view returns (uint256 startIndex, uint256 endIndex) {
         Schedule storage schedule = streams[streamId].schedule;
-        require(schedule.time.length > 0, "NO_SCHEDULE");
+        uint256 scheduleTimeLength = schedule.time.length;
+        require(scheduleTimeLength > 0, "NO_SCHEDULE");
         require(end > start, "INVALID_REWARD_QUERY_PERIOD");
         require(start >= schedule.time[0], "QUERY_BEFORE_SCHEDULE_START");
         require(
-            end <= schedule.time[schedule.time.length - 1],
+            end <= schedule.time[scheduleTimeLength - 1],
             "QUERY_AFTER_SCHEDULE_END"
         );
         // find start index
-        for (uint256 i = 1; i < schedule.time.length; i++) {
+        for (uint256 i = 1; i < scheduleTimeLength; i++) {
             if (start < schedule.time[i]) {
                 startIndex = i - 1;
                 break;
             }
         }
         // find end index
-        if (end == schedule.time[schedule.time.length - 1]) {
-            endIndex = schedule.time.length - 1;
+        if (end == schedule.time[scheduleTimeLength - 1]) {
+            endIndex = scheduleTimeLength - 1;
         } else {
-            for (uint256 i = startIndex + 1; i < schedule.time.length; i++) {
+            for (uint256 i = startIndex + 1; i < scheduleTimeLength; i++) {
                 if (end < schedule.time[i]) {
                     // Users most often claim rewards within the same index which can last several months.
                     endIndex = i - 1;
@@ -1004,7 +1009,8 @@ contract JetStakingV1 is AdminControlled {
         if (totalAuroraShares != 0) {
             // Don't release rewards if there are no stakers.
             totalAmountOfStakedAurora += getRewardsAmount(0, touchedAt);
-            for (uint256 i = 1; i < streams.length; i++) {
+            uint256 streamsLength = streams.length;
+            for (uint256 i = 1; i < streamsLength; i++) {
                 if (streams[i].status == StreamStatus.ACTIVE) {
                     // If stream becomes blacklisted, no more rewards are released.
                     streams[i].rps = getLatestRewardPerShare(i);
@@ -1064,7 +1070,8 @@ contract JetStakingV1 is AdminControlled {
     /// @dev move all the streams rewards for a user to the pending tokens
     /// @param account is the staker address
     function _moveAllRewardsToPending(address account) internal {
-        for (uint256 i = 1; i < streams.length; i++) {
+        uint256 streamsLength = streams.length;
+        for (uint256 i = 1; i < streamsLength; i++) {
             if (streams[i].status == StreamStatus.ACTIVE)
                 _moveRewardsToPending(account, i);
         }
@@ -1074,7 +1081,7 @@ contract JetStakingV1 is AdminControlled {
     /// `_before` must be called before to update the streams rps.
     /// @param account the user account address.
     /// @param streamIds to claim.
-    function _batchClaimRewards(address account, uint256[] memory streamIds)
+    function _batchClaimRewards(address account, uint256[] calldata streamIds)
         internal
     {
         for (uint256 i = 0; i < streamIds.length; i++) {
@@ -1118,7 +1125,8 @@ contract JetStakingV1 is AdminControlled {
         );
         totalStreamShares += weightedAmountOfSharesPerStream;
         userAccount.streamShares += weightedAmountOfSharesPerStream;
-        for (uint256 i = 1; i < streams.length; i++) {
+        uint256 streamsLength = streams.length;
+        for (uint256 i = 1; i < streamsLength; i++) {
             userAccount.rpsDuringLastClaim[i] = streams[i].rps; // The new shares should not claim old rewards
         }
         emit Staked(account, amount, _amountOfShares);
@@ -1214,7 +1222,11 @@ contract JetStakingV1 is AdminControlled {
         uint256 streamId,
         uint256 rewardTokenAmount
     ) internal {
-        for (uint256 i = 0; i < streams[streamId].schedule.reward.length; i++) {
+        uint256 streamScheduleRewardLength = streams[streamId]
+            .schedule
+            .reward
+            .length;
+        for (uint256 i = 0; i < streamScheduleRewardLength; i++) {
             streams[streamId].schedule.reward[i] =
                 (streams[streamId].schedule.reward[i] * rewardTokenAmount) /
                 streams[streamId].maxDepositAmount;
