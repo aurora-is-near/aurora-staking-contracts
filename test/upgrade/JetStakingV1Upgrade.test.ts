@@ -45,7 +45,11 @@ describe("JetStakingV1Upgrade", function () {
                     streamToken2.address
                 ],
                 flags
-            ]
+            ],
+            {
+                initializer: "initialize",
+                kind : "uups",
+            }
         )
         await treasury.deployed();
 
@@ -83,7 +87,11 @@ describe("JetStakingV1Upgrade", function () {
                 treasury.address,
                 maxWeight,
                 minWeight
-            ]
+            ],
+            {
+                initializer: "initialize",
+                kind : "uups",
+            }
         )
         await jet.deployed();
         const defaultAdminRole = await jet.DEFAULT_ADMIN_ROLE()
