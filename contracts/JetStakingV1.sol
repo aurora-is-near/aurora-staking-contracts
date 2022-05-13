@@ -138,6 +138,9 @@ contract JetStakingV1 is AdminControlled {
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @notice By calling this function, the deployer of this contract must
     /// make sure that the AURORA reward amount was deposited to the treasury

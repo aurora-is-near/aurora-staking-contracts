@@ -33,6 +33,9 @@ contract Treasury is ITreasury, AdminControlled {
         uint256 timestamp
     );
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
     /// @notice initializes ownable Treasury with list of managers and supported tokens
     /// @param _supportedTokens list of supported tokens
     function initialize(address[] memory _supportedTokens, uint256 _flags)
