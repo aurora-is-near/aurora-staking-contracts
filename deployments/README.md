@@ -15,7 +15,7 @@ Update the `.env` file:
 ```bash
 INFURA_KEY= # only needed in case of 
 ETHERSCAN_API_KEY= # Mainly is required in case of verifying the contracts on Etherscan
-PRIVATE_KEY= # the private key will be used as a deployer address 
+PRIVATE_KEY= # the private key will be used as a deployer address, also it is used for the upgrade (if it has a default admin role)
 MNEMONIC= # This is an alternative for the private key (the deployer address is the first address)
 AURORA_API_KEY= # AURORA API KEY
 AURORA_TOKEN= # Aurora token address (not needed in case of testing)
@@ -80,3 +80,15 @@ The testnet deployment:
 | Airdrop role      | TBD     |
 | Treasury manager role      | TBD     |
 | Stream manager role      | TBD     |
+
+
+## Upgrading contracts
+
+These are the steps required by the deployer/upgrader in order to upgrade the contracts:
+- Make sure that you have set the right the default admin role private key to sign the upgrade transaction.
+```bash
+#.env file
+PRIVATE_KEY= # the private key will be used for the deployment and the upgrade, replace this address with the default-admin-role private key in case it doesn't have assigned to a default-admin-role.
+```
+- Update the `contract proxy address` and the `new contract name` in `scripts/upgrade.js`. You can find them in the deployment logs.
+- Execute `yarn upgrade:<NETWORK>`

@@ -617,9 +617,9 @@ describe("JetStakingV1", function () {
         const timeDiff = currentTime - startTime
         const expectedScheduledReward = 
             (parseInt(ethers.utils.formatEther(scheduleRewards[0])) - parseInt(ethers.utils.formatEther(scheduleRewards[1]))) * (timeDiff) / oneYear
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(parseInt(expectedScheduledReward.toString()) - 100, parseInt(expectedScheduledReward.toString()) + 100)
-        expect(parseInt(scheduleCalculated.toNumber())).to.be.within(parseInt(expectedScheduledReward.toString()) - 100, parseInt(expectedScheduledReward.toString()) + 100)
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.within(parseInt(expectedScheduledReward.toString()) - 100, parseInt(expectedScheduledReward.toString()) + 100)
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(parseInt(expectedScheduledReward.toString()) - 100, parseInt(expectedScheduledReward.toString()) + 200)
+        expect(parseInt(scheduleCalculated.toNumber())).to.be.within(parseInt(expectedScheduledReward.toString()) - 100, parseInt(expectedScheduledReward.toString()) + 200)
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.within(parseInt(expectedScheduledReward.toString()) - 100, parseInt(expectedScheduledReward.toString()) + 200)
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(0)
     })
@@ -635,9 +635,9 @@ describe("JetStakingV1", function () {
             (parseInt(ethers.utils.formatEther(scheduleRewards[0])) - parseInt(ethers.utils.formatEther(scheduleRewards[1])))
         const expectedScheduledReward2 = (parseInt(ethers.utils.formatEther(scheduleRewards[1])) - parseInt(ethers.utils.formatEther(scheduleRewards[2]))) * (timeDiff - oneYear) / oneYear
         const expectedScheduledReward = parseInt(expectedScheduledReward1.toString()) + parseInt(expectedScheduledReward2.toString())
-        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
-        expect(scheduleCalculated.toNumber()).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
-        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 50)
+        expect(parseInt(ethers.utils.formatUnits(total))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 100)
+        expect(scheduleCalculated.toNumber()).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 100)
+        expect(parseInt(ethers.utils.formatUnits(rewardPerShareAurora))).to.be.within(expectedScheduledReward - 50, expectedScheduledReward + 100)
         expect(startIndex.toNumber()).to.be.eq(0)
         expect(endIndex.toNumber()).to.be.eq(1)
     })
