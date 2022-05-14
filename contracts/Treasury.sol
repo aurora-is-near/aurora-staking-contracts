@@ -59,7 +59,7 @@ contract Treasury is ITreasury, AdminControlled {
         address _user,
         address _token,
         uint256 _amount
-    ) external pausable(1) onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(isSupportedToken[_token], "TOKEN_IS_NOT_SUPPORTED");
         IERC20Upgradeable(_token).safeTransfer(_user, _amount);
     }
@@ -70,6 +70,7 @@ contract Treasury is ITreasury, AdminControlled {
     /// @param _token stream ERC20 token address
     function addSupportedToken(address _token)
         external
+        pausable(1)
         onlyRole(TREASURY_MANAGER_ROLE)
     {
         require(!isSupportedToken[_token], "TOKEN_ALREADY_EXISTS");
@@ -81,6 +82,7 @@ contract Treasury is ITreasury, AdminControlled {
     /// @param _token stream ERC20 token address
     function removeSupportedToken(address _token)
         external
+        pausable(1)
         onlyRole(TREASURY_MANAGER_ROLE)
     {
         require(isSupportedToken[_token], "TOKEN_DOES_NOT_EXIST");
