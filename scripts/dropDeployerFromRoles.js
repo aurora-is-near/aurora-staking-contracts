@@ -1,8 +1,16 @@
 const hre = require("hardhat");
 
 async function main() {
+    const [ deployer ] = await hre.ethers.getSigners()
     const jetStakingV1 = await hre.ethers.getContract("JetStakingV1")
     const treasury = await hre.ethers.getContract("Treasury")
+    const treasuryManagerRole = await treasury.TREASURY_MANAGER_ROLE()
+    const treasuryDefaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+    const claimRole = await jetStakingV1.CLAIM_ROLE()
+    const airdropRole = await jetStakingV1.AIRDROP_ROLE()
+    const pauseRole = await jetStakingV1.PAUSE_ROLE()
+    const streamManagerRole = await jetStakingV1.STREAM_MANAGER_ROLE()
+    const defaultAdminRole = await jetStakingV1.DEFAULT_ADMIN_ROLE()
     // Revoke deployer roles.
     // ======================
 

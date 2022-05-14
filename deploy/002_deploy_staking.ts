@@ -23,19 +23,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const tri = "0xFa94348467f64D5A457F75F8bc40495D33c65aBB"
     const bastion = "0x9f1f933c660a1dc856f0e0fe058435879c5ccef0"
     const wnear = "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
-
+    console.log(`AURORA staking contracts deployment @ ${new Date().toLocaleString()}`)
     const { save } = hre.deployments;
     const [ deployer ] = await hre.ethers.getSigners()
     const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME as string) : Math.floor(Date.now()/ 1000) + 60 
     console.log(`Main AURORA stream will start @ ${new Date(startTime * 1000).toLocaleString()}`)
     const flags = 0
-    let auroraAddress: any
-
-    if(AURORA_TOKEN) {
-        auroraAddress = AURORA_TOKEN
-    } else {
-        auroraAddress = (await hre.ethers.getContract("Token")).address
-    }
+    const auroraAddress = AURORA_TOKEN? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address
 
     // Deploy JetStakingV1.
     // ====================
