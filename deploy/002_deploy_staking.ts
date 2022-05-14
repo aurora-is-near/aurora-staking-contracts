@@ -23,6 +23,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const tri = "0xFa94348467f64D5A457F75F8bc40495D33c65aBB"
     const bastion = "0x9f1f933c660a1dc856f0e0fe058435879c5ccef0"
     const wnear = "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
+    const usn = "0x5183e1b1091804bc2602586919e6880ac1cf2896"
+    const ply = "0x09c9d464b58d96837f8d8b6f4d9fe4ad408d3a4f"
+
     console.log(`AURORA staking contracts deployment @ ${new Date().toLocaleString()}`)
     const { save } = hre.deployments;
     const [ deployer ] = await hre.ethers.getSigners()
@@ -47,6 +50,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                     tri,
                     bastion,
                     wnear,
+                    usn,
+                    ply
                 ],
                 flags
             ],
