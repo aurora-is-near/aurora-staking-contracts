@@ -5,7 +5,7 @@ async function main() {
   const count = (await jetStakingV1.getStreamsCount()).toNumber()
   const streams = await Promise.all([...Array(count).keys()].map(id => jetStakingV1.getStream(id)))
   streams.forEach((stream, id) => {
-      console.log(`Stream id: ${id}`, stream)
+    console.log(`Stream id: ${id}`, stream)
   })
 }
 
