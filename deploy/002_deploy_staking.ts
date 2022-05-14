@@ -23,10 +23,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const tri = "0xFa94348467f64D5A457F75F8bc40495D33c65aBB"
     const bastion = "0x9f1f933c660a1dc856f0e0fe058435879c5ccef0"
     const wnear = "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
-
+    console.log(`AURORA staking contracts deployment @ ${new Date().toLocaleString()}`)
     const { save } = hre.deployments;
     const [ deployer ] = await hre.ethers.getSigners()
     const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME as string) : Math.floor(Date.now()/ 1000) + 60 
+    console.log(`Main AURORA stream will start @ ${new Date(startTime * 1000).toLocaleString()}`)
     const flags = 0
     const auroraAddress = AURORA_TOKEN? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address
 
@@ -78,7 +79,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'Treasury, ',
         'ADDRESS ', 
         TREASURY_MANAGER_ROLE_ADDRESS,
-        `Has a role ${treasuryManagerRole}? `,
+        `Has a role (Treasury manager role) ${treasuryManagerRole}? `,
         await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
     )
     const treasuryDefaultAdminRole = await treasury.DEFAULT_ADMIN_ROLE()
@@ -91,7 +92,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'Treasury, ',
         'ADDRESS: ', 
         DEFAULT_ADMIN_ROLE_ADDRESS,
-        `Has a role ${treasuryDefaultAdminRole}? `,
+        `Has a role (Default admin role) ${treasuryDefaultAdminRole}? `,
         await treasury.hasRole(treasuryDefaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
     )
 
@@ -124,7 +125,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         jetStakingV1 = await upgrades.deployProxy(
             JetStakingV1,
             [
-                AURORA_TOKEN ? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address,
+                auroraAddress,
                 AURORA_STREAM_OWNER ? AURORA_STREAM_OWNER : deployer.address,
                 scheduleTimes,
                 scheduleRewards,
@@ -176,7 +177,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'JetStaking, ',
         'ADDRESS: ', 
         STREAM_MANAGER_ROLE_ADDRESS,
-        `Has a role ${streamManagerRole}? `,
+        `Has a role (Stream manager role) ${streamManagerRole}? `,
         await jetStakingV1.hasRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
     )
     if(!await jetStakingV1.hasRole(claimRole, CLAIM_ROLE_ADDRESS)) {
@@ -188,7 +189,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'JetStaking, ',
         'ADDRESS: ', 
         CLAIM_ROLE_ADDRESS,
-        `Has a role ${claimRole}? `,
+        `Has a role (claim role) ${claimRole}? `,
         await jetStakingV1.hasRole(claimRole, CLAIM_ROLE_ADDRESS)
     )
     if(!await jetStakingV1.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)) {
@@ -200,7 +201,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'JetStaking, ',
         'ADDRESS: ', 
         AIRDROP_ROLE_ADDRESS,
-        `Has a role ${airdropRole}? `,
+        `Has a role (Airdrop role) ${airdropRole}? `,
         await jetStakingV1.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)
     )
     if(!await jetStakingV1.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)) {
@@ -212,7 +213,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'JetStaking, ',
         'ADDRESS: ', 
         PAUSER_ROLE_ADDRESS,
-        `Has a role ${pauseRole}? `,
+        `Has a role (Pauser role) ${pauseRole}? `,
         await jetStakingV1.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)
     )
     if(!await jetStakingV1.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)) {
@@ -224,7 +225,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'JetStaking, ',
         'ADDRESS: ', 
         DEFAULT_ADMIN_ROLE_ADDRESS,
-        `Has a role ${defaultAdminRole}? `,
+        `Has a role (Default admin role) ${defaultAdminRole}? `,
         await jetStakingV1.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
     )
     // assign jet staking address an admin role in the treasury contract
@@ -237,7 +238,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         'JetStaking, ',
         'ADDRESS: ', 
         jetStakingV1.address,
-        `Has a role ${treasuryDefaultAdminRole}? `,
+        `Has a role (Default admin role) ${treasuryDefaultAdminRole}? `,
         await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV1.address)
     )
 
@@ -267,7 +268,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             'JetStaking, ',
             'ADDRESS: ',
             addr,
-            `Has a role ${claimRole}? `,
+            `Has a role (Claim role) ${claimRole}? `,
             await jetStakingV1.hasRole(claimRole, addr)
         )
         if(!await jetStakingV1.hasRole(airdropRole, addr)) {
@@ -279,102 +280,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             'JetStaking, ',
             'ADDRESS: ',
             addr,
-            `Has a role ${airdropRole}? `,
+            `Has a role (Airdrop role) ${airdropRole}? `,
             await jetStakingV1.hasRole(airdropRole, addr)
         )
     }
-
-    // Revoke deployer roles.
-    // ======================
-
-    // treasury
-    // drop deployer address from the treasury manager role in the treasury contract
-    if(await treasury.hasRole(treasuryManagerRole, deployer.address)) {
-        await treasury.connect(deployer).revokeRole(treasuryManagerRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${treasuryManagerRole} role in treasury contract`,
-        '... Dropped?',
-        await treasury.hasRole(treasuryManagerRole, deployer.address) ? false: true
-    )
-
-    // drop deployer address from the pause role role in the treasury contract
-    if(await treasury.hasRole(pauseRole, deployer.address)) {
-        await treasury.connect(deployer).revokeRole(pauseRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${pauseRole} role in treasury contract`,
-        '... Dropped?',
-        await treasury.hasRole(pauseRole, deployer.address) ? false: true
-    )
-    // drop deployer address from the default admin role in the treasury contract
-    if(await treasury.hasRole(treasuryDefaultAdminRole, deployer.address)) {
-        await treasury.connect(deployer).revokeRole(treasuryDefaultAdminRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${treasuryDefaultAdminRole} role in treasury contract`,
-        '... Dropped?',
-        await treasury.hasRole(treasuryDefaultAdminRole, deployer.address) ? false: true
-    )
-
-    // jetStaking
-    // drop deployer address from the pause role in the jet-staking contract
-    if(await jetStakingV1.hasRole(pauseRole, deployer.address)) {
-        await jetStakingV1.connect(deployer).revokeRole(pauseRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${pauseRole} role in jet-staking contract`,
-        '... Dropped?',
-        await jetStakingV1.hasRole(pauseRole, jetStakingV1.address) ? false: true
-    )
-
-    // drop deployer address from the stream manager role in the jet-staking contract
-    if(await jetStakingV1.hasRole(streamManagerRole, deployer.address)) {
-        await jetStakingV1.connect(deployer).revokeRole(streamManagerRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${streamManagerRole} role in jet-staking contract`,
-        '... Dropped?',
-        await jetStakingV1.hasRole(streamManagerRole, jetStakingV1.address) ? false: true
-    )
-
-    // drop deployer address from the claim rolein the jet-staking contract
-    if(await jetStakingV1.hasRole(claimRole, deployer.address)) {
-        await jetStakingV1.connect(deployer).revokeRole(claimRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${claimRole} role in jet-staking contract`,
-        '... Dropped?',
-        await jetStakingV1.hasRole(claimRole, jetStakingV1.address) ? false: true
-    )
-
-    // drop deployer address from the airdrop role in the jet-staking contract
-    if(await jetStakingV1.hasRole(airdropRole, deployer.address)) {
-        await jetStakingV1.connect(deployer).revokeRole(airdropRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${airdropRole} role in jet-staking contract`,
-        '... Dropped?',
-        await jetStakingV1.hasRole(airdropRole, jetStakingV1.address) ? false: true
-    )
-
-    // drop deployer address from the default admin role in the jet-staking contract
-    if(await jetStakingV1.hasRole(defaultAdminRole, deployer.address)) {
-        await jetStakingV1.connect(deployer).revokeRole(defaultAdminRole, deployer.address)
-        await new Promise(f => setTimeout(f, 1000));
-    }
-    console.log(
-        `Drop deployer address from ${defaultAdminRole} role in jet-staking contract`,
-        '... Dropped?',
-        await jetStakingV1.hasRole(defaultAdminRole, deployer.address) ? false: true
-    )
 }
 
 module.exports = func
