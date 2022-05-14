@@ -101,6 +101,20 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         await treasury.hasRole(treasuryDefaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
     )
 
+    const treasuryPauseRole = await treasury.PAUSE_ROLE()
+    if(!await treasury.hasRole(treasuryPauseRole, DEFAULT_ADMIN_ROLE_ADDRESS)) {
+        await treasury.connect(deployer).grantRole(treasuryPauseRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+        await new Promise(f => setTimeout(f, 1000));
+    }
+    console.log(
+        'Contract: ', 
+        'Treasury, ',
+        'ADDRESS: ', 
+        DEFAULT_ADMIN_ROLE_ADDRESS,
+        `Has a role (Pause role) ${treasuryPauseRole}? `,
+        await treasury.hasRole(treasuryPauseRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+    )
+
     // Deploy JetStakingV1.
     // ====================
     // TODO: SCHEDULE_PERIOD=7890000 // 3 months
@@ -240,7 +254,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     }
     console.log(
         'Contract: ', 
-        'JetStaking, ',
+        'Treasury, ',
         'ADDRESS: ', 
         jetStakingV1.address,
         `Has a role (Default admin role) ${treasuryDefaultAdminRole}? `,
