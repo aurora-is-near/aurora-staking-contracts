@@ -2,9 +2,9 @@ const hre = require("hardhat");
 
 async function main() {
   const STREAM_TOKEN_DECIMALS = 18
-  const STREAM_TOKEN_AMOUNT = hre.ethers.utils.parseUnits("100", STREAM_TOKEN_DECIMALS)
-  const STREAM_TOKEN_ADDRESS = "0x42Fe1195219bBD26a530c189624CB4B268527596"
-  const STREAM_ID = 3
+  const STREAM_TOKEN_AMOUNT = hre.ethers.utils.parseUnits("", STREAM_TOKEN_DECIMALS)
+  const STREAM_TOKEN_ADDRESS = ""
+  const STREAM_ID = 0
 
   // ^^^^^ TODO: Edit above parameters ^^^^^
   // =======================================
