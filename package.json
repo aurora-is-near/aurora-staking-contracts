@@ -18,6 +18,7 @@
     "proposeStreamPLY:auroraMainnet": "npx hardhat run --network auroraMainnet scripts/proposeStreamPLY.js",
     "proposeStreamTRI:auroraMainnet": "npx hardhat run --network auroraMainnet scripts/proposeStreamTRI.js",
     "proposeStreamBSTN:auroraMainnet": "npx hardhat run --network auroraMainnet scripts/proposeStreamBSTN.js",
+    "proposeStreamUSN:auroraMainnet": "npx hardhat run --network auroraMainnet scripts/proposeStreamUSN.js",
     "proposeStream:auroraTestnet": "npx hardhat run --network auroraTestnet scripts/proposeStream.js",
     "proposeStream:goerli": "npx hardhat run --network goerli scripts/proposeStream.js",
     "dropDeployerFromRoles:auroraMainnet": "npx hardhat run --network auroraMainnet scripts/dropDeployerFromRoles.js",
