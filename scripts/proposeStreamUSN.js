@@ -12,7 +12,7 @@ async function main() {
   const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME) : Math.floor(Date.now()/ 1000) + 60
   const STREAM_TOKEN_ADDRESS = "0x5183e1b1091804bc2602586919e6880ac1cf2896"
   const STREAM_TOKEN_DECIMALS = 18
-  const STREAM_OWNER = "" // TBD
+  const STREAM_OWNER = "0x290FF2b6Ea23F9c8D18F63449Cc38F8dDa02CE6d"
   const scheduleTimes = [
     startTime,
     startTime + parseInt(SCHEDULE_PERIOD)
