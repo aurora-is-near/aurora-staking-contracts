@@ -13,15 +13,15 @@ cp .env.example .env
 Update the `.env` file:
 
 ```bash
-INFURA_KEY= # only needed in case of 
+INFURA_KEY= # Goerli testing.
 ETHERSCAN_API_KEY= # Mainly is required in case of verifying the contracts on Etherscan
-PRIVATE_KEY= # the private key will be used as a deployer address, also it is used for the upgrade (if it has a default admin role)
+PRIVATE_KEY= # the private key will be used as a deployer address, for the upgrade (if it has a default admin role) and for stream management (if it is stream manager or stream owner).
 MNEMONIC= # This is an alternative for the private key (the deployer address is the first address)
 AURORA_API_KEY= # AURORA API KEY
 AURORA_TOKEN= # Aurora token address (not needed in case of testing)
 FLAGS=0 # pause flag 
-SCHEDULE_PERIOD=31556926 # one year in seconds
-TAU_PER_STREAM=2629746 # 1 month in seconds
+SCHEDULE_PERIOD=7890000 # 3 months in seconds, the duration of schedule periods.
+TAU_PER_STREAM=172800 # 2 days in seconds
 MIN_WEIGHT=256 # min weighting factor for streams
 MAX_WEIGHT=1024 # max weighting factor for streams
 AURORA_STREAM_OWNER= # AURORA stream owner (default first account)
@@ -47,10 +47,10 @@ yarn deploy:auroraMainnet # Aurora Mainnet
 Please update the following tables after the official mainnet deployment:
 
 The mainnet deployment: 
-| Contract Name                  |Contract Address           |
-| ---------------------- |:---------------------------------------:|
-| Treasury      | TBD |
-| JetStakingV1      | TBD     |
+| Contract Name          |Contract Address                            |
+| ---------------------- |:------------------------------------------:|
+| Treasury               | 0xF075c896CbbB625E7911E284cD23EE19bdCCf299 |
+| JetStakingV1           | 0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec |
 
 The mainnet admin keys:
 
@@ -92,3 +92,65 @@ PRIVATE_KEY= # the private key will be used for the deployment and the upgrade, 
 ```
 - Update the `contract proxy address` and the `new contract name` in `scripts/upgrade.js`. You can find them in the deployment logs.
 - Execute `yarn upgrade:<NETWORK>`
+
+## Proposing streams (Aurora Labs)
+
+- Make sure that the JetStakingV1.json staking contract deployment information is correct in ./deployments/auroraMainnet.
+- Provide environment variables:
+```bash
+#.env file
+PRIVATE_KEY= # The stream manager private key.
+SCHEDULE_PERIOD=7890000 # 3 months in seconds, the duration of schedule periods.
+SCHEDULE_START_TIME= # Time when rewards start being distributed, stream must be created before this time.
+AURORA_TOKEN= # Aurora token address.
+```
+- Review and edit stream parameters in ./scripts/proposeStream.js
+```bash
+STREAM_TOKEN_DECIMALS = # Token decimals of STREAM_TOKEN_ADDRESS.
+STREAM_TOKEN_ADDRESS = # Ecosystem token being streamed.
+STREAM_AURORA_AMOUNT = # Rewards for the stream owner (ecosystem project).
+STREAM_OWNER = # Stream owner address which will be able to deposit STREAM_TOKEN_ADDRESS tokens to create the stream.
+scheduleRewards = # STREAM_TOKEN_ADDRESS token rewards distribution schedule.
+MAX_DEPOSIT_AMOUNT = # Maximum amount of STREAM_TOKEN_ADDRESS tokens allowed for streaming.
+MIN_DEPOSIT_AMOUNT = # Minimum amount of STREAM_TOKEN_ADDRESS tokens allowed for streaming. Usually MAX_DEPOSIT_AMOUNT / 2.
+```
+Warning: Stream proposals must be created very carefully to avoid unused streams in the staking contract storage.
+- Execute the script.
+```bash
+yarn proposeStream:auroraMainnet
+```
+
+## Viewing all streams
+```bash
+yarn viewStream:auroraMainnet
+```
+
+## Creating streams (ecosystem projects)
+
+Only stream owners (ecosystem projects) can create streams which have been proposed by depositing tokens.
+- Provide PRIVATE_KEY environment variable:
+```bash
+#.env file
+PRIVATE_KEY= # The stream owner private key controlling the STREAM_OWNER address used during stream proposal.
+```
+
+- Review and edit stream parameters in ./scripts/createStream.js
+```bash
+STREAM_TOKEN_AMOUNT = # Total amount of tokens distributed per the schedule. Must match the amount registered in the proposal.
+STREAM_TOKEN_ADDRESS = # Ecosystem token being streamed.
+STREAM_TOKEN_DECIMALS = # Token decimals of STREAM_TOKEN_ADDRESS.
+STREAM_ID = # The id of the stream defined by the stream proposal.
+```
+
+- Fund the stream owner address (PRIVATE_KEY) with STREAM_TOKEN_AMOUNT or tokens to be transferred to the stream.
+
+- Execute the script.
+```bash
+yarn createStream:auroraMainnet
+```
+or use the pre-filled values after careful review:
+```bash
+yarn createStreamPLY:auroraMainnet
+yarn createStreamTRI:auroraMainnet
+yarn createStreamBSTN:auroraMainnet
+```
