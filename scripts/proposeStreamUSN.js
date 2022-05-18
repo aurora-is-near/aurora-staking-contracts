@@ -7,29 +7,24 @@ async function main() {
     SCHEDULE_START_TIME,
     AURORA_TOKEN,
   } = process.env
-  const STREAM_AURORA_AMOUNT = hre.ethers.utils.parseUnits("100", 18)
-  const auroraAddress = AURORA_TOKEN ? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address
+  const STREAM_AURORA_AMOUNT = hre.ethers.utils.parseUnits("0", 18) // zero arora reward for the USN stream
+  // const auroraAddress = AURORA_TOKEN ? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address
   const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME) : Math.floor(Date.now()/ 1000) + 60
-  const STREAM_TOKEN_ADDRESS = ""
+  const STREAM_TOKEN_ADDRESS = "0x5183e1b1091804bc2602586919e6880ac1cf2896"
   const STREAM_TOKEN_DECIMALS = 18
-  const STREAM_OWNER = ""
+  const STREAM_OWNER = "0x290FF2b6Ea23F9c8D18F63449Cc38F8dDa02CE6d"
   const scheduleTimes = [
     startTime,
-    startTime + parseInt(SCHEDULE_PERIOD),
-    startTime + 2 * parseInt(SCHEDULE_PERIOD),
-    startTime + 3 * parseInt(SCHEDULE_PERIOD),
-    startTime + 4 * parseInt(SCHEDULE_PERIOD)
+    startTime + parseInt(SCHEDULE_PERIOD)
   ]
   const scheduleRewards = [
-    hre.ethers.utils.parseUnits("6000000", STREAM_TOKEN_DECIMALS),// 900k
-    hre.ethers.utils.parseUnits("5100000", STREAM_TOKEN_DECIMALS), // 1.2M
-    hre.ethers.utils.parseUnits("3900000", STREAM_TOKEN_DECIMALS), // 1.8M
-    hre.ethers.utils.parseUnits("2100000", STREAM_TOKEN_DECIMALS), // 2.1M
+    hre.ethers.utils.parseUnits("1800000", STREAM_TOKEN_DECIMALS), // 100%
     // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
     hre.ethers.utils.parseUnits("0", STREAM_TOKEN_DECIMALS), // 0M
   ]
+
   const MAX_DEPOSIT_AMOUNT = scheduleRewards[0]
-  const MIN_DEPOSIT_AMOUNT = scheduleRewards[0] // or something less
+  const MIN_DEPOSIT_AMOUNT = scheduleRewards[0].div(2) // or something less
 
   const [ streamManager ] = await hre.ethers.getSigners()
 
@@ -42,14 +37,16 @@ async function main() {
   // ^^^^^ TODO: Edit above parameters ^^^^^
   // =======================================
 
-  const auroraToken = new hre.ethers.Contract(
-    auroraAddress,
-    ["function approve(address spender, uint value)"],
-    streamManager
-  )
-  const approvalTx = await auroraToken.approve(jetStakingV1.address, STREAM_AURORA_AMOUNT)
-  console.log("Approving AURORA: ", approvalTx.hash)
-  await approvalTx.wait()
+  // FOR this stream we don't have approval for AURORA rewards
+
+  // const auroraToken = new hre.ethers.Contract(
+  //   auroraAddress,
+  //   ["function approve(address spender, uint value)"],
+  //   streamManager
+  // )
+  // const approvalTx = await auroraToken.approve(jetStakingV1.address, STREAM_AURORA_AMOUNT)
+  // console.log("Approving AURORA: ", approvalTx.hash)
+  // await approvalTx.wait()
 
   const proposalTx = await jetStakingV1.proposeStream(
     STREAM_OWNER,
