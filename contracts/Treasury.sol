@@ -45,6 +45,7 @@ contract Treasury is ITreasury, AdminControlled {
         for (uint256 i = 0; i < _supportedTokens.length; i++) {
             require(_supportedTokens[i] != address(0), "INVALID_TOKEN_ADDRESS");
             isSupportedToken[_supportedTokens[i]] = true;
+            emit TokenAdded(_supportedTokens[i], msg.sender, block.timestamp);
         }
         __AdminControlled_init(_flags);
         _grantRole(TREASURY_MANAGER_ROLE, msg.sender);
