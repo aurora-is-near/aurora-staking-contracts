@@ -1,4 +1,5 @@
 import { expect, use } from "chai";
+import { assert } from "console";
 import { ethers, network, deployments, upgrades } from "hardhat";
 import * as constants from './constants'
 import { getEventLogs } from "./testHelper";
@@ -2601,5 +2602,57 @@ describe("JetStakingV1", function () {
         console.log(`user 1 reward: ${user1Rewards.toFixed(19)}`)
         console.log(`user 2 reward: ${user2Rewards.toFixed(19)}`)
 
+    })
+    it('should return zero reward if user stake and unstake in the same block', async () => {
+        // init the staking contract and the streams
+        const id = 1
+        // approve aurora tokens to the stream proposal
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
+        // propose a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime, 
+            startTime + oneYear, 
+            startTime + 2 * oneYear, 
+            startTime + 3 * oneYear, 
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        // approve reward tokens
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        // create a stream
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        const amount = ethers.utils.parseUnits("10", 18)
+        await auroraToken.connect(user5).approve(jet.address, amount)
+        await network.provider.send("evm_setAutomine", [false])
+        // User stakes and unstake in the same block
+        await jet.connect(user5).stake(amount)
+        await jet.connect(user5).unstakeAll()
+        await network.provider.send("evm_mine")
+        await network.provider.send("evm_setAutomine", [true])
+        console.log(
+            `Pending value for user 5 @ stream Id 0:`, 
+            await jet.getPending(0, user5.address)
+        )
+
+        console.log(
+            `Pending value for user 5 @ stream Id ${id}: `, 
+            await jet.getPending(id, user5.address)
+        )
+        expect(await jet.getPending(0, user5.address)).to.be.eq(amount)
+        expect(await jet.getPending(id, user5.address)).to.be.eq(0)
+       
     })
 });
