@@ -31,7 +31,7 @@ describe("JetStakingV1", function () {
     before(async () => {
         // deploys all the contracts
         [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5, spender, streamOwner, streamManager] = await ethers.getSigners()
-        const supply = ethers.utils.parseUnits("10000000000", 18)
+        const supply = ethers.utils.parseUnits("1000000000", 18) // 1B token
         oneDay = 86400
         const Token = await ethers.getContractFactory("Token")
         auroraToken = await Token.connect(auroraOwner).deploy(supply, "AuroraToken", "AURORA")
@@ -1778,6 +1778,13 @@ describe("JetStakingV1", function () {
         const streamCount = 20
         console.log("====================================================")
         console.log("Deploying", streamCount, "streams...")
+        const scheduleRewards = [
+            ethers.utils.parseUnits("20000000", 18), // 10M
+            ethers.utils.parseUnits("10000000", 18), // 5M 
+            ethers.utils.parseUnits("5000000", 18),  // 2.5M
+            ethers.utils.parseUnits("2500000", 18),  // 2.5M
+            ethers.utils.parseUnits("0", 18),  // 0
+        ]
         for (let id = 1; id <= streamCount; id++) {
             // approve aurora tokens to the stream proposal
             const auroraProposalAmountForAStream = ethers.utils.parseUnits("10", 18)
@@ -2634,7 +2641,22 @@ describe("JetStakingV1", function () {
         await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
         // create a stream
         await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
-        const amount = ethers.utils.parseUnits("10", 18)
+        const user1Amount = ethers.utils.parseUnits("1", 2) // a very small fraction of a token
+        const amount = await auroraToken.balanceOf(user5.address)
+        // user 1 stake 10 AURORA
+        await auroraToken.connect(user4).approve(jet.address, user1Amount)
+        await jet.connect(user4).stake(user1Amount)
+        await auroraToken.connect(user3).approve(jet.address, user1Amount)
+        await jet.connect(user3).stake(user1Amount)
+        await auroraToken.connect(user4).approve(jet.address, user1Amount)
+        await jet.connect(user4).stake(user1Amount)
+        await auroraToken.connect(user2).approve(jet.address, user1Amount)
+        await jet.connect(user2).stake(user1Amount)
+        await auroraToken.connect(user1).approve(jet.address, user1Amount)
+        await jet.connect(user1).stake(user1Amount)
+        await network.provider.send("evm_increaseTime", [1])
+        await network.provider.send("evm_mine")
+        // user 2 stake and unstake in the same block
         await auroraToken.connect(user5).approve(jet.address, amount)
         await network.provider.send("evm_setAutomine", [false])
         // User stakes and unstake in the same block
@@ -2644,14 +2666,18 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_setAutomine", [true])
         console.log(
             `Pending value for user 5 @ stream Id 0:`, 
-            await jet.getPending(0, user5.address)
+            ethers.utils.formatUnits(await jet.getPending(0, user5.address), 9),
+            'Actual amount is: ',
+            amount
         )
 
         console.log(
             `Pending value for user 5 @ stream Id ${id}: `, 
-            await jet.getPending(id, user5.address)
+            ethers.utils.formatUnits(await jet.getPending(id, user5.address), 9)
         )
-        expect(await jet.getPending(0, user5.address)).to.be.eq(amount)
+        // dust tokens are generated up to 1^-9 AURORA token
+        const user2PendingAmount = ethers.utils.formatUnits(await jet.getPending(0, user5.address), 11)
+        expect(parseInt(user2PendingAmount)).to.be.eq(parseInt(ethers.utils.formatUnits(amount, 11)))
         expect(await jet.getPending(id, user5.address)).to.be.eq(0)
        
     })
