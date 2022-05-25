@@ -2600,6 +2600,56 @@ describe("JetStakingV1", function () {
         user2Rewards = parseFloat(user2BalanceAfter) - parseFloat(user2BalanceBefore)
         console.log(`user 1 reward: ${user1Rewards.toFixed(19)}`)
         console.log(`user 2 reward: ${user2Rewards.toFixed(19)}`)
+    })
+    it('should return dust AURORA and zero reward if user stakes and unstakes in the same block', async () => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
 
+        // User1 stakes which starts rewards distribution.
+        const amount = ethers.utils.parseUnits("10000", 18)
+        await network.provider.send("evm_setAutomine", [false])
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        await auroraToken.connect(user2).approve(jet.address, amount)
+        // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
+        // by a dust value lower than 1 share's value.
+        await jet.connect(user2).stake(amount)
+        await jet.connect(user2).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + 2 * oneYear])
+        await network.provider.send("evm_setAutomine", [true])
+
+        const user1Shares = amount
+        // Calculate user2 shares and round up.
+        const user2Shares = amount.mul(user1Shares).div(amount.add(scheduleRewards[1].sub(scheduleRewards[2]))).add(1)
+        const totalShares = user2Shares.add(user1Shares)
+        const totalSharesValue = amount.mul(2).add(scheduleRewards[1].sub(scheduleRewards[2]))
+        const oneShareValue = totalSharesValue.div(totalShares)
+        expect(await jet.getPending(id, user2.address)).to.be.eq(0)
+        const user2UnstakedAmount = await jet.getPending(0, user2.address)
+        expect(user2UnstakedAmount).to.be.lt(amount.add(oneShareValue))
+        expect(user2UnstakedAmount).to.be.gt(amount)
     })
 });
