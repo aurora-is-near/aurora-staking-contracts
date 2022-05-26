@@ -138,6 +138,52 @@ contract JetStakingV1 is AdminControlled {
         _;
     }
 
+    modifier _validateStreamParameters(
+        address streamOwner,
+        address rewardToken,
+        uint256 maxDepositAmount,
+        uint256 minDepositAmount,
+        uint256[] memory scheduleTimes,
+        uint256[] memory scheduleRewards,
+        uint256 tau
+    ) {
+        require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
+        require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
+        require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
+        require(minDepositAmount > 0, "ZERO_MIN_DEPOSIT");
+        require(minDepositAmount <= maxDepositAmount, "INVALID_MIN_DEPOSIT");
+        require(
+            maxDepositAmount == scheduleRewards[0],
+            "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE"
+        );
+        // scheduleTimes[0] == proposal expiration time
+        require(
+            scheduleTimes[0] > block.timestamp,
+            "INVALID_STREAM_EXPIRATION_DATE"
+        );
+        require(
+            scheduleTimes.length == scheduleRewards.length,
+            "INVALID_SCHEDULE_VALUES"
+        );
+        require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
+        require(tau != 0, "INVALID_TAU_PERIOD");
+        for (uint256 i = 1; i < scheduleTimes.length; i++) {
+            require(
+                scheduleTimes[i] > scheduleTimes[i - 1],
+                "INVALID_SCHEDULE_TIMES"
+            );
+            require(
+                scheduleRewards[i] <= scheduleRewards[i - 1],
+                "INVALID_SCHEDULE_REWARDS"
+            );
+        }
+        require(
+            scheduleRewards[scheduleRewards.length - 1] == 0,
+            "INVALID_SCHEDULE_END_REWARD"
+        );
+        _;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
 
@@ -163,9 +209,9 @@ contract JetStakingV1 is AdminControlled {
         address _treasury,
         uint256 _maxWeight,
         uint256 _minWeight
-    ) external initializer {
-        require(_maxWeight > _minWeight, "INVALID_WEIGHTS");
-        require(_treasury != address(0), "INVALID_ADDRESS");
+    )
+        external
+        initializer
         _validateStreamParameters(
             streamOwner,
             aurora,
@@ -174,7 +220,10 @@ contract JetStakingV1 is AdminControlled {
             scheduleTimes,
             scheduleRewards,
             tauAuroraStream
-        );
+        )
+    {
+        require(_maxWeight > _minWeight, "INVALID_WEIGHTS");
+        require(_treasury != address(0), "INVALID_ADDRESS");
         // check aurora token address is supportedToken in the treasury
         require(
             ITreasury(_treasury).isSupportedToken(aurora),
@@ -250,7 +299,9 @@ contract JetStakingV1 is AdminControlled {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tau
-    ) external onlyRole(STREAM_MANAGER_ROLE) {
+    )
+        external
+        onlyRole(STREAM_MANAGER_ROLE)
         _validateStreamParameters(
             streamOwner,
             rewardToken,
@@ -259,7 +310,8 @@ contract JetStakingV1 is AdminControlled {
             scheduleTimes,
             scheduleRewards,
             tau
-        );
+        )
+    {
         // check aurora token address is supportedToken in the treasury
         require(
             ITreasury(treasury).isSupportedToken(rewardToken),
@@ -1157,59 +1209,6 @@ contract JetStakingV1 is AdminControlled {
         if (amountToRestake > 0) {
             _stake(msg.sender, amountToRestake);
         }
-    }
-
-    /// @dev validates the stream parameters prior proposing it.
-    /// @param streamOwner stream owner address
-    /// @param rewardToken stream reward token address
-    /// @param maxDepositAmount the max reward token deposit
-    /// @param minDepositAmount the min reward token deposit
-    /// @param scheduleTimes the stream schedule time list
-    /// @param scheduleRewards the stream schedule reward list
-    /// @param tau the tau is (pending release period) for this stream (e.g one day)
-    function _validateStreamParameters(
-        address streamOwner,
-        address rewardToken,
-        uint256 maxDepositAmount,
-        uint256 minDepositAmount,
-        uint256[] memory scheduleTimes,
-        uint256[] memory scheduleRewards,
-        uint256 tau
-    ) internal view {
-        require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
-        require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
-        require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
-        require(minDepositAmount > 0, "ZERO_MIN_DEPOSIT");
-        require(minDepositAmount <= maxDepositAmount, "INVALID_MIN_DEPOSIT");
-        require(
-            maxDepositAmount == scheduleRewards[0],
-            "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE"
-        );
-        // scheduleTimes[0] == proposal expiration time
-        require(
-            scheduleTimes[0] > block.timestamp,
-            "INVALID_STREAM_EXPIRATION_DATE"
-        );
-        require(
-            scheduleTimes.length == scheduleRewards.length,
-            "INVALID_SCHEDULE_VALUES"
-        );
-        require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
-        require(tau != 0, "INVALID_TAU_PERIOD");
-        for (uint256 i = 1; i < scheduleTimes.length; i++) {
-            require(
-                scheduleTimes[i] > scheduleTimes[i - 1],
-                "INVALID_SCHEDULE_TIMES"
-            );
-            require(
-                scheduleRewards[i] <= scheduleRewards[i - 1],
-                "INVALID_SCHEDULE_REWARDS"
-            );
-        }
-        require(
-            scheduleRewards[scheduleRewards.length - 1] == 0,
-            "INVALID_SCHEDULE_END_REWARD"
-        );
     }
 
     /// @dev updates the stream reward schedule if the reward token amount is less than
