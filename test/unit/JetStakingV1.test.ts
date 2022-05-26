@@ -2685,7 +2685,6 @@ describe("JetStakingV1", function () {
         await jet.connect(user1).stake(amount)
         await network.provider.send("evm_mine", [startTime + oneYear])
         await auroraToken.connect(user2).approve(jet.address, amount)
-        await network.provider.send("evm_setAutomine", [false])
         // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
         // by a dust value lower than 1 share's value.
         await jet.connect(user2).stake(amount)
@@ -2744,7 +2743,6 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_mine", [startTime + oneYear])
         // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
         // by a dust value lower than 1 share's value.
-        await network.provider.send("evm_setAutomine", [false])
         const user2Amount = ethers.utils.parseUnits("2", 18) // 2 AURORA
         await auroraToken.connect(user2).approve(jet.address, user2Amount)
         await jet.connect(user2).stake(user2Amount)
@@ -2803,7 +2801,6 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_mine", [startTime + oneYear])
         // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
         // by a dust value lower than 1 share's value.
-        await network.provider.send("evm_setAutomine", [false])
         const user2Amount = ethers.utils.parseUnits("0.5", 18) // 0.5 AURORA
         await auroraToken.connect(user2).approve(jet.address, user2Amount)
         await jet.connect(user2).stake(user2Amount)
@@ -2862,7 +2859,6 @@ describe("JetStakingV1", function () {
         await network.provider.send("evm_mine", [startTime + oneYear])
         // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
         // by a dust value lower than 1 share's value.
-        await network.provider.send("evm_setAutomine", [false])
         const user2Amount = ethers.utils.parseUnits("5", 2) // 5 * 10^-16 AURORA
         await auroraToken.connect(user2).approve(jet.address, user2Amount)
         await jet.connect(user2).stake(user2Amount)
