@@ -780,6 +780,14 @@ contract JetStakingV1 is AdminControlled {
     /// @dev unstake all the user's shares
     function unstakeAll() external pausable(1) onlyValidSharesAmount {
         _before();
+        User storage userAccount = users[msg.sender];
+        uint256 streamsLength = streams.length;
+        for (uint256 i = 1; i < streamsLength; i++) {
+            require(
+                block.timestamp < userAccount.releaseTime[i],
+                "UNCLAIMED_REWARDS"
+            );
+        }
         uint256 stakeValue = (totalAmountOfStakedAurora *
             users[msg.sender].auroraShares) / totalAuroraShares;
         _unstake(stakeValue, stakeValue);
@@ -1126,6 +1134,10 @@ contract JetStakingV1 is AdminControlled {
         uint256 streamsLength = streams.length;
         for (uint256 i = 1; i < streamsLength; i++) {
             userAccount.rpsDuringLastClaim[i] = streams[i].rps; // The new shares should not claim old rewards
+            require(
+                block.timestamp < userAccount.releaseTime[i],
+                "UNCLAIMED_REWARDS"
+            );
         }
         emit Staked(account, amount, _amountOfShares);
     }
