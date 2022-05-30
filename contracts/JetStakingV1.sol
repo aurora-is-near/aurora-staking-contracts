@@ -1187,8 +1187,9 @@ contract JetStakingV1 is AdminControlled {
         );
         // scheduleTimes[0] == proposal expiration time
         require(
-            scheduleTimes[0] > block.timestamp,
-            "INVALID_STREAM_EXPIRATION_DATE"
+            scheduleTimes[0] >
+                block.timestamp + minStartScheduleTimestampPeriod,
+            "INVALID_STREAM_PROPOSAL_EXPIRATION_DATE"
         );
         require(
             scheduleTimes.length == scheduleRewards.length,
@@ -1243,5 +1244,16 @@ contract JetStakingV1 is AdminControlled {
             streams[streamId].rewardToken,
             pendingAmount
         );
+    }
+
+    uint256 minStartScheduleTimestampPeriod;
+
+    /// @dev update the minimum period of time between current timestamp and the start of schedule
+    /// called only stream manager role
+    /// @param _minStartScheduleTimestampPeriod a minimum period value
+    function updateMinStartScheduleTimestampPeriod(
+        uint256 _minStartScheduleTimestampPeriod
+    ) public onlyRole(STREAM_MANAGER_ROLE) {
+        minStartScheduleTimestampPeriod = _minStartScheduleTimestampPeriod;
     }
 }

@@ -2883,4 +2883,65 @@ describe("JetStakingV1", function () {
         expect(user2UnstakedAmount).to.be.lt(user2Amount.add(oneShareValue))
         expect(user2UnstakedAmount).to.be.gt(user2Amount)
     })
+    it('should only stream manager update the minimum period of time between current timestamp and the start of schedule', async () => {
+        const minStartScheduleTimestampPeriod = 7200 // 2 hours
+        await expect(
+            jet.connect(user5) // non-stream manager
+            .updateMinStartScheduleTimestampPeriod(
+                minStartScheduleTimestampPeriod
+            )
+        ).to.be.reverted
+
+        await jet.connect(streamManager)
+        .updateMinStartScheduleTimestampPeriod(
+            minStartScheduleTimestampPeriod
+        )
+
+        let id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + minStartScheduleTimestampPeriod + 2 // > block.timestamp + minPeriod
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        id = 2
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + minStartScheduleTimestampPeriod // = block.timestamp + minPeriod
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+
+        await expect(
+            jet.connect(streamManager).proposeStream(
+                user1.address,
+                streamToken1.address,
+                auroraProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                scheduleTimes,
+                scheduleRewards,
+                tauPerStream
+            )
+        ).to.be.revertedWith(
+            'INVALID_STREAM_PROPOSAL_EXPIRATION_DATE'
+        )
+    })
 });
