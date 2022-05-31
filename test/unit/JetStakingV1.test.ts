@@ -2883,4 +2883,31 @@ describe("JetStakingV1", function () {
         expect(user2UnstakedAmount).to.be.lt(user2Amount.add(oneShareValue))
         expect(user2UnstakedAmount).to.be.gt(user2Amount)
     })
+    it('should not let tau period be more than one month', async() => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        tauPerStream = 31 * oneDay
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await expect(
+                jet.connect(streamManager).proposeStream(
+                user1.address,
+                streamToken1.address,
+                auroraProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                scheduleTimes,
+                scheduleRewards,
+                tauPerStream
+            )
+        ).to.be.revertedWith("INVALID_TAU_PERIOD")
+    })
 });
