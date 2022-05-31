@@ -81,6 +81,8 @@ contract JetStakingV1 is AdminControlled {
     mapping(address => User) public users;
     Stream[] streams;
 
+    uint256 streamStartBuffer;
+
     // events
     event Staked(address indexed user, uint256 amount, uint256 shares);
 
@@ -1187,8 +1189,8 @@ contract JetStakingV1 is AdminControlled {
         );
         // scheduleTimes[0] == proposal expiration time
         require(
-            scheduleTimes[0] > block.timestamp,
-            "INVALID_STREAM_EXPIRATION_DATE"
+            scheduleTimes[0] > block.timestamp + streamStartBuffer,
+            "INVALID_STREAM_PROPOSAL_EXPIRATION_DATE"
         );
         require(
             scheduleTimes.length == scheduleRewards.length,
@@ -1243,5 +1245,15 @@ contract JetStakingV1 is AdminControlled {
             streams[streamId].rewardToken,
             pendingAmount
         );
+    }
+
+    /// @dev update the minimum period of time between current timestamp and the start of schedule
+    /// called only stream manager role
+    /// @param _streamStartBuffer a minimum period value
+    function updateStreamStartBuffer(uint256 _streamStartBuffer)
+        public
+        onlyRole(STREAM_MANAGER_ROLE)
+    {
+        streamStartBuffer = _streamStartBuffer;
     }
 }
