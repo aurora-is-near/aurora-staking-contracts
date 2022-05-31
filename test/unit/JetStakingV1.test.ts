@@ -2884,24 +2884,24 @@ describe("JetStakingV1", function () {
         expect(user2UnstakedAmount).to.be.gt(user2Amount)
     })
     it('should only stream manager update the minimum period of time between current timestamp and the start of schedule', async () => {
-        const minStartScheduleTimestampPeriod = 7200 // 2 hours
+        const streamStartBuffer = 7200 // 2 hours
         await expect(
             jet.connect(user5) // non-stream manager
-            .updateMinStartScheduleTimestampPeriod(
-                minStartScheduleTimestampPeriod
+            .updateStreamStartBuffer(
+                streamStartBuffer
             )
         ).to.be.reverted
 
         await jet.connect(streamManager)
-        .updateMinStartScheduleTimestampPeriod(
-            minStartScheduleTimestampPeriod
+        .updateStreamStartBuffer(
+            streamStartBuffer
         )
 
         let id = 1
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
         // Propose and create a stream
-        startTime = (await ethers.provider.getBlock("latest")).timestamp + minStartScheduleTimestampPeriod + 2 // > block.timestamp + minPeriod
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + streamStartBuffer + 2 // > block.timestamp + minPeriod
         scheduleTimes = [
             startTime,
             startTime + oneYear,
@@ -2920,7 +2920,7 @@ describe("JetStakingV1", function () {
             tauPerStream
         )
         id = 2
-        startTime = (await ethers.provider.getBlock("latest")).timestamp + minStartScheduleTimestampPeriod // = block.timestamp + minPeriod
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + streamStartBuffer // = block.timestamp + minPeriod
         scheduleTimes = [
             startTime,
             startTime + oneYear,
