@@ -1197,7 +1197,7 @@ contract JetStakingV1 is AdminControlled {
             "INVALID_SCHEDULE_VALUES"
         );
         require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
-        require(tau != 0, "INVALID_TAU_PERIOD");
+        require(tau != 0 && tau < ONE_MONTH, "INVALID_TAU_PERIOD");
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1],
