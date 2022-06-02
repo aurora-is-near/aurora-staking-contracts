@@ -2600,6 +2600,375 @@ describe("JetStakingV1", function () {
         user2Rewards = parseFloat(user2BalanceAfter) - parseFloat(user2BalanceBefore)
         console.log(`user 1 reward: ${user1Rewards.toFixed(19)}`)
         console.log(`user 2 reward: ${user2Rewards.toFixed(19)}`)
+    })
+    it('should return dust AURORA and zero reward if user stakes and unstakes in the same block', async () => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
 
+        // User1 stakes which starts rewards distribution.
+        const amount = ethers.utils.parseUnits("10000", 18)
+        await network.provider.send("evm_setAutomine", [false])
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        await auroraToken.connect(user2).approve(jet.address, amount)
+        // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
+        // by a dust value lower than 1 share's value.
+        await jet.connect(user2).stake(amount)
+        await jet.connect(user2).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + 2 * oneYear])
+        await network.provider.send("evm_setAutomine", [true])
+
+        const user1Shares = amount
+        // Calculate user2 shares and round up.
+        const user2Shares = amount.mul(user1Shares).div(amount.add(scheduleRewards[1].sub(scheduleRewards[2]))).add(1)
+        const totalShares = user2Shares.add(user1Shares)
+        const totalSharesValue = amount.mul(2).add(scheduleRewards[1].sub(scheduleRewards[2]))
+        const oneShareValue = totalSharesValue.div(totalShares)
+        expect(await jet.getPending(id, user2.address)).to.be.eq(0)
+        const user2UnstakedAmount = await jet.getPending(0, user2.address)
+        expect(user2UnstakedAmount).to.be.lt(amount.add(oneShareValue))
+        expect(user2UnstakedAmount).to.be.gt(amount)
+    })
+    it('should return a big AURORA reward only if user stakes (very small fraction of AURORA) & unstakes (in the same block) where the total staked AURORA is very small 1^-16 AURORA', async () => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+
+        // User1 stakes which starts rewards distribution.
+        const amount = ethers.utils.parseUnits("1", 2)
+        await network.provider.send("evm_setAutomine", [false])
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        await auroraToken.connect(user2).approve(jet.address, amount)
+        // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
+        // by a dust value lower than 1 share's value.
+        await jet.connect(user2).stake(amount)
+        await jet.connect(user2).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + 2 * oneYear])
+        await network.provider.send("evm_setAutomine", [true])
+
+        const user1Shares = amount
+        // Calculate user2 shares and round up.
+        const user2Shares = amount.mul(user1Shares).div(amount.add(scheduleRewards[1].sub(scheduleRewards[2]))).add(1)
+        console.log(`user 1 staked amount: ${ethers.utils.formatEther(amount)} AURORA`)
+        console.log(`user 2 staked amount: ${ethers.utils.formatEther(amount)} AURORA`)
+        console.log(`User 1 shares ${user1Shares} and User 2 shares is ${user2Shares}`)
+        const totalShares = user2Shares.add(user1Shares)
+        console.log(`total shares are: ${totalShares}`)
+        const totalSharesValue = amount.mul(2).add(scheduleRewards[1].sub(scheduleRewards[2]))
+        const oneShareValue = totalSharesValue.div(totalShares)
+        expect(await jet.getPending(id, user2.address)).to.be.eq(0)
+        const user2UnstakedAmount = await jet.getPending(0, user2.address)
+        console.log(`user2UnstakedAmount : ${ethers.utils.formatEther(user2UnstakedAmount)} AURORA `)
+        console.log(`oneShareValue: ${ethers.utils.formatEther(oneShareValue)} AURORA`)
+        expect(user2UnstakedAmount).to.be.lt(amount.add(oneShareValue))
+        expect(user2UnstakedAmount).to.be.gt(amount)
+    })
+    it('should return dust AURORA and zero reward if user 2 (stakes & unstake) 200% of the total staked aurora', async () => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+
+        // User1 stakes which starts rewards distribution.
+        const amount = ethers.utils.parseUnits("1", 18) // 1 AURORA 
+        await network.provider.send("evm_setAutomine", [false])
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
+        // by a dust value lower than 1 share's value.
+        const user2Amount = ethers.utils.parseUnits("2", 18) // 2 AURORA
+        await auroraToken.connect(user2).approve(jet.address, user2Amount)
+        await jet.connect(user2).stake(user2Amount)
+        await jet.connect(user2).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + 2 * oneYear])
+        await network.provider.send("evm_setAutomine", [true])
+
+        const user1Shares = amount
+        // Calculate user2 shares and round up.
+        const user2Shares = user2Amount.mul(user1Shares).div(amount.add(scheduleRewards[1].sub(scheduleRewards[2]))).add(1)
+        console.log(`user 1 staked amount: ${ethers.utils.formatEther(amount)} AURORA`)
+        console.log(`user 2 staked amount: ${ethers.utils.formatEther(user2Amount)} AURORA`)
+        console.log(`User 1 shares ${user1Shares} and User 2 shares is ${user2Shares}`)
+        const totalShares = user2Shares.add(user1Shares)
+        console.log(`total shares are: ${totalShares}`)
+        const totalSharesValue = amount.mul(2).add(scheduleRewards[1].sub(scheduleRewards[2]))
+        const oneShareValue = totalSharesValue.div(totalShares)
+        expect(await jet.getPending(id, user2.address)).to.be.eq(0)
+        const user2UnstakedAmount = await jet.getPending(0, user2.address)
+        console.log(`user2UnstakedAmount : ${ethers.utils.formatEther(user2UnstakedAmount)} AURORA `)
+        console.log(`oneShareValue: ${ethers.utils.formatEther(oneShareValue)} AURORA`)
+        expect(user2UnstakedAmount).to.be.lt(user2Amount.add(oneShareValue))
+        expect(user2UnstakedAmount).to.be.gt(user2Amount)
+    })
+    it('should return dust AURORA and zero reward if user 2 (stakes & unstake) 50% of the total staked aurora', async () => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+
+        // User1 stakes which starts rewards distribution.
+        const amount = ethers.utils.parseUnits("1", 18) // 1 AURORA 
+        await network.provider.send("evm_setAutomine", [false])
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
+        // by a dust value lower than 1 share's value.
+        const user2Amount = ethers.utils.parseUnits("0.5", 18) // 0.5 AURORA
+        await auroraToken.connect(user2).approve(jet.address, user2Amount)
+        await jet.connect(user2).stake(user2Amount)
+        await jet.connect(user2).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + 2 * oneYear])
+        await network.provider.send("evm_setAutomine", [true])
+
+        const user1Shares = amount
+        // Calculate user2 shares and round up.
+        const user2Shares = user2Amount.mul(user1Shares).div(amount.add(scheduleRewards[1].sub(scheduleRewards[2]))).add(1)
+        console.log(`user 1 staked amount: ${ethers.utils.formatEther(amount)} AURORA`)
+        console.log(`user 2 staked amount: ${ethers.utils.formatEther(user2Amount)} AURORA`)
+        console.log(`User 1 shares ${user1Shares} and User 2 shares is ${user2Shares}`)
+        const totalShares = user2Shares.add(user1Shares)
+        console.log(`total shares are: ${totalShares}`)
+        const totalSharesValue = amount.mul(2).add(scheduleRewards[1].sub(scheduleRewards[2]))
+        const oneShareValue = totalSharesValue.div(totalShares)
+        expect(await jet.getPending(id, user2.address)).to.be.eq(0)
+        const user2UnstakedAmount = await jet.getPending(0, user2.address)
+        console.log(`user2UnstakedAmount : ${ethers.utils.formatEther(user2UnstakedAmount)} AURORA `)
+        console.log(`oneShareValue: ${ethers.utils.formatEther(oneShareValue)} AURORA`)
+        expect(user2UnstakedAmount).to.be.lt(user2Amount.add(oneShareValue))
+        expect(user2UnstakedAmount).to.be.gt(user2Amount)
+    })
+    it('should return dust AURORA and zero reward if user 2 (stakes & unstake) very small fraction of the total staked aurora', async () => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+
+        // User1 stakes which starts rewards distribution.
+        const amount = ethers.utils.parseUnits("1", 18) // 1 AURORA 
+        await network.provider.send("evm_setAutomine", [false])
+        await auroraToken.connect(user1).approve(jet.address, amount)
+        await jet.connect(user1).stake(amount)
+        await network.provider.send("evm_mine", [startTime + oneYear])
+        // User2 stakes and unstakes in the same block: rounding up of shares increases the unstaked amount
+        // by a dust value lower than 1 share's value.
+        const user2Amount = ethers.utils.parseUnits("5", 2) // 5 * 10^-16 AURORA
+        await auroraToken.connect(user2).approve(jet.address, user2Amount)
+        await jet.connect(user2).stake(user2Amount)
+        await jet.connect(user2).unstakeAll()
+        await network.provider.send("evm_mine", [startTime + 2 * oneYear])
+        await network.provider.send("evm_setAutomine", [true])
+
+        const user1Shares = amount
+        // Calculate user2 shares and round up.
+        const user2Shares = user2Amount.mul(user1Shares).div(amount.add(scheduleRewards[1].sub(scheduleRewards[2]))).add(1)
+        console.log(`user 1 staked amount: ${ethers.utils.formatEther(amount)} AURORA`)
+        console.log(`user 2 staked amount: ${ethers.utils.formatEther(user2Amount)} AURORA`)
+        console.log(`User 1 shares ${user1Shares} and User 2 shares is ${user2Shares}`)
+        const totalShares = user2Shares.add(user1Shares)
+        console.log(`total shares are: ${totalShares}`)
+        const totalSharesValue = amount.mul(2).add(scheduleRewards[1].sub(scheduleRewards[2]))
+        const oneShareValue = totalSharesValue.div(totalShares)
+        expect(await jet.getPending(id, user2.address)).to.be.eq(0)
+        const user2UnstakedAmount = await jet.getPending(0, user2.address)
+        console.log(`user2UnstakedAmount : ${ethers.utils.formatEther(user2UnstakedAmount)} AURORA `)
+        console.log(`oneShareValue: ${ethers.utils.formatEther(oneShareValue)} AURORA`)
+        expect(user2UnstakedAmount).to.be.lt(user2Amount.add(oneShareValue))
+        expect(user2UnstakedAmount).to.be.gt(user2Amount)
+    })
+    it('should only stream manager update the minimum period of time between current timestamp and the start of schedule', async () => {
+        const streamStartBuffer = 7200 // 2 hours
+        await expect(
+            jet.connect(user5) // non-stream manager
+            .updateStreamStartBuffer(
+                streamStartBuffer
+            )
+        ).to.be.reverted
+
+        await jet.connect(streamManager)
+        .updateStreamStartBuffer(
+            streamStartBuffer
+        )
+
+        let id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + streamStartBuffer + 2 // > block.timestamp + minPeriod
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await jet.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        id = 2
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + streamStartBuffer // = block.timestamp + minPeriod
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+
+        await expect(
+            jet.connect(streamManager).proposeStream(
+                user1.address,
+                streamToken1.address,
+                auroraProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                scheduleTimes,
+                scheduleRewards,
+                tauPerStream
+            )
+        ).to.be.revertedWith(
+            'INVALID_STREAM_PROPOSAL_EXPIRATION_DATE'
+        )
+    })
+    it('should not let tau period be more than one month', async() => {
+        const id = 1
+        const auroraProposalAmountForAStream = ethers.utils.parseUnits("0", 18)
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        // Propose and create a stream
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        tauPerStream = 31 * oneDay
+        scheduleTimes = [
+            startTime,
+            startTime + oneYear,
+            startTime + 2 * oneYear,
+            startTime + 3 * oneYear,
+            startTime + 4 * oneYear
+        ]
+        await expect(
+                jet.connect(streamManager).proposeStream(
+                user1.address,
+                streamToken1.address,
+                auroraProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                scheduleTimes,
+                scheduleRewards,
+                tauPerStream
+            )
+        ).to.be.revertedWith("INVALID_TAU_PERIOD")
     })
 });

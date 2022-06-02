@@ -81,6 +81,8 @@ contract JetStakingV1 is AdminControlled {
     mapping(address => User) public users;
     Stream[] streams;
 
+    uint256 streamStartBuffer;
+
     // events
     event Staked(address indexed user, uint256 amount, uint256 shares);
 
@@ -416,7 +418,9 @@ contract JetStakingV1 is AdminControlled {
                 ? releaseAuroraAmount
                 : auroraTreasury // should not happen
         );
-        // move the rest of rewards to the stream owner
+        // Move the rest of rewards to the stream fund receiver.
+        // Moving the rest of reward tokens to the stream owner
+        // will be handled outside of the scope of this contract.
         ITreasury(treasury).payRewards(
             streamFundReceiver,
             stream.rewardToken,
@@ -1187,15 +1191,15 @@ contract JetStakingV1 is AdminControlled {
         );
         // scheduleTimes[0] == proposal expiration time
         require(
-            scheduleTimes[0] > block.timestamp,
-            "INVALID_STREAM_EXPIRATION_DATE"
+            scheduleTimes[0] > block.timestamp + streamStartBuffer,
+            "INVALID_STREAM_PROPOSAL_EXPIRATION_DATE"
         );
         require(
             scheduleTimes.length == scheduleRewards.length,
             "INVALID_SCHEDULE_VALUES"
         );
         require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
-        require(tau != 0, "INVALID_TAU_PERIOD");
+        require(tau != 0 && tau < ONE_MONTH, "INVALID_TAU_PERIOD");
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1],
@@ -1243,5 +1247,15 @@ contract JetStakingV1 is AdminControlled {
             streams[streamId].rewardToken,
             pendingAmount
         );
+    }
+
+    /// @dev update the minimum period of time between current timestamp and the start of schedule
+    /// called only stream manager role
+    /// @param _streamStartBuffer a minimum period value
+    function updateStreamStartBuffer(uint256 _streamStartBuffer)
+        public
+        onlyRole(STREAM_MANAGER_ROLE)
+    {
+        streamStartBuffer = _streamStartBuffer;
     }
 }
