@@ -418,7 +418,9 @@ contract JetStakingV1 is AdminControlled {
                 ? releaseAuroraAmount
                 : auroraTreasury // should not happen
         );
-        // move the rest of rewards to the stream owner
+        // Move the rest of rewards to the stream fund receiver.
+        // Moving the rest of reward tokens to the stream owner
+        // will be handled outside of the scope of this contract.
         ITreasury(treasury).payRewards(
             streamFundReceiver,
             stream.rewardToken,
