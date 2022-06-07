@@ -398,36 +398,25 @@ contract JetStakingV1 is AdminControlled {
         external
         onlyRole(STREAM_MANAGER_ROLE)
     {
-        require(streamId != 0, "AURORA_STREAM_NOT_REMOVABLE");
-        Stream storage stream = streams[streamId];
-        require(stream.status == StreamStatus.ACTIVE, "STREAM_ALREADY_REMOVED");
-        stream.status = StreamStatus.INACTIVE;
-        emit StreamRemoved(streamId, stream.owner, stream.rewardToken);
-        uint256 releaseAuroraAmount = stream.auroraDepositAmount -
-            stream.auroraClaimedAmount;
-        uint256 releaseRewardAmount = stream.rewardDepositAmount -
-            stream.rewardClaimedAmount;
-        // check enough treasury balance
-        uint256 auroraTreasury = getTreasuryBalance(auroraToken);
-        uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
-        // move rest of the unclaimed aurora to the stream manager
-        ITreasury(treasury).payRewards(
-            stream.manager,
-            auroraToken,
-            releaseAuroraAmount <= auroraTreasury
-                ? releaseAuroraAmount
-                : auroraTreasury // should not happen
-        );
-        // Move the rest of rewards to the stream fund receiver.
-        // Moving the rest of reward tokens to the stream owner
-        // will be handled outside of the scope of this contract.
-        ITreasury(treasury).payRewards(
-            streamFundReceiver,
-            stream.rewardToken,
-            releaseRewardAmount <= rewardTreasury
-                ? releaseRewardAmount
-                : rewardTreasury // should not happen
-        );
+        _refundStreamBeforeDeletion(streamId, streamFundReceiver);
+        _deleteStreamByReplacing(streamId); // gas efficient
+        //_deleteStreamByShiftingLeft(streamId);
+    }
+
+    function _deleteStreamByShiftingLeft(uint256 streamId) internal {
+        require(streamId < streams.length, "INDEX_OUT_OF_BOUND");
+        // shifting all the elements to the left
+        for (uint256 i = streamId; i < streams.length - 1; i++) {
+            streams[i] = streams[i + 1];
+        }
+        // remove the last element in the stream
+        streams.pop();
+    }
+
+    function _deleteStreamByReplacing(uint256 streamId) internal {
+        require(streamId < streams.length, "INDEX_OUT_OF_BOUND");
+        streams[streamId] = streams[streams.length - 1];
+        streams.pop();
     }
 
     /// @dev Stream owner claimable AURORA.
@@ -1246,6 +1235,42 @@ contract JetStakingV1 is AdminControlled {
             msg.sender,
             streams[streamId].rewardToken,
             pendingAmount
+        );
+    }
+
+    function _refundStreamBeforeDeletion(
+        uint256 streamId,
+        address streamFundReceiver
+    ) internal {
+        require(streamId != 0, "AURORA_STREAM_NOT_REMOVABLE");
+        Stream storage stream = streams[streamId];
+        require(stream.status == StreamStatus.ACTIVE, "STREAM_ALREADY_REMOVED");
+        stream.status = StreamStatus.INACTIVE;
+        emit StreamRemoved(streamId, stream.owner, stream.rewardToken);
+        uint256 releaseAuroraAmount = stream.auroraDepositAmount -
+            stream.auroraClaimedAmount;
+        uint256 releaseRewardAmount = stream.rewardDepositAmount -
+            stream.rewardClaimedAmount;
+        // check enough treasury balance
+        uint256 auroraTreasury = getTreasuryBalance(auroraToken);
+        uint256 rewardTreasury = getTreasuryBalance(stream.rewardToken);
+        // move rest of the unclaimed aurora to the stream manager
+        ITreasury(treasury).payRewards(
+            stream.manager,
+            auroraToken,
+            releaseAuroraAmount <= auroraTreasury
+                ? releaseAuroraAmount
+                : auroraTreasury // should not happen
+        );
+        // Move the rest of rewards to the stream fund receiver.
+        // Moving the rest of reward tokens to the stream owner
+        // will be handled outside of the scope of this contract.
+        ITreasury(treasury).payRewards(
+            streamFundReceiver,
+            stream.rewardToken,
+            releaseRewardAmount <= rewardTreasury
+                ? releaseRewardAmount
+                : rewardTreasury // should not happen
         );
     }
 
