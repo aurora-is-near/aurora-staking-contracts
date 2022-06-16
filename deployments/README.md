@@ -154,3 +154,18 @@ yarn createStreamPLY:auroraMainnet
 yarn createStreamTRI:auroraMainnet
 yarn createStreamBSTN:auroraMainnet
 ```
+
+## Verifying contracts
+
+Proxy contract were already automatically verified because of the automatic byte code matching in [Aurorascan](https://aurorascan.dev), however to verify the implementation contracts, you have to use the `hardhat verify` as follows:
+
+- Verify `JetStakingV1` implementation contract @ `0x852F139Dd31D2cdc669470880700037Cb3790934`:
+```bash
+npx hardhat verify --network aurora --contract contracts/JetStakingV1.sol:JetStakingV1 0x852F139Dd31D2cdc669470880700037Cb3790934
+```
+
+- Verify `Treasury` implementation contract @ `0x4C101A39ca2D3095DB2507dAdDE736B8E6ed827a`
+
+```bash
+npx hardhat verify --network aurora --contract contracts/Treasury.sol:Treasury 0x4C101A39ca2D3095DB2507dAdDE736B8E6ed827a
+```
