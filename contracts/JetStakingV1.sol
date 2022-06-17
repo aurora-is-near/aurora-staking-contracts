@@ -783,8 +783,14 @@ contract JetStakingV1 is AdminControlled {
         User storage userAccount = users[msg.sender];
         uint256 streamsLength = streams.length;
         for (uint256 i = 1; i < streamsLength; i++) {
+            // Recently claimed or all rewards have been claimed until schedule end.
+            // `tau` must be long enough in _validateStreamParameters.
             require(
-                block.timestamp < userAccount.releaseTime[i],
+                block.timestamp < userAccount.releaseTime[i] ||
+                    streams[i].schedule.time[
+                        streams[i].schedule.time.length - 1
+                    ] <=
+                    userAccount.releaseTime[i],
                 "UNCLAIMED_REWARDS"
             );
         }
@@ -1134,8 +1140,14 @@ contract JetStakingV1 is AdminControlled {
         uint256 streamsLength = streams.length;
         for (uint256 i = 1; i < streamsLength; i++) {
             userAccount.rpsDuringLastClaim[i] = streams[i].rps; // The new shares should not claim old rewards
+            // Recently claimed or all rewards have been claimed until schedule end.
+            // `tau` must be long enough in _validateStreamParameters.
             require(
-                block.timestamp < userAccount.releaseTime[i],
+                block.timestamp < userAccount.releaseTime[i] ||
+                    streams[i].schedule.time[
+                        streams[i].schedule.time.length - 1
+                    ] <=
+                    userAccount.releaseTime[i],
                 "UNCLAIMED_REWARDS"
             );
         }
