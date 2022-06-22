@@ -12,3 +12,9 @@ artifacts/
 .DS_Store
 # OpenZeppelin
 .openzeppelin/
+# Foundry
+out/
+lib/
+forge-cache/
+#slither
+slither/
