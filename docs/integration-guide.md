@@ -91,11 +91,11 @@ const userAuroraRewards = userSharesValue - userDeposit
 ```
 
 ## Withdrawable ecosystem stream rewards
-After claiming rewards there is a cool down periode to wait before rewards can be withdrawn.
+After claiming rewards there is a cool down period to wait before rewards can be withdrawn.
 
-Claiming a stream before rewards have been withdrawn re-sets the cool down periode for the cumulated amount.
+Claiming a stream before rewards have been withdrawn re-sets the cool down period for the cumulated amount.
 
-The cool down periode can be different for every stream.
+The cool down period can be different for every stream.
 
 ```js
 const pendingAmount = await staking.getPending(streamId, account)
