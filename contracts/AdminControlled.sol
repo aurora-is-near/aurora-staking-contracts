@@ -93,6 +93,7 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     /// @param target the target contract address
     /// @param data is the ABI encoded function signature and its values.
     /// @custom:oz-upgrades-unsafe-allow delegatecall
+    // slither-disable-next-line low-level-calls controlled-delegatecall
     function adminDelegatecall(address target, bytes memory data)
         external
         payable
@@ -100,6 +101,7 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
         returns (bytes memory)
     {
         require(target != address(0), "ZERO_ADDRESS");
+        // slither-disable-next-line controlled-delegatecall
         (bool success, bytes memory rdata) = target.delegatecall(data);
         require(success);
         return rdata;
