@@ -100,6 +100,7 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
         returns (bytes memory)
     {
         require(target != address(0), "ZERO_ADDRESS");
+        // slither-disable-next-line controlled-delegatecall,low-level-calls
         (bool success, bytes memory rdata) = target.delegatecall(data);
         require(success);
         return rdata;
