@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import "../src/JetStakingV1.sol";
+import ".../contracts/JetStakingV1.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import "forge-std/Test.sol";
