@@ -44,14 +44,6 @@ async function main() {
   // const approvalTx = await auroraToken.approve(jetStakingV1.address, STREAM_AURORA_AMOUNT)
   // console.log("Approving AURORA: ", approvalTx.hash)
   // await approvalTx.wait()
-  console.log(
-    `aurora token: `,
-    await jetStakingV1.auroraToken()
-  )
-  console.log(
-    `treasury contract address`,
-    await jetStakingV1.treasury()
-  )
   const proposalTx = await jetStakingV1.proposeStream(
     STREAM_OWNER,
     STREAM_TOKEN_ADDRESS,
@@ -60,7 +52,7 @@ async function main() {
     MIN_DEPOSIT_AMOUNT,
     scheduleTimes,
     scheduleRewards,
-    parseInt(TAU_PER_STREAM),
+    TAU_PER_STREAM
   )
   console.log("Proposing stream: ", proposalTx.hash)
   await proposalTx.wait()
