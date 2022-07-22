@@ -7,6 +7,7 @@ import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-deploy';
 import 'solidity-coverage';
 import 'hardhat-docgen';
+import "@nomiclabs/hardhat-etherscan";
 
 dotenv.config();
 
@@ -60,15 +61,17 @@ module.exports = {
       url: `https://testnet.aurora.dev/${AURORA_API_KEY}`,
       accounts: accountsTestnet
     },
-    auroraMainnet: {
+    aurora: {
       url: `https://mainnet.aurora.dev/${AURORA_API_KEY}`,
       accounts: accountsMainnet
     }
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
-    apiKey: ETHERSCAN_API_KEY,
+    // Your API key for Aurorascan
+    // Obtain one at https://aurorascan.dev/
+    apiKey: {
+      aurora: ETHERSCAN_API_KEY
+    },
   },
   docgen: {
     path: './docs/contracts',
