@@ -5,7 +5,7 @@ async function main() {
     TAU_PER_STREAM,
     SCHEDULE_START_TIME,
   } = process.env
-  const STREAM_AURORA_AMOUNT = hre.ethers.utils.parseUnits("0", 18) // zero arora reward for the VOTE stream
+  const STREAM_AURORA_AMOUNT = hre.ethers.utils.parseUnits("0", 18) // zero aurora reward for the VOTE stream
   const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME) : Math.floor(Date.now()/ 1000) + 60
   const STREAM_TOKEN_ADDRESS = "0x6edE987A51d7b4d3945E7a76Af59Ff2b968910A8" // update me
   const STREAM_TOKEN_DECIMALS = 18
