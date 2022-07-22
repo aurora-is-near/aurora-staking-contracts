@@ -3,8 +3,8 @@ const hre = require("hardhat");
 async function main() {
   const STREAM_TOKEN_DECIMALS = 18
   const STREAM_TOKEN_AMOUNT = hre.ethers.utils.parseUnits("1000000000", STREAM_TOKEN_DECIMALS) // update the token amount
-  const STREAM_TOKEN_ADDRESS = "" // update me
-  const STREAM_ID = 4
+  const STREAM_TOKEN_ADDRESS = "0x6edE987A51d7b4d3945E7a76Af59Ff2b968910A8" // update me
+  const STREAM_ID = 5 // update me (5 on mainnet)
 
   // ^^^^^ TODO: Edit above parameters ^^^^^
   // =======================================
