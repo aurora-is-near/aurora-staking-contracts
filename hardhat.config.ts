@@ -53,18 +53,18 @@ module.exports = {
   },
   networks: {
     hardhat: {},
-    goerli: {
-      url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
-      accounts: accountsTestnet,
-    },
-    auroraTestnet: {
-      url: `https://testnet.aurora.dev/${AURORA_API_KEY}`,
-      accounts: accountsTestnet
-    },
-    aurora: {
-      url: `https://mainnet.aurora.dev/${AURORA_API_KEY}`,
-      accounts: accountsMainnet
-    }
+    // goerli: {
+    //   url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
+    //   accounts: accountsTestnet,
+    // },
+    // auroraTestnet: {
+    //   url: `https://testnet.aurora.dev/${AURORA_API_KEY}`,
+    //   accounts: accountsTestnet
+    // },
+    // aurora: {
+    //   url: `https://mainnet.aurora.dev/${AURORA_API_KEY}`,
+    //   accounts: accountsMainnet
+    // }
   },
   etherscan: {
     // Your API key for Aurorascan
