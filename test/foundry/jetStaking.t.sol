@@ -26,6 +26,7 @@ contract jetStakingTest is Test {
     address user3 = address(3);
     address user4 = address(4);
 
+    // Code below is executed prior to every test
     function setUp() public {
         deal(address(aurora), address(this), 10000 ether);
         uint256 length = jetStaking.getStreamsCount();
