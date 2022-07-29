@@ -22,16 +22,16 @@ contract LockedStakingSubAccount is OwnableUpgradeable {
     }
 
     function initialize(
-        address _stakingContract,
         uint256 _amount,
-        uint256 _lockUpPeriod
+        uint256 _lockUpPeriod,
+        address _stakingContract
     ) external initializer {
         __Ownable_init();
         stakingContract = _stakingContract;
-        _stakeWithLockedPeriod(_amount, _lockUpPeriod);
+        _stakeWithLockUpPeriod(_amount, _lockUpPeriod);
     }
 
-    function unstakeWithLockedPeriod(uint256 amount)
+    function unstake(uint256 amount)
         public
         virtual
         onlyOwner
@@ -40,13 +40,24 @@ contract LockedStakingSubAccount is OwnableUpgradeable {
         IJetStakingV1(stakingContract).unstake(amount);
     }
 
-    function unstakeAllWithLockedPeriod()
-        public
-        virtual
+    function unstakeAll() public virtual onlyOwner onlyAfterLockUpPeriod {
+        IJetStakingV1(stakingContract).unstakeAll();
+    }
+
+    function moveAllRewardsToPending()
+        external
         onlyOwner
         onlyAfterLockUpPeriod
     {
-        IJetStakingV1(stakingContract).unstakeAll();
+        IJetStakingV1(stakingContract).moveAllRewardsToPending();
+    }
+
+    function moveRewardsToPending(uint256 streamId)
+        external
+        onlyOwner
+        onlyAfterLockUpPeriod
+    {
+        IJetStakingV1(stakingContract).moveRewardsToPending(streamId);
     }
 
     function withdraw(uint256 streamId)
@@ -63,7 +74,7 @@ contract LockedStakingSubAccount is OwnableUpgradeable {
         //TODO: move All rewards in this subaccount to the owner wallet (EOA)
     }
 
-    function _stakeWithLockedPeriod(uint256 amount, uint256 _lockUpPeriod)
+    function _stakeWithLockUpPeriod(uint256 amount, uint256 _lockUpPeriod)
         internal
         virtual
     {
