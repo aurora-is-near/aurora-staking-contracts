@@ -2,6 +2,7 @@
 pragma solidity 0.8.10;
 
 import "./AdminControlled.sol";
+import "./templates/IStakingStrategyTemplate.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 
@@ -15,6 +16,7 @@ contract JetStakingStrategyFactory is AdminControlled {
     }
 
     address[] public templates;
+    address stakingContractAddr;
     // mapping owners to clones
     mapping(address => Clone[]) public clones;
 
@@ -28,13 +30,15 @@ contract JetStakingStrategyFactory is AdminControlled {
         _disableInitializers();
     }
 
-    function initialize(address _template, uint256 _flags)
-        external
-        initializer
-    {
-        __AdminControlled_init(_flags);
-        emit TemplateAdded(templates.length, _template);
-        templates.push(_template);
+    function initialize(
+        address _templateImplementation,
+        uint256 _controlledAdminflags,
+        address _stakingContractAddr
+    ) external initializer {
+        __AdminControlled_init(_controlledAdminflags);
+        stakingContractAddr = _stakingContractAddr;
+        emit TemplateAdded(templates.length, _templateImplementation);
+        templates.push(_templateImplementation);
     }
 
     function clone(uint256 templateId, bytes memory data)
@@ -52,22 +56,29 @@ contract JetStakingStrategyFactory is AdminControlled {
         );
     }
 
-    function addTemplate(address _template)
+    function addTemplate(address _templateImplementation)
         public
         virtual
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(_template != address(0), "INVALID_TEMPLATE_ADDRESS");
-        emit TemplateAdded(templates.length, _template);
-        templates.push(_template);
+        require(
+            _templateImplementation != address(0),
+            "INVALID_TEMPLATE_ADDRESS"
+        );
+        emit TemplateAdded(templates.length, _templateImplementation);
+        templates.push(_templateImplementation);
     }
 
     function _cloneWithContractInitialization(
         uint256 templateId,
-        bytes memory data
+        bytes memory _encodedData
     ) internal virtual returns (address instance) {
         instance = templates[templateId].clone();
         // initialize the clone
-        if (data.length > 0) instance.functionCall(data);
+        if (_encodedData.length > 0)
+            IStakingStrategyTemplate(instance).initialize(
+                stakingContractAddr,
+                _encodedData
+            );
     }
 }

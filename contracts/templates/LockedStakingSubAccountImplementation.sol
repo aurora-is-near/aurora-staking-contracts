@@ -2,9 +2,16 @@
 pragma solidity 0.8.10;
 
 import "../IJetStakingV1.sol";
+import "./IStakingStrategyTemplate.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract LockedStakingSubAccount is OwnableUpgradeable {
+contract LockedStakingSubAccountImplementation is
+    IStakingStrategyTemplate,
+    OwnableUpgradeable
+{
+    //TODO: should have a predefined interface which
+    // allow enforcing the setup of an owner for the
+    // clone/instance
     address stakingContract;
     uint256 lockUpTimestamp;
 
@@ -21,14 +28,24 @@ contract LockedStakingSubAccount is OwnableUpgradeable {
         _disableInitializers();
     }
 
+    //TODO: move the contract from upgradeable
+    // to non-upgradeable contract
     function initialize(
-        uint256 _amount,
-        uint256 _lockUpPeriod,
-        address _stakingContract
+        address _stakingContractAddr,
+        bytes calldata _encodedData
     ) external initializer {
+        // decode _encodedData parameters
+        (uint256 _amount, uint256 _lockupPeriod) = abi.decode(
+            _encodedData,
+            (uint256, uint256)
+        );
+        require(
+            _amount > 0 && _lockupPeriod > 0,
+            "INVALID_LOCKED_STAKING_PARAMETERS"
+        );
         __Ownable_init();
-        stakingContract = _stakingContract;
-        _stakeWithLockUpPeriod(_amount, _lockUpPeriod);
+        stakingContract = _stakingContractAddr;
+        _stakeWithLockUpPeriod(_amount, _lockupPeriod);
     }
 
     function unstake(uint256 amount)
