@@ -9,9 +9,6 @@ contract LockedStakingSubAccountImplementation is
     IStakingStrategyTemplate,
     OwnableUpgradeable
 {
-    //TODO: should have a predefined interface which
-    // allow enforcing the setup of an owner for the
-    // clone/instance
     address stakingContract;
     uint256 lockUpTimestamp;
 

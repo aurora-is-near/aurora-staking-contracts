@@ -10,15 +10,15 @@ contract JetStakingStrategyFactory is AdminControlled {
     using ClonesUpgradeable for address;
     using AddressUpgradeable for address;
 
-    struct Clone {
+    struct StakingStrategyClone {
         uint256 templateId;
         address instance;
     }
 
+    address stakingContract;
     address[] public templates;
-    address stakingContractAddr;
     // mapping owners to clones
-    mapping(address => Clone[]) public clones;
+    mapping(address => StakingStrategyClone[]) public clones;
 
     //events
     event Cloned(address indexed instance, address indexed owner);
@@ -31,14 +31,14 @@ contract JetStakingStrategyFactory is AdminControlled {
     }
 
     function initialize(
-        address _templateImplementation,
-        uint256 _controlledAdminFlags,
-        address _stakingContractAddr
+        address templateImplementation,
+        uint256 controlledAdminFlags,
+        address stakingContractAddr
     ) external initializer {
-        __AdminControlled_init(_controlledAdminFlags);
-        stakingContractAddr = _stakingContractAddr;
-        emit TemplateAdded(templates.length, _templateImplementation);
-        templates.push(_templateImplementation);
+        __AdminControlled_init(controlledAdminFlags);
+        stakingContract = stakingContractAddr;
+        emit TemplateAdded(templates.length, templateImplementation);
+        templates.push(templateImplementation);
     }
 
     function clone(uint256 templateId, bytes memory extraInitParameters)
@@ -54,35 +54,34 @@ contract JetStakingStrategyFactory is AdminControlled {
         );
         emit Cloned(instance, msg.sender);
         clones[msg.sender].push(
-            Clone({templateId: templateId, instance: instance})
+            StakingStrategyClone({templateId: templateId, instance: instance})
         );
     }
 
-    function addTemplate(address _templateImplementation)
+    function addTemplate(address templateImplementation)
         public
         virtual
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(
-            _templateImplementation != address(0),
+            templateImplementation != address(0),
             "INVALID_TEMPLATE_ADDRESS"
         );
-        emit TemplateAdded(templates.length, _templateImplementation);
-        templates.push(_templateImplementation);
+        emit TemplateAdded(templates.length, templateImplementation);
+        templates.push(templateImplementation);
     }
 
     function _cloneWithContractInitialization(
-        uint256 templateId,
-        address cloneOwner,
-        bytes memory extraInitParameters
+        uint256 _templateId,
+        address _cloneOwner,
+        bytes memory _extraInitParameters
     ) internal virtual returns (address instance) {
-        instance = templates[templateId].clone();
-        // initialize the clone with extra encoded parameters
-        if (extraInitParameters.length > 0)
-            IStakingStrategyTemplate(instance).initialize(
-                stakingContractAddr,
-                cloneOwner,
-                extraInitParameters
-            );
+        instance = templates[_templateId].clone();
+        // initialize the clone
+        IStakingStrategyTemplate(instance).initialize(
+            stakingContract,
+            _cloneOwner,
+            _extraInitParameters
+        );
     }
 }
