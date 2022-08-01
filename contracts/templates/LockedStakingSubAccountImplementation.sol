@@ -31,20 +31,21 @@ contract LockedStakingSubAccountImplementation is
     //TODO: move the contract from upgradeable
     // to non-upgradeable contract
     function initialize(
-        address _stakingContractAddr,
-        bytes calldata _encodedData
+        address stakingContractAddr,
+        address instanceOwner,
+        bytes calldata extraInitParameters
     ) external initializer {
         // decode _encodedData parameters
         (uint256 _amount, uint256 _lockupPeriod) = abi.decode(
-            _encodedData,
+            extraInitParameters,
             (uint256, uint256)
         );
         require(
             _amount > 0 && _lockupPeriod > 0,
             "INVALID_LOCKED_STAKING_PARAMETERS"
         );
-        __Ownable_init();
-        stakingContract = _stakingContractAddr;
+        _transferOwnership(instanceOwner);
+        stakingContract = stakingContractAddr;
         _stakeWithLockUpPeriod(_amount, _lockupPeriod);
     }
 

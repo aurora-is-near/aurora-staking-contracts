@@ -32,24 +32,26 @@ contract JetStakingStrategyFactory is AdminControlled {
 
     function initialize(
         address _templateImplementation,
-        uint256 _controlledAdminflags,
+        uint256 _controlledAdminFlags,
         address _stakingContractAddr
     ) external initializer {
-        __AdminControlled_init(_controlledAdminflags);
+        __AdminControlled_init(_controlledAdminFlags);
         stakingContractAddr = _stakingContractAddr;
         emit TemplateAdded(templates.length, _templateImplementation);
         templates.push(_templateImplementation);
     }
 
-    function clone(uint256 templateId, bytes memory data)
+    function clone(uint256 templateId, bytes memory extraInitParameters)
         public
         virtual
         pausable(1)
     {
         require(templates[templateId] != address(0), "INVALID_TEMPLATE_ID");
-        // make sure to include the msg.sender in `data`, so
-        // that user will be the owner of the new instance.
-        address instance = _cloneWithContractInitialization(templateId, data);
+        address instance = _cloneWithContractInitialization(
+            templateId,
+            msg.sender,
+            extraInitParameters
+        );
         emit Cloned(instance, msg.sender);
         clones[msg.sender].push(
             Clone({templateId: templateId, instance: instance})
@@ -71,14 +73,16 @@ contract JetStakingStrategyFactory is AdminControlled {
 
     function _cloneWithContractInitialization(
         uint256 templateId,
-        bytes memory _encodedData
+        address cloneOwner,
+        bytes memory extraInitParameters
     ) internal virtual returns (address instance) {
         instance = templates[templateId].clone();
-        // initialize the clone
-        if (_encodedData.length > 0)
+        // initialize the clone with extra encoded parameters
+        if (extraInitParameters.length > 0)
             IStakingStrategyTemplate(instance).initialize(
                 stakingContractAddr,
-                _encodedData
+                cloneOwner,
+                extraInitParameters
             );
     }
 }
