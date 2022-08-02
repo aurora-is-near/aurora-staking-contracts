@@ -175,3 +175,28 @@ yarn pause:auroraMainnet
 ```bash
 0x2692c59f0000000000000000000000000000000000000000000000000000000000000001
 ```
+
+## Verifying contracts
+
+Proxy contracts were already automatically verified because of the automatic bytecode matching in [Aurorascan](https://aurorascan.dev), however to verify the implementation contracts, you have to use the `hardhat verify` as follows:
+
+- Verify `JetStakingV1` implementation contract @ `0x852F139Dd31D2cdc669470880700037Cb3790934`:
+```bash
+npx hardhat verify --network aurora --contract contracts/JetStakingV1.sol:JetStakingV1 0x852F139Dd31D2cdc669470880700037Cb3790934
+```
+
+- Verify `Treasury` implementation contract @ `0x4C101A39ca2D3095DB2507dAdDE736B8E6ed827a`
+
+```bash
+npx hardhat verify --network aurora --contract contracts/Treasury.sol:Treasury 0x4C101A39ca2D3095DB2507dAdDE736B8E6ed827a
+```
+
+**Treasury**
+
+  - Proxy @ https://aurorascan.dev/address/0xF075c896CbbB625E7911E284cD23EE19bdCCf299#code
+  - Implementation @ https://aurorascan.dev/address/0x4C101A39ca2D3095DB2507dAdDE736B8E6ed827a#code
+ 
+**JetStakingV1**
+  - Proxy @ https://aurorascan.dev/address/0xccc2b1ad21666a5847a804a73a41f904c4a4a0ec#code
+  - Implementation @ https://aurorascan.dev/address/0x852F139Dd31D2cdc669470880700037Cb3790934#code
+ 

@@ -1,0 +1,48 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: aurora-staking
+  title: "Aurora Staking"
+  description: |-
+    Implements the staking/unstaking mechanics, airdroping users, claiming stream rewards, and the stream lifecycle management.
+  tags:
+    - contract
+    - aurora
+  links: []
+  annotations:
+    aurora.dev/security-tier: "1"
+    backstage.io/source-location: url:https://github.com/aurora-is-near/aurora-staking-contracts/blob/main/contracts/JetStakingV1.sol
+spec:
+  owner: aurora-plus-team
+  type: contract
+  lifecycle: production
+  system: aurora-plus
+  deployedAt:
+    - contract:aurora/mainnet/0xccc2b1ad21666a5847a804a73a41f904c4a4a0ec
+  interactsWith:
+    - treasury:aurora/mainnet/0xf075c896cbbb625e7911e284cd23ee19bdccf299
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  title: "Aurora Treasury"
+  name: aurora-treasury
+  description: |-
+    Holds all the treasury funds, AURORA rewards, and other streams rewards.
+  tags:
+    - contract
+    - aurora
+  links: []
+  annotations:
+    aurora.dev/security-tier: "1"
+    backstage.io/source-location: url:https://github.com/aurora-is-near/aurora-staking-contracts/blob/main/contracts/Treasury.sol
+spec:
+  owner: aurora-plus-team
+  type: contract
+  lifecycle: production
+  system: aurora-plus
+  deployedAt:
+    - contract:aurora/mainnet/0xf075c896cbbb625e7911e284cd23ee19bdccf299
+  interactsWith:
+    - staking:aurora/mainnet/0xccc2b1ad21666a5847a804a73a41f904c4a4a0ec
