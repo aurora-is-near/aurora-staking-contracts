@@ -32,9 +32,14 @@ contract JetStakingStrategyFactory is AdminControlled {
 
     function initialize(
         address templateImplementation,
-        uint256 controlledAdminFlags,
-        address stakingContractAddr
+        address stakingContractAddr,
+        uint256 controlledAdminFlags
     ) external initializer {
+        require(
+            templateImplementation != address(0) &&
+                stakingContractAddr != address(0),
+            "INVALID_ADDRESS"
+        );
         __AdminControlled_init(controlledAdminFlags);
         stakingContract = stakingContractAddr;
         emit TemplateAdded(templates.length, templateImplementation);
