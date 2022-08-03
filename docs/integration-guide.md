@@ -39,6 +39,7 @@ const staking = new ethers.Contract(
 - TRI (0xFa94348467f64D5A457F75F8bc40495D33c65aBB): 2
 - BSTN (0x9f1f933c660a1dc856f0e0fe058435879c5ccef0): 3
 - USN (0x5183e1b1091804bc2602586919e6880ac1cf2896): 4
+- VOTE (0x6edE987A51d7b4d3945E7a76Af59Ff2b968910A8): 5
 
 View streams status:
 ```bash
