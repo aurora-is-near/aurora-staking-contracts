@@ -5,6 +5,7 @@ interface IStakingStrategyTemplate {
     function initialize(
         address stakingContract,
         address instanceOwner,
+        bool isTemplate,
         bytes calldata extraInitParameters
     ) external;
 }

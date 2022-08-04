@@ -3,11 +3,13 @@ pragma solidity 0.8.10;
 
 import "../IJetStakingV1.sol";
 import "./IStakingStrategyTemplate.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 contract LockedStakingSubAccountImplementation is
+    UUPSUpgradeable,
     IStakingStrategyTemplate,
     OwnableUpgradeable
 {
@@ -30,12 +32,14 @@ contract LockedStakingSubAccountImplementation is
     }
 
     //TODO: move the contract from upgradeable
-    // to non-upgradeable contract
+    // to non-upgradeable contract if it is not needed
     function initialize(
         address stakingContractAddr,
         address instanceOwner,
+        bool isTemplate,
         bytes calldata extraInitParameters
     ) external initializer {
+        __UUPSUpgradeable_init();
         // decode _encodedData parameters
         (address _voteToken, uint256 _amount, uint256 _lockupPeriod) = abi
             .decode(extraInitParameters, (address, uint256, uint256));
@@ -47,7 +51,9 @@ contract LockedStakingSubAccountImplementation is
         voteTokenContract = _voteToken;
         _transferOwnership(instanceOwner);
         stakingContract = stakingContractAddr;
-        _stakeWithLockUpPeriod(_amount, _lockupPeriod);
+        if (!isTemplate) {
+            _stakeWithLockUpPeriod(_amount, _lockupPeriod);
+        }
     }
 
     function unstake(uint256 amount)
@@ -65,6 +71,7 @@ contract LockedStakingSubAccountImplementation is
 
     function moveAllRewardsToPending()
         external
+        virtual
         onlyOwner
         onlyAfterLockUpPeriod
     {
@@ -73,6 +80,7 @@ contract LockedStakingSubAccountImplementation is
 
     function moveRewardsToPending(uint256 streamId)
         external
+        virtual
         onlyOwner
         onlyAfterLockUpPeriod
     {
@@ -81,6 +89,7 @@ contract LockedStakingSubAccountImplementation is
 
     function withdraw(uint256 streamId)
         external
+        virtual
         onlyOwner
         onlyAfterLockUpPeriod
     {
@@ -95,7 +104,7 @@ contract LockedStakingSubAccountImplementation is
         IERC20Upgradeable(stream.rewardToken).safeTransfer(owner(), amount);
     }
 
-    function withdrawAll() external onlyOwner onlyAfterLockUpPeriod {
+    function withdrawAll() external virtual onlyOwner onlyAfterLockUpPeriod {
         IJetStakingV1(stakingContract).withdrawAll();
         // move All rewards in this subaccount to the owner wallet (EOA)
         uint256 streams = IJetStakingV1(stakingContract).getStreamsCount();
@@ -117,4 +126,7 @@ contract LockedStakingSubAccountImplementation is
         lockUpTimestamp = block.timestamp + _lockUpPeriod;
         IJetStakingV1(stakingContract).stake(amount);
     }
+
+    ///@dev required by the OZ UUPS module
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }
