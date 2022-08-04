@@ -15,12 +15,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const treasury = await hre.ethers.getContract("Treasury")
     const jetStakingV1 = await hre.ethers.getContract("JetStakingV1")
     const LockedStakingTemplate =  await ethers.getContractFactory('LockedStakingSubAccountImplementation')
-
+    const amount = ethers.utils.parseUnits("1", 18) // 1 AURORA
     const extraInitParameters = ethers.utils.defaultAbiCoder.encode(
-        ["address", "uint256", "uint256"], 
+        ["address", "uint256"], 
         [
             auroraTokenAddress,
-            ethers.utils.parseUnits("1", 18), // 1 AURORA
             startTime + parseInt(SCHEDULE_PERIOD as string)
         ]
     )
@@ -31,6 +30,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         [
             jetStakingV1.address,
             deployer.address,
+            amount,
             true,
             extraInitParameters
         ],

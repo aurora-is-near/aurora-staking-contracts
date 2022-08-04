@@ -36,15 +36,18 @@ contract LockedStakingSubAccountImplementation is
     function initialize(
         address stakingContractAddr,
         address instanceOwner,
+        uint256 deposit,
         bool isTemplate,
         bytes calldata extraInitParameters
     ) external initializer {
         __UUPSUpgradeable_init();
         // decode _encodedData parameters
-        (address _voteToken, uint256 _amount, uint256 _lockupPeriod) = abi
-            .decode(extraInitParameters, (address, uint256, uint256));
+        (address _voteToken, uint256 _lockupPeriod) = abi.decode(
+            extraInitParameters,
+            (address, uint256)
+        );
         require(
-            _amount > 0 && _lockupPeriod > 0,
+            deposit > 0 && _lockupPeriod > 0,
             "INVALID_LOCKED_STAKING_PARAMETERS"
         );
         require(_voteToken != address(0), "INVALID_ADDRESS");
@@ -52,7 +55,7 @@ contract LockedStakingSubAccountImplementation is
         _transferOwnership(instanceOwner);
         stakingContract = stakingContractAddr;
         if (!isTemplate) {
-            _stakeWithLockUpPeriod(_amount, _lockupPeriod);
+            _stakeWithLockUpPeriod(deposit, _lockupPeriod);
         }
     }
 

@@ -53,10 +53,6 @@ contract StakingStrategyFactory is AdminControlled {
         templates.push(templateImplementation);
     }
 
-    function emitMyEvent() public {
-        emit TemplateCloned(msg.sender, msg.sender);
-    }
-
     function cloneTemplate(
         uint256 templateId,
         uint256 amount,
@@ -105,6 +101,7 @@ contract StakingStrategyFactory is AdminControlled {
         IStakingStrategyTemplate(instance).initialize(
             stakingContract,
             _cloneOwner,
+            _deposit,
             false,
             _extraInitParameters
         );
