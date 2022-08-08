@@ -3,13 +3,13 @@ pragma solidity 0.8.10;
 
 import "./AdminControlled.sol";
 import "./templates/IStakingStrategyTemplate.sol";
+import "./templates/LockedStakingSubAccountImplementation.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 contract StakingStrategyFactory is AdminControlled {
-    using ClonesUpgradeable for address;
     using AddressUpgradeable for address;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -59,7 +59,7 @@ contract StakingStrategyFactory is AdminControlled {
         bytes memory extraInitParameters
     ) public virtual pausable(1) {
         require(templates[templateId] != address(0), "INVALID_TEMPLATE_ID");
-        address instance = _cloneWithContractInitialization(
+        address instance = _cloneAndInitialization(
             templateId,
             msg.sender,
             amount,
@@ -83,13 +83,13 @@ contract StakingStrategyFactory is AdminControlled {
         templates.push(templateImplementation);
     }
 
-    function _cloneWithContractInitialization(
+    function _cloneAndInitialization(
         uint256 _templateId,
         address _cloneOwner,
         uint256 _deposit,
         bytes memory _extraInitParameters
     ) internal virtual returns (address instance) {
-        instance = templates[_templateId].clone();
+        instance = ClonesUpgradeable.clone(templates[_templateId]);
         emit TemplateCloned(instance, msg.sender);
         // transfer tokens to the new instance
         IERC20Upgradeable(auroraToken).safeTransferFrom(
@@ -98,11 +98,12 @@ contract StakingStrategyFactory is AdminControlled {
             _deposit
         );
         // initialize the clone
-        IStakingStrategyTemplate(instance).initialize(
+        LockedStakingSubAccountImplementation(instance).initialize(
             stakingContract,
             _cloneOwner,
             _deposit,
             false,
+            auroraToken,
             _extraInitParameters
         );
     }

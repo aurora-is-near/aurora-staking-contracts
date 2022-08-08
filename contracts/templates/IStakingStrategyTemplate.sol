@@ -7,6 +7,7 @@ interface IStakingStrategyTemplate {
         address instanceOwner,
         uint256 deposit,
         bool isTemplate,
+        address token,
         bytes calldata extraInitParameters
     ) external;
 }
