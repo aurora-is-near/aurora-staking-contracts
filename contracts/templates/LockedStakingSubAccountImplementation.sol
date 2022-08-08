@@ -58,10 +58,7 @@ contract LockedStakingSubAccountImplementation is
         _transferOwnership(instanceOwner);
         stakingContract = stakingContractAddr;
         if (!isTemplate) {
-            IERC20(auroraToken).approve(
-                stakingContract,
-                deposit
-            );
+            IERC20(auroraToken).approve(stakingContract, deposit);
             _stakeWithLockUpPeriod(deposit, _lockupPeriod);
         }
     }
