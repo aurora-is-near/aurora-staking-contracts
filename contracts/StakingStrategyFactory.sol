@@ -21,6 +21,7 @@ contract StakingStrategyFactory is AdminControlled {
     address public stakingContract;
     address public auroraToken;
     address[] public templates;
+    uint256 public clonesCount;
     // mapping owners to clones
     mapping(address => StakingStrategyClone[]) public clones;
 
@@ -83,13 +84,22 @@ contract StakingStrategyFactory is AdminControlled {
         templates.push(templateImplementation);
     }
 
-    function _cloneAndInitialization(
+    function getTemplatesCount() external view returns (uint256) {
+        return templates.length;
+    }
+
+    function getUserClones(address owner) external view returns (StakingStrategyClone[] memory) {
+        return clones[owner];
+    }
+
+    function _cloneAndInitialize(
         uint256 _templateId,
         address _cloneOwner,
         uint256 _deposit,
         bytes memory _extraInitParameters
     ) internal virtual returns (address instance) {
         instance = ClonesUpgradeable.clone(templates[_templateId]);
+        clonesCount += 1;
         emit TemplateCloned(instance, msg.sender);
         // transfer tokens to the new instance
         IERC20Upgradeable(auroraToken).safeTransferFrom(
