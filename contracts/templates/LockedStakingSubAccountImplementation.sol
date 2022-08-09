@@ -40,7 +40,6 @@ contract LockedStakingSubAccountImplementation is
         address stakingContractAddr,
         address instanceOwner,
         uint256 deposit,
-        bool isTemplate,
         address auroraToken,
         bytes calldata extraInitParameters
     ) external onlyNotInitialized {
@@ -54,14 +53,15 @@ contract LockedStakingSubAccountImplementation is
             deposit > 0 && _lockupPeriod > 0,
             "INVALID_LOCKED_STAKING_PARAMETERS"
         );
-        require(_voteToken != address(0), "INVALID_ADDRESS");
+        require(
+            _voteToken != address(0) && auroraToken != address(0),
+            "INVALID_ADDRESS"
+        );
         voteTokenContract = _voteToken;
         _transferOwnership(instanceOwner);
         stakingContract = stakingContractAddr;
-        if (!isTemplate) {
-            IERC20(auroraToken).approve(stakingContract, deposit);
-            _stakeWithLockUpPeriod(deposit, _lockupPeriod);
-        }
+        IERC20(auroraToken).approve(stakingContract, deposit);
+        _stakeWithLockUpPeriod(deposit, _lockupPeriod);
     }
 
     function unstake(uint256 amount)

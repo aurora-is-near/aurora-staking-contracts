@@ -3,7 +3,6 @@ pragma solidity 0.8.10;
 
 import "./AdminControlled.sol";
 import "./templates/IStakingStrategyTemplate.sol";
-import "./templates/LockedStakingSubAccountImplementation.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -60,7 +59,7 @@ contract StakingStrategyFactory is AdminControlled {
         bytes memory extraInitParameters
     ) public virtual pausable(1) {
         require(templates[templateId] != address(0), "INVALID_TEMPLATE_ID");
-        address instance = _cloneAndInitialization(
+        address instance = _cloneAndInitialize(
             templateId,
             msg.sender,
             amount,
@@ -108,11 +107,10 @@ contract StakingStrategyFactory is AdminControlled {
             _deposit
         );
         // initialize the clone
-        LockedStakingSubAccountImplementation(instance).initialize(
+        IStakingStrategyTemplate(instance).initialize(
             stakingContract,
             _cloneOwner,
             _deposit,
-            false,
             auroraToken,
             _extraInitParameters
         );

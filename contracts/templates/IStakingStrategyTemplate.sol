@@ -6,7 +6,6 @@ interface IStakingStrategyTemplate {
         address stakingContract,
         address instanceOwner,
         uint256 deposit,
-        bool isTemplate,
         address token,
         bytes calldata extraInitParameters
     ) external;
