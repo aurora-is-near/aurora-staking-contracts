@@ -2,6 +2,7 @@
 pragma solidity 0.8.10;
 
 import "../IJetStakingV1.sol";
+import "./IVoteTokenERC20.sol";
 import "./IStakingStrategyTemplate.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -68,6 +69,7 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
+        nonReentrant
     {
         IJetStakingV1(stakingContract).unstake(amount);
     }
@@ -81,6 +83,7 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
+        nonReentrant
     {
         IJetStakingV1(stakingContract).moveAllRewardsToPending();
     }
@@ -90,6 +93,7 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
+        nonReentrant
     {
         IJetStakingV1(stakingContract).moveRewardsToPending(streamId);
     }
@@ -99,17 +103,28 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
+        nonReentrant
     {
         IJetStakingV1(stakingContract).withdraw(streamId);
         // move the reward in this subaccount to the owner wallet (EOA)
         IJetStakingV1.Stream memory stream = IJetStakingV1(stakingContract)
             .streams(streamId);
         uint256 amount = IERC20(stream.rewardToken).balanceOf(address(this));
-        //TODO: if reward token == vote token --> call delegate instead.
-        IERC20(stream.rewardToken).safeTransfer(owner(), amount);
+        //if reward token == vote token --> call delegate instead.
+        if (stream.rewardToken == voteTokenContract) {
+            _transferVoteTokens(amount);
+        } else {
+            IERC20(stream.rewardToken).safeTransfer(owner(), amount);
+        }
     }
 
-    function withdrawAll() external virtual onlyOwner onlyAfterLockUpPeriod {
+    function withdrawAll()
+        external
+        virtual
+        onlyOwner
+        onlyAfterLockUpPeriod
+        nonReentrant
+    {
         IJetStakingV1(stakingContract).withdrawAll();
         // move All rewards in this subaccount to the owner wallet (EOA)
         uint256 streams = IJetStakingV1(stakingContract).getStreamsCount();
@@ -119,8 +134,12 @@ contract LockedStakingSubAccountImplementation is
             uint256 amount = IERC20(stream.rewardToken).balanceOf(
                 address(this)
             );
-            //TODO: if reward token == vote token --> call delegate instead.
-            IERC20(stream.rewardToken).safeTransfer(owner(), amount);
+            //if reward token == vote token --> call delegate(transfer) instead.
+            if (stream.rewardToken == voteTokenContract) {
+                _transferVoteTokens(amount);
+            } else {
+                IERC20(stream.rewardToken).safeTransfer(owner(), amount);
+            }
         }
     }
 
@@ -130,5 +149,9 @@ contract LockedStakingSubAccountImplementation is
     {
         lockUpTimestamp = block.timestamp + _lockUpPeriod;
         IJetStakingV1(stakingContract).stake(amount);
+    }
+
+    function _transferVoteTokens(uint256 amount) internal returns (uint256) {
+        IVoteTokenERC20(voteTokenContract).delegate(owner(), amount);
     }
 }
