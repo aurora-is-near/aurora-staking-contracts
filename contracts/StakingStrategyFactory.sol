@@ -87,7 +87,11 @@ contract StakingStrategyFactory is AdminControlled {
         return templates.length;
     }
 
-    function getUserClones(address owner) external view returns (StakingStrategyClone[] memory) {
+    function getUserClones(address owner)
+        external
+        view
+        returns (StakingStrategyClone[] memory)
+    {
         return clones[owner];
     }
 
