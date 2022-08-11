@@ -3,7 +3,7 @@ import { ethers, network, deployments, upgrades } from "hardhat";
 import * as constants from './constants'
 import { getEventLogs } from "./testHelper";
 
-describe("LockedStaking", function () {
+describe("LockedStakingFactory", function () {
     let auroraOwner: any
     let user1: any
     let oneDay: any

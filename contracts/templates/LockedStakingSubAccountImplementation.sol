@@ -7,18 +7,16 @@ import "./IStakingStrategyTemplate.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract LockedStakingSubAccountImplementation is
     IStakingStrategyTemplate,
-    Ownable,
-    ReentrancyGuard
+    Ownable
 {
     using SafeERC20 for IERC20;
     address public stakingContract;
     address public voteTokenContract;
     uint256 public lockUpTimestamp;
-    bool private initialized = false;
+    bool public initialized = false;
 
     modifier onlyAfterLockUpPeriod() {
         require(
@@ -33,7 +31,6 @@ contract LockedStakingSubAccountImplementation is
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {}
 
     function initialize(
@@ -69,7 +66,6 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
-        nonReentrant
     {
         IJetStakingV1(stakingContract).unstake(amount);
     }
@@ -83,7 +79,6 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
-        nonReentrant
     {
         IJetStakingV1(stakingContract).moveAllRewardsToPending();
     }
@@ -93,7 +88,6 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
-        nonReentrant
     {
         IJetStakingV1(stakingContract).moveRewardsToPending(streamId);
     }
@@ -103,42 +97,35 @@ contract LockedStakingSubAccountImplementation is
         virtual
         onlyOwner
         onlyAfterLockUpPeriod
-        nonReentrant
     {
         IJetStakingV1(stakingContract).withdraw(streamId);
         // move the reward in this subaccount to the owner wallet (EOA)
-        IJetStakingV1.Stream memory stream = IJetStakingV1(stakingContract)
-            .streams(streamId);
-        uint256 amount = IERC20(stream.rewardToken).balanceOf(address(this));
+        address rewardToken;
+        (, rewardToken, , , , , , , , , ) = IJetStakingV1(stakingContract)
+            .getStream(streamId);
+        uint256 amount = IERC20(rewardToken).balanceOf(address(this));
         //if reward token == vote token --> call delegate instead.
-        if (stream.rewardToken == voteTokenContract) {
+        if (rewardToken == voteTokenContract) {
             _transferVoteTokens(amount);
         } else {
-            IERC20(stream.rewardToken).safeTransfer(owner(), amount);
+            IERC20(rewardToken).safeTransfer(owner(), amount);
         }
     }
 
-    function withdrawAll()
-        external
-        virtual
-        onlyOwner
-        onlyAfterLockUpPeriod
-        nonReentrant
-    {
+    function withdrawAll() external virtual onlyOwner onlyAfterLockUpPeriod {
         IJetStakingV1(stakingContract).withdrawAll();
         // move All rewards in this subaccount to the owner wallet (EOA)
         uint256 streams = IJetStakingV1(stakingContract).getStreamsCount();
+        address rewardToken;
         for (uint256 streamId = 0; streamId < streams; streamId++) {
-            IJetStakingV1.Stream memory stream = IJetStakingV1(stakingContract)
-                .streams(streamId);
-            uint256 amount = IERC20(stream.rewardToken).balanceOf(
-                address(this)
-            );
+            (, rewardToken, , , , , , , , , ) = IJetStakingV1(stakingContract)
+                .getStream(streamId);
+            uint256 amount = IERC20(rewardToken).balanceOf(address(this));
             //if reward token == vote token --> call delegate(transfer) instead.
-            if (stream.rewardToken == voteTokenContract) {
+            if (rewardToken == voteTokenContract) {
                 _transferVoteTokens(amount);
             } else {
-                IERC20(stream.rewardToken).safeTransfer(owner(), amount);
+                IERC20(rewardToken).safeTransfer(owner(), amount);
             }
         }
     }
