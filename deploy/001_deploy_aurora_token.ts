@@ -24,6 +24,17 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         })
         await new Promise(f => setTimeout(f, 3000));
         tokenAddress = token.address
+        // deploying a sample vote token contract
+        const voteToken = await deploy('SampleVoteToken', {
+            from: deployer.address,
+            args: [
+                auroraSupply,
+                "VoteToken",
+                "VOTE"
+            ],
+            log: true
+        })
+        console.log(`Sample Vote token: ${voteToken.address}`)
     }
     console.log(`Sample Aurora Token : ${tokenAddress}`)
 }
