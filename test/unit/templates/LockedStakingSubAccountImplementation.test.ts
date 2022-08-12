@@ -20,23 +20,17 @@ describe("LockedStakingTemplate", function () {
     let tauPerStream: any
     let scheduleTimes: any
     let scheduleRewards: any
-    let streamToken1: any
-    let streamToken2: any
+    let streamToken: any
     let treasury: any
     let stakingAdmin: any
-    let user2: any
-    let user3: any
-    let user4: any
-    let user5: any
-    let spender: any
-    let streamOwner: any
     let streamManager: any
     let extraInitParameters: any
+    let voteToken: any
 
     
     before(async () => {
         // deploys all the contracts
-        [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5, spender, streamOwner, streamManager] = await ethers.getSigners()
+        [auroraOwner, stakingAdmin, user1, streamManager] = await ethers.getSigners()
         // jetStakingV1 = await ethers.getContract("JetStakingV1")
         const supply = ethers.utils.parseUnits("10000000000", 18)
         LockedStakingTemplate =  await ethers.getContractFactory('LockedStakingSubAccountImplementation')
@@ -45,8 +39,9 @@ describe("LockedStakingTemplate", function () {
         const Token = await ethers.getContractFactory("Token")
         auroraToken = await Token.connect(auroraOwner).deploy(supply, "AuroraToken", "AURORA")
         // random example for other reward token contracts
-        streamToken1 = await Token.connect(auroraOwner).deploy(supply, "StreamToken1", "ST1")
-        streamToken2 = await Token.connect(auroraOwner).deploy(supply, "StreamToken2", "ST2")
+        const SampleVoteToken = await ethers.getContractFactory("SampleVoteToken")
+        voteToken = await SampleVoteToken.connect(auroraOwner).deploy(supply, "VoteToken", "VOTE")
+        streamToken = await Token.connect(auroraOwner).deploy(supply, "StreamToken", "ST")
         const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
         treasury = await upgrades.deployProxy(
@@ -54,8 +49,8 @@ describe("LockedStakingTemplate", function () {
             [
                 [
                     auroraToken.address,
-                    streamToken1.address,
-                    streamToken2.address
+                    voteToken.address,
+                    streamToken.address
                 ],
                 flags
             ]
@@ -129,7 +124,7 @@ describe("LockedStakingTemplate", function () {
         ]
         await jetStakingV1.connect(auroraOwner).proposeStream(
             auroraOwner.address,
-            streamToken1.address,
+            voteToken.address,
             auroraProposalAmountForAStream,
             maxRewardProposalAmountForAStream,
             minRewardProposalAmountForAStream,
@@ -137,8 +132,8 @@ describe("LockedStakingTemplate", function () {
             scheduleRewards,
             tauPerStream
         )
-        // approve reward tokens
-        await streamToken1.connect(auroraOwner).approve(jetStakingV1.address, maxRewardProposalAmountForAStream)
+        // approve reward (vote) tokens
+        await voteToken.connect(auroraOwner).approve(jetStakingV1.address, maxRewardProposalAmountForAStream)
         // create a stream
         const tx = await jetStakingV1.connect(auroraOwner).createStream(id, maxRewardProposalAmountForAStream)
 
@@ -183,18 +178,15 @@ describe("LockedStakingTemplate", function () {
     beforeEach(async () => {
         // fund users wallet
         await auroraToken.connect(auroraOwner).transfer(user1.address, ethers.utils.parseUnits("10000", 18))
-        // await auroraToken.connect(auroraOwner).transfer(user2.address, ethers.utils.parseUnits("10000", 18))
-        // await auroraToken.connect(auroraOwner).transfer(user3.address, ethers.utils.parseUnits("10000", 18))
-        // await auroraToken.connect(auroraOwner).transfer(user4.address, ethers.utils.parseUnits("10000", 18))
         await auroraToken.connect(auroraOwner).transfer(stakingAdmin.address, ethers.utils.parseUnits("100000000", 18))
         await auroraToken.connect(auroraOwner).transfer(streamManager.address, ethers.utils.parseUnits("100000000", 18))
         // transfer 20% of the total supply to the treasury contract
         const twentyPercentOfAuroraTotalSupply = ethers.utils.parseUnits("200000000", 18)
         // const onePercentOfTokenSupply = ethers.utils.parseUnits("1000000", 18)
         await auroraToken.connect(auroraOwner).transfer(treasury.address, twentyPercentOfAuroraTotalSupply)
-        await streamToken1.connect(auroraOwner).transfer(treasury.address, twentyPercentOfAuroraTotalSupply)
+        await voteToken.connect(auroraOwner).transfer(treasury.address, twentyPercentOfAuroraTotalSupply)
+        await streamToken.connect(auroraOwner).transfer(treasury.address, twentyPercentOfAuroraTotalSupply)
         stakingAmount = ethers.utils.parseUnits("1", 18)
-        const voteToken = streamToken1 // random vote token
         await auroraToken.connect(auroraOwner).transfer(user1.address, stakingAmount)
         user1BalanceBefore = await auroraToken.balanceOf(user1.address)
         extraInitParameters = ethers.utils.defaultAbiCoder.encode(
@@ -293,11 +285,23 @@ describe("LockedStakingTemplate", function () {
         const auroraRewards = await jetStakingV1.getPending(0, lockedStakingSubAccount.address)
         await network.provider.send("evm_mine", [startTime + 4 * oneDay])
         await lockedStakingSubAccount.connect(user1).withdraw(0)
+        const voteTokenUser1BalanceBefore = await voteToken.balanceOf(user1.address)
+        await lockedStakingSubAccount.connect(user1).withdraw(1)
+        const voteTokenUser1BalanceAfter = await voteToken.balanceOf(user1.address)
         const user1BalanceAfter = auroraRewards.add(user1BalanceBefore)
         expect(
             parseInt(ethers.utils.formatEther(user1BalanceBefore))
         ).to.be.lessThan(
             parseInt(ethers.utils.formatEther(user1BalanceAfter))
+        )
+        expect(
+            parseFloat(
+                ethers.utils.formatEther(voteTokenUser1BalanceBefore)
+            )
+        ).to.be.lessThan(
+            parseFloat(
+                ethers.utils.formatEther(voteTokenUser1BalanceAfter)
+            )
         )
     })
 })
