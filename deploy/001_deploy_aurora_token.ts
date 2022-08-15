@@ -1,4 +1,4 @@
-import { DeployFunction } from "hardhat-deploy/types";
+import { Address, DeployFunction } from "hardhat-deploy/types";
 import { ethers } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -7,7 +7,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { deploy } = hre.deployments
     const [ deployer ] = await hre.ethers.getSigners()
     const auroraSupply = ethers.utils.parseUnits("1000000", 18)
-    let tokenAddress: any
+    let tokenAddress: Address
     if(AURORA_TOKEN) {
         tokenAddress = AURORA_TOKEN
     } else {

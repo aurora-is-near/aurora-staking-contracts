@@ -138,7 +138,7 @@ contract LockedStakingSubAccountImplementation is
         IJetStakingV1(stakingContract).stake(amount);
     }
 
-    function _transferVoteTokens(uint256 amount) internal returns (uint256) {
-        IVoteTokenERC20(voteTokenContract).delegate(owner(), amount);
+    function _transferVoteTokens(uint256 amount) internal returns (bool) {
+        return IVoteTokenERC20(voteTokenContract).delegate(owner(), amount);
     }
 }
