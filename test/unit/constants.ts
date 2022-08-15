@@ -5,5 +5,6 @@ export const eventsABI = {
     released: ["event Released(uint256 indexed streamId, address indexed user, uint256 amount)"],
     streamProposed: ["event StreamProposed(uint256 indexed streamId, address indexed owner, address indexed token, uint256 maxDepositAmount, uint256 auroraDepositAmount)"],
     streamCreated: ["event StreamCreated(uint256 indexed streamId, address indexed owner, address indexed token, uint256 tokenAmount, uint256 auroraAmount)"],
-    streamRemoved: ["event StreamRemoved(uint256 indexed streamId, address indexed owner, address indexed token)"]
+    streamRemoved: ["event StreamRemoved(uint256 indexed streamId, address indexed owner, address indexed token)"],
+    templateCloned: ["event TemplateCloned(address indexed instance, address indexed owner)"]
 }
