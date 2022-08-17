@@ -1062,6 +1062,48 @@
         }
       }
     },
+    "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol": {
+      "lastModificationDate": 1658826795148,
+      "contentHash": "2ed98edc0ace098ba6d7c42a965628fd",
+      "sourceName": "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+        "lib/openzeppelin-contracts/contracts/utils/Context.sol"
+      ],
+      "versionRequirement": "^0.8.0",
+      "artifacts": {
+        "ERC20": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "ERC20.sol/ERC20.json"
+        }
+      }
+    },
     "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol": {
       "lastModificationDate": 1655890578123,
       "contentHash": "ad7c2d0af148c8f9f097d65deeb4da6b",
@@ -1097,6 +1139,84 @@
       "artifacts": {
         "IERC20": {
           "0.8.10+commit.fc410830.Darwin.appleclang": "IERC20.sol/IERC20.json"
+        }
+      }
+    },
+    "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+      "lastModificationDate": 1658826795152,
+      "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
+      "sourceName": "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol"
+      ],
+      "versionRequirement": "^0.8.0",
+      "artifacts": {
+        "IERC20Metadata": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "IERC20Metadata.sol/IERC20Metadata.json"
+        }
+      }
+    },
+    "lib/openzeppelin-contracts/contracts/utils/Context.sol": {
+      "lastModificationDate": 1658826795162,
+      "contentHash": "5f2c5c4b6af2dd4551027144797bc8be",
+      "sourceName": "lib/openzeppelin-contracts/contracts/utils/Context.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [],
+      "versionRequirement": "^0.8.0",
+      "artifacts": {
+        "Context": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "Context.sol/Context.json"
         }
       }
     },
@@ -1821,10 +1941,10 @@
         }
       }
     },
-    "test/foundry/jetStaking.t copy.sol": {
-      "lastModificationDate": 1660634757290,
-      "contentHash": "da2957e42421a54d394e799fc901630d",
-      "sourceName": "test/foundry/jetStaking.t copy.sol",
+    "test/foundry/Contracts/F_JetStakingV1.sol": {
+      "lastModificationDate": 1660748281886,
+      "contentHash": "d064c4ecda3989e68bfba8cc7552f9c7",
+      "sourceName": "test/foundry/Contracts/F_JetStakingV1.sol",
       "solcConfig": {
         "settings": {
           "optimizer": {
@@ -1854,14 +1974,6 @@
       "imports": [
         "contracts/AdminControlled.sol",
         "contracts/ITreasury.sol",
-        "contracts/JetStakingV1.sol",
-        "lib/forge-std/lib/ds-test/src/test.sol",
-        "lib/forge-std/src/Script.sol",
-        "lib/forge-std/src/Test.sol",
-        "lib/forge-std/src/Vm.sol",
-        "lib/forge-std/src/console.sol",
-        "lib/forge-std/src/console2.sol",
-        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol",
@@ -1877,17 +1989,17 @@
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol"
       ],
-      "versionRequirement": "^0.8.10",
+      "versionRequirement": "=0.8.10",
       "artifacts": {
-        "jetStakingTest": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "jetStaking.t copy.sol/jetStakingTest.json"
+        "JetStakingV1": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "F_JetStakingV1.sol/JetStakingV1.json"
         }
       }
     },
-    "test/foundry/jetStaking.t.sol": {
-      "lastModificationDate": 1660547953516,
-      "contentHash": "da2957e42421a54d394e799fc901630d",
-      "sourceName": "test/foundry/jetStaking.t.sol",
+    "test/foundry/Contracts/F_Treasury.sol": {
+      "lastModificationDate": 1660748285215,
+      "contentHash": "69d21d8d10ea8bd9b74fcc023b506d86",
+      "sourceName": "test/foundry/Contracts/F_Treasury.sol",
       "solcConfig": {
         "settings": {
           "optimizer": {
@@ -1917,14 +2029,6 @@
       "imports": [
         "contracts/AdminControlled.sol",
         "contracts/ITreasury.sol",
-        "contracts/JetStakingV1.sol",
-        "lib/forge-std/lib/ds-test/src/test.sol",
-        "lib/forge-std/src/Script.sol",
-        "lib/forge-std/src/Test.sol",
-        "lib/forge-std/src/Vm.sol",
-        "lib/forge-std/src/console.sol",
-        "lib/forge-std/src/console2.sol",
-        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol",
@@ -1940,17 +2044,17 @@
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol"
       ],
-      "versionRequirement": "^0.8.10",
+      "versionRequirement": "=0.8.10",
       "artifacts": {
-        "jetStakingTest": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "jetStaking.t.sol/jetStakingTest.json"
+        "Treasury": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "F_Treasury.sol/Treasury.json"
         }
       }
     },
-    "test/foundry/jetStakingRoles.t.sol": {
-      "lastModificationDate": 1660548050142,
-      "contentHash": "3ad90323435865973d50eb2ec5b9dba9",
-      "sourceName": "test/foundry/jetStakingRoles.t.sol",
+    "test/foundry/On_Chain_Tests/jetStaking.t.sol": {
+      "lastModificationDate": 1660748313763,
+      "contentHash": "b74389ecb3c55fc93d674df651c640f9",
+      "sourceName": "test/foundry/On_Chain_Tests/jetStaking.t.sol",
       "solcConfig": {
         "settings": {
           "optimizer": {
@@ -1980,7 +2084,6 @@
       "imports": [
         "contracts/AdminControlled.sol",
         "contracts/ITreasury.sol",
-        "contracts/JetStakingV1.sol",
         "lib/forge-std/lib/ds-test/src/test.sol",
         "lib/forge-std/src/Script.sol",
         "lib/forge-std/src/Test.sol",
@@ -2002,12 +2105,143 @@
         "node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
-        "test/foundry/jetStaking.t.sol"
+        "test/foundry/Contracts/F_JetStakingV1.sol"
+      ],
+      "versionRequirement": "^0.8.10",
+      "artifacts": {
+        "jetStakingTest": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "jetStaking.t.sol/jetStakingTest.json"
+        }
+      }
+    },
+    "test/foundry/On_Chain_Tests/jetStakingRoles.t.sol": {
+      "lastModificationDate": 1660748228051,
+      "contentHash": "3ad90323435865973d50eb2ec5b9dba9",
+      "sourceName": "test/foundry/On_Chain_Tests/jetStakingRoles.t.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "contracts/AdminControlled.sol",
+        "contracts/ITreasury.sol",
+        "lib/forge-std/lib/ds-test/src/test.sol",
+        "lib/forge-std/src/Script.sol",
+        "lib/forge-std/src/Test.sol",
+        "lib/forge-std/src/Vm.sol",
+        "lib/forge-std/src/console.sol",
+        "lib/forge-std/src/console2.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/beacon/IBeaconUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StorageSlotUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
+        "test/foundry/Contracts/F_JetStakingV1.sol",
+        "test/foundry/On_Chain_Tests/jetStaking.t.sol"
       ],
       "versionRequirement": "^0.8.10",
       "artifacts": {
         "jetStakingRoles": {
           "0.8.10+commit.fc410830.Darwin.appleclang": "jetStakingRoles.t.sol/jetStakingRoles.json"
+        }
+      }
+    },
+    "test/foundry/Regular_Tests/jetStakingV2.t.sol": {
+      "lastModificationDate": 1660748315327,
+      "contentHash": "865f83b7a78f5bde7d43d129dcdb3fdc",
+      "sourceName": "test/foundry/Regular_Tests/jetStakingV2.t.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "contracts/AdminControlled.sol",
+        "contracts/ITreasury.sol",
+        "lib/forge-std/lib/ds-test/src/test.sol",
+        "lib/forge-std/src/Script.sol",
+        "lib/forge-std/src/Test.sol",
+        "lib/forge-std/src/Vm.sol",
+        "lib/forge-std/src/console.sol",
+        "lib/forge-std/src/console2.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+        "lib/openzeppelin-contracts/contracts/utils/Context.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/beacon/IBeaconUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StorageSlotUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
+        "test/foundry/Contracts/F_JetStakingV1.sol",
+        "test/foundry/Contracts/F_Treasury.sol"
+      ],
+      "versionRequirement": "^0.8.10",
+      "artifacts": {
+        "jetStakingTestV2": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "jetStakingV2.t.sol/jetStakingTestV2.json"
         }
       }
     }
