@@ -13,9 +13,7 @@ import "forge-std/Test.sol";
 /// 
 /// @notice The following contract provides a suite of tests for JetStaking.sol
 /// contract. Further detail of what each tests does is provided above the actual
-/// test code. The tests must be run on a fork of aurora mainnet. given the use of 
-/// hardcoded values. To run the tests run 'forge test --rpc-url https://mainnet.aurora.dev/'
-/// In the future the code can be editted to not use hardcoded values.
+/// test code.
 
 contract jetStakingTestV2 is Test {
     // JetStaking 
