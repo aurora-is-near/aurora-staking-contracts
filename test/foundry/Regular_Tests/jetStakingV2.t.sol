@@ -15,21 +15,11 @@ import "forge-std/Test.sol";
 /// contract. Further detail of what each tests does is provided above the actual
 /// test code.
 
-contract jetStakingTestV2 is Test {
+contract StakingTestV2 is Test {
     // JetStaking 
     JetStakingV1 jetStaking;
     // Treasury
     Treasury treasury;
-    // AirdropRole has the power to stake on behalf of another user
-    address airdropRole = address(1); 
-    // ClaimRole has the power to claim rewards on behalf of another user
-    address claimRole = address(2);
-    // PauseRole has the power to pause the contract
-    address pauseRole = address(3);
-    // StreamManagerRole has the power to propose a stream
-    address streamManagerRole = address(4);
-    // DefaultAdminRole has the power to update the treasury address
-    address adminRole = address(5);
     // Aurora token
     ERC20 aurora = new ERC20("AuroraToken", "AURORA");
     // Reward tokens (for streams)
@@ -89,6 +79,15 @@ contract jetStakingTestV2 is Test {
         deal(address(rewardToken2), address(treasury), 100000000000 ether); 
         deal(address(rewardToken3), address(treasury), 100000000000 ether); 
         bytes32 defaultAdminRole = jetStaking.DEFAULT_ADMIN_ROLE();
+        bytes32 claimRole = jetStaking.CLAIM_ROLE();
+        bytes32 airdropRole = jetStaking.AIRDROP_ROLE();
+        bytes32 pauseRole = jetStaking.PAUSE_ROLE();
+        bytes32 streamManagerRole = jetStaking.STREAM_MANAGER_ROLE();
+        jetStaking.grantRole(claimRole, address(this));
+        jetStaking.grantRole(airdropRole, address(this));
+        jetStaking.grantRole(pauseRole, address(this));
+        jetStaking.grantRole(streamManagerRole, address(this));
+
         treasury.grantRole(defaultAdminRole, address(jetStaking));
         vm.startPrank(address(treasury));
         aurora.approve(address(jetStaking), 2**256 - 1);
@@ -101,12 +100,29 @@ contract jetStakingTestV2 is Test {
 
     // @notice Steps in the following test:
     // - Stakes 1000 ether
+    // - Immediately moves rewards to pending
+    // - Waits 2 days + 1 second - Waiting is achieved by warping block.timestamp using vm.warp
+    // - Unstakes aurora
+    // - Check that balance withdrawn is equal to deposited
+    function testStakeAndWithdraw() public {
+        uint256 balanceBefore = aurora.balanceOf(address(this));
+        aurora.approve(address(jetStaking), 1000 ether);
+        jetStaking.stake(1000 ether);
+        jetStaking.moveAllRewardsToPending();
+        jetStaking.unstakeAll();
+        vm.warp(block.timestamp + 2 days + 1);
+        jetStaking.withdrawAll();
+        assert(balanceBefore == aurora.balanceOf(address(this)));
+    }
+
+    // @notice Steps in the following test:
+    // - Stakes 1000 ether
     // - Waits 1 week
     // - Moves rewards to pending
     // - Waits 2 days + 1 second - Waiting is achieved by warping block.timestamp using vm.warp
     // - Unstakes aurora
     // - Check that balance withdrawn is greater than deposited
-    function testStakeAndWithdraw() public {
+    function testStakeWaitAndWithdraw() public {
         aurora.approve(address(jetStaking), 1000 ether);
         jetStaking.stake(1000 ether);
         vm.warp(block.timestamp + 1 weeks);
@@ -161,8 +177,7 @@ contract jetStakingTestV2 is Test {
     // - Impersonate user1 using vm.startPrank cheatcode
     // - Rather than staking all 10000 tokens at once, we stake iteratively in single quantities
     // - Immediately unstake
-    // - Assert that balance after is greater than 10000
-    // - Output profit generate (balanceAfter - balanceBefore)
+    // - Assert that balance after is not greater than 10000
     function testGameSystem() public {
         deal(address(aurora), user1, 10000);
         // Useful Foundry cheatcode to impersonate an address (user1)
@@ -176,7 +191,7 @@ contract jetStakingTestV2 is Test {
         vm.warp(block.timestamp + 2 days + 1);
         jetStaking.withdrawAll();
         uint256 balanceAfter = aurora.balanceOf(user1);
-        emit log_named_uint("Aurora profit = ", balanceAfter - balanceBefore);
+        assert(!(balanceAfter > balanceBefore));
     }
 
     // @notice Steps in the following test:

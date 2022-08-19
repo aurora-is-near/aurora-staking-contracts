@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import "./jetStaking.t.sol";
+import "./jetStakingV2.t.sol";
 
-contract jetStakingRoles is jetStakingTest {
+contract StakingRolesV2 is StakingTestV2 {
     // @notice Steps in the following test:
     // - Create an array of account
     // - Create an array of amount (uints)
@@ -19,8 +19,7 @@ contract jetStakingRoles is jetStakingTest {
         amounts[0] = 10 ether;
         amounts[1] = 10 ether;
         uint256 batchAmount = 20 ether;
-        deal(address(aurora), airdropRole, batchAmount);
-        vm.startPrank(airdropRole);
+        deal(address(aurora), address(this), batchAmount);
         aurora.approve(address(jetStaking), batchAmount);
         jetStaking.stakeOnBehalfOfOtherUsers(accounts, amounts, batchAmount);
         assert(jetStaking.getUserTotalDeposit(user1) + jetStaking.getUserTotalDeposit(user2) == 20 ether);
@@ -31,7 +30,6 @@ contract jetStakingRoles is jetStakingTest {
     // - Attempt to propose a stream
     // - Should revert given the token is not supported by the treasury
     function testStreamManagerRole() public {
-        vm.startPrank(streamManagerRole);
         address newToken = address(8);
         uint256[] memory scheduleTimes = new uint256[](2);
         scheduleTimes[0] = block.timestamp + 1000;
@@ -61,12 +59,11 @@ contract jetStakingRoles is jetStakingTest {
     function testClaimRole() public {
         stakeFor(user1, 10 ether);
         vm.warp(block.timestamp + 1 weeks);
-        vm.startPrank(claimRole);
         jetStaking.claimAllOnBehalfOfAnotherUser(user1);
         vm.warp(block.timestamp + 1 weeks);
         vm.stopPrank();
         vm.startPrank(user2);
-        vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000002 is missing role 0xf7db13299c8a9e501861f04c20f69a2444829a36a363cfad4b58864709c75560");
+        vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000008 is missing role 0xf7db13299c8a9e501861f04c20f69a2444829a36a363cfad4b58864709c75560");
         jetStaking.claimAllOnBehalfOfAnotherUser(user1);
     }
 
@@ -77,12 +74,11 @@ contract jetStakingRoles is jetStakingTest {
     // - Attempt the same with a non-admin account
     // - Expect revert
     function testUpdateTreasury() public {
-        vm.startPrank(defaultAdminRole);
         jetStaking.adminPause(1);
         jetStaking.updateTreasury(address(10));
         vm.stopPrank();
         vm.startPrank(user1);
-        vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000001 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+        vm.expectRevert("AccessControl: account 0x0000000000000000000000000000000000000007 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
         jetStaking.updateTreasury(address(10));
     }
 }
