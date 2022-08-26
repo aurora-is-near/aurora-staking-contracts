@@ -12,3 +12,5 @@ artifacts/
 .DS_Store
 # OpenZeppelin
 .openzeppelin/
+# Foundry
+out/

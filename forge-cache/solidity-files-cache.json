@@ -34,7 +34,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -85,7 +86,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -123,7 +125,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -178,7 +181,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -233,7 +237,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -288,7 +293,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -344,7 +350,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -387,7 +394,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -444,7 +452,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -500,7 +509,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -556,7 +566,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -613,7 +624,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -669,7 +681,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -725,7 +738,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -781,7 +795,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -816,7 +831,7 @@
       }
     },
     "lib/forge-std/lib/ds-test/src/test.sol": {
-      "lastModificationDate": 1655890444319,
+      "lastModificationDate": 1658826794864,
       "contentHash": "962996f0e05d5218857a538a62d7c47e",
       "sourceName": "lib/forge-std/lib/ds-test/src/test.sol",
       "solcConfig": {
@@ -837,7 +852,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -854,7 +870,7 @@
       }
     },
     "lib/forge-std/src/Script.sol": {
-      "lastModificationDate": 1655890443338,
+      "lastModificationDate": 1658826794864,
       "contentHash": "a24c6682dfdd459618422202d7b97fec",
       "sourceName": "lib/forge-std/src/Script.sol",
       "solcConfig": {
@@ -875,7 +891,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -896,7 +913,7 @@
       }
     },
     "lib/forge-std/src/Test.sol": {
-      "lastModificationDate": 1655890443338,
+      "lastModificationDate": 1658826794865,
       "contentHash": "4d6050a67786485eb8ae69d91756f1c8",
       "sourceName": "lib/forge-std/src/Test.sol",
       "solcConfig": {
@@ -917,7 +934,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -949,7 +967,7 @@
       }
     },
     "lib/forge-std/src/Vm.sol": {
-      "lastModificationDate": 1655890443338,
+      "lastModificationDate": 1658826794866,
       "contentHash": "93730815cc457c9e650190f81a85f3ec",
       "sourceName": "lib/forge-std/src/Vm.sol",
       "solcConfig": {
@@ -970,7 +988,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -987,7 +1006,7 @@
       }
     },
     "lib/forge-std/src/console.sol": {
-      "lastModificationDate": 1655890443340,
+      "lastModificationDate": 1658826794866,
       "contentHash": "100b8a33b917da1147740d7ab8b0ded3",
       "sourceName": "lib/forge-std/src/console.sol",
       "solcConfig": {
@@ -1008,7 +1027,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1025,7 +1045,7 @@
       }
     },
     "lib/forge-std/src/console2.sol": {
-      "lastModificationDate": 1655890443340,
+      "lastModificationDate": 1658826794866,
       "contentHash": "5df91f8e93efbfcccf68973dc1b74a70",
       "sourceName": "lib/forge-std/src/console2.sol",
       "solcConfig": {
@@ -1046,7 +1066,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1084,7 +1105,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1100,12 +1122,12 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "ERC20": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "ERC20.sol/ERC20.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "ERC20/ERC20.sol/ERC20.json"
         }
       }
     },
     "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol": {
-      "lastModificationDate": 1655890578123,
+      "lastModificationDate": 1658826795148,
       "contentHash": "ad7c2d0af148c8f9f097d65deeb4da6b",
       "sourceName": "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
       "solcConfig": {
@@ -1126,7 +1148,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1138,7 +1161,7 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC20": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "IERC20.sol/IERC20.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "ERC20/IERC20.sol/IERC20.json"
         }
       }
     },
@@ -1164,7 +1187,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1178,7 +1202,7 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC20Metadata": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "IERC20Metadata.sol/IERC20Metadata.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "extensions/IERC20Metadata.sol/IERC20Metadata.json"
         }
       }
     },
@@ -1204,7 +1228,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1216,7 +1241,7 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "Context": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "Context.sol/Context.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "utils/Context.sol/Context.json"
         }
       }
     },
@@ -1242,7 +1267,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1258,7 +1284,7 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "ERC20": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "ERC20.sol/ERC20.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "token/ERC20/ERC20.sol/ERC20.json"
         }
       }
     },
@@ -1284,7 +1310,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1296,7 +1323,7 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC20": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "IERC20.sol/IERC20.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "token/ERC20/IERC20.sol/IERC20.json"
         }
       }
     },
@@ -1322,7 +1349,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1336,7 +1364,7 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "IERC20Metadata": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "IERC20Metadata.sol/IERC20Metadata.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json"
         }
       }
     },
@@ -1362,7 +1390,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1374,7 +1403,7 @@
       "versionRequirement": "^0.8.0",
       "artifacts": {
         "Context": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "Context.sol/Context.json"
+          "0.8.10+commit.fc410830.Darwin.appleclang": "contracts/utils/Context.sol/Context.json"
         }
       }
     },
@@ -1400,7 +1429,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1446,7 +1476,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1484,7 +1515,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1527,7 +1559,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1565,7 +1598,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1605,7 +1639,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1649,7 +1684,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1687,7 +1723,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1728,7 +1765,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1766,7 +1804,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1807,7 +1846,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1845,7 +1885,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1883,7 +1924,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1925,7 +1967,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1942,7 +1985,7 @@
       }
     },
     "test/foundry/Contracts/F_JetStakingV1.sol": {
-      "lastModificationDate": 1660748281886,
+      "lastModificationDate": 1661160838100,
       "contentHash": "d064c4ecda3989e68bfba8cc7552f9c7",
       "sourceName": "test/foundry/Contracts/F_JetStakingV1.sol",
       "solcConfig": {
@@ -1963,7 +2006,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -1997,7 +2041,7 @@
       }
     },
     "test/foundry/Contracts/F_Treasury.sol": {
-      "lastModificationDate": 1660748285215,
+      "lastModificationDate": 1661160838101,
       "contentHash": "69d21d8d10ea8bd9b74fcc023b506d86",
       "sourceName": "test/foundry/Contracts/F_Treasury.sol",
       "solcConfig": {
@@ -2018,7 +2062,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -2052,7 +2097,7 @@
       }
     },
     "test/foundry/OnChain_Tests/jetStaking.t.sol": {
-      "lastModificationDate": 1660816743088,
+      "lastModificationDate": 1661160838371,
       "contentHash": "da2957e42421a54d394e799fc901630d",
       "sourceName": "test/foundry/OnChain_Tests/jetStaking.t.sol",
       "solcConfig": {
@@ -2073,7 +2118,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -2115,8 +2161,8 @@
       }
     },
     "test/foundry/OnChain_Tests/jetStakingRoles.t.sol": {
-      "lastModificationDate": 1660748228051,
-      "contentHash": "3ad90323435865973d50eb2ec5b9dba9",
+      "lastModificationDate": 1661160838372,
+      "contentHash": "1612aac2caca158abffc87515be358dd",
       "sourceName": "test/foundry/OnChain_Tests/jetStakingRoles.t.sol",
       "solcConfig": {
         "settings": {
@@ -2136,7 +2182,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -2178,10 +2225,10 @@
         }
       }
     },
-    "test/foundry/Regular_Tests/jetStakingRolesV2.t.sol": {
-      "lastModificationDate": 1660843066871,
-      "contentHash": "1a57282184f95272adeceb20b8ecf19c",
-      "sourceName": "test/foundry/Regular_Tests/jetStakingRolesV2.t.sol",
+    "test/foundry/Regular_Tests/Fuzzing.t.sol": {
+      "lastModificationDate": 1661499578004,
+      "contentHash": "aac1b99badfda8fc7535b5d0206fd776",
+      "sourceName": "test/foundry/Regular_Tests/Fuzzing.t.sol",
       "solcConfig": {
         "settings": {
           "optimizer": {
@@ -2200,7 +2247,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -2237,19 +2285,20 @@
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
         "test/foundry/Contracts/F_JetStakingV1.sol",
         "test/foundry/Contracts/F_Treasury.sol",
+        "test/foundry/Regular_Tests/Setup.t.sol",
         "test/foundry/Regular_Tests/jetStakingV2.t.sol"
       ],
       "versionRequirement": "^0.8.10",
       "artifacts": {
-        "StakingRolesV2": {
-          "0.8.10+commit.fc410830.Darwin.appleclang": "jetStakingRolesV2.t.sol/StakingRolesV2.json"
+        "FuzzingTests": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "Fuzzing.t.sol/FuzzingTests.json"
         }
       }
     },
-    "test/foundry/Regular_Tests/jetStakingV2.t.sol": {
-      "lastModificationDate": 1660843379625,
-      "contentHash": "9011f5b65bd530891ed4b258c47912d2",
-      "sourceName": "test/foundry/Regular_Tests/jetStakingV2.t.sol",
+    "test/foundry/Regular_Tests/Setup.t.sol": {
+      "lastModificationDate": 1661326514096,
+      "contentHash": "303141e01b9cc4364798f7e3b9f003ff",
+      "sourceName": "test/foundry/Regular_Tests/Setup.t.sol",
       "solcConfig": {
         "settings": {
           "optimizer": {
@@ -2268,7 +2317,8 @@
                 "abi",
                 "evm.bytecode",
                 "evm.deployedBytecode",
-                "evm.methodIdentifiers"
+                "evm.methodIdentifiers",
+                "metadata"
               ]
             }
           },
@@ -2305,6 +2355,145 @@
         "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
         "test/foundry/Contracts/F_JetStakingV1.sol",
         "test/foundry/Contracts/F_Treasury.sol"
+      ],
+      "versionRequirement": "^0.8.10",
+      "artifacts": {
+        "Setup": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "Setup.t.sol/Setup.json"
+        }
+      }
+    },
+    "test/foundry/Regular_Tests/jetStakingRolesV2.t.sol": {
+      "lastModificationDate": 1661326473814,
+      "contentHash": "49bc9dce5da26af2650c3d7e0c001850",
+      "sourceName": "test/foundry/Regular_Tests/jetStakingRolesV2.t.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "contracts/AdminControlled.sol",
+        "contracts/ITreasury.sol",
+        "lib/forge-std/lib/ds-test/src/test.sol",
+        "lib/forge-std/src/Script.sol",
+        "lib/forge-std/src/Test.sol",
+        "lib/forge-std/src/Vm.sol",
+        "lib/forge-std/src/console.sol",
+        "lib/forge-std/src/console2.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+        "lib/openzeppelin-contracts/contracts/utils/Context.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/beacon/IBeaconUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StorageSlotUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
+        "test/foundry/Contracts/F_JetStakingV1.sol",
+        "test/foundry/Contracts/F_Treasury.sol",
+        "test/foundry/Regular_Tests/Setup.t.sol",
+        "test/foundry/Regular_Tests/jetStakingV2.t.sol"
+      ],
+      "versionRequirement": "^0.8.10",
+      "artifacts": {
+        "StakingRolesV2": {
+          "0.8.10+commit.fc410830.Darwin.appleclang": "jetStakingRolesV2.t.sol/StakingRolesV2.json"
+        }
+      }
+    },
+    "test/foundry/Regular_Tests/jetStakingV2.t.sol": {
+      "lastModificationDate": 1661326523015,
+      "contentHash": "fb9bf2c9c9b97cc4c8b04c41047456ce",
+      "sourceName": "test/foundry/Regular_Tests/jetStakingV2.t.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "contracts/AdminControlled.sol",
+        "contracts/ITreasury.sol",
+        "lib/forge-std/lib/ds-test/src/test.sol",
+        "lib/forge-std/src/Script.sol",
+        "lib/forge-std/src/Test.sol",
+        "lib/forge-std/src/Vm.sol",
+        "lib/forge-std/src/console.sol",
+        "lib/forge-std/src/console2.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
+        "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+        "lib/openzeppelin-contracts/contracts/utils/Context.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/beacon/IBeaconUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StorageSlotUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol",
+        "node_modules/@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol",
+        "test/foundry/Contracts/F_JetStakingV1.sol",
+        "test/foundry/Contracts/F_Treasury.sol",
+        "test/foundry/Regular_Tests/Setup.t.sol"
       ],
       "versionRequirement": "^0.8.10",
       "artifacts": {

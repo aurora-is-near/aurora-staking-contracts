@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "./jetStakingV2.t.sol";
 
-contract StakingRolesV2 is StakingTestV2 {
+contract StakingRolesV2 is Setup {
     // @notice Steps in the following test:
     // - Create an array of account
     // - Create an array of amount (uints)
