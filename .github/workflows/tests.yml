@@ -36,5 +36,6 @@ jobs:
         uses: actions/checkout@v2
       - run: yarn install --force
       - run: yarn lint
+      - run: yarn deepClean
       - run: yarn compile
       - run: yarn coverage
