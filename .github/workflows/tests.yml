@@ -37,4 +37,5 @@ jobs:
       - run: yarn install --force
       - run: yarn lint
       - run: yarn compile
+      - run: yarn forge-test
       - run: yarn coverage
