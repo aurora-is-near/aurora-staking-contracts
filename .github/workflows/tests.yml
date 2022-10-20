@@ -37,5 +37,9 @@ jobs:
       - run: yarn install --force
       - run: yarn lint
       - run: yarn compile
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
       - run: yarn forge-test
       - run: yarn coverage
