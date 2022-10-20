@@ -38,4 +38,5 @@ jobs:
       - run: yarn lint
       - run: yarn deepClean
       - run: yarn compile
+      - run: yarn forge-test
       - run: yarn coverage
