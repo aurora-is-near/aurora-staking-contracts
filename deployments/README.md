@@ -155,6 +155,27 @@ yarn createStreamTRI:auroraMainnet
 yarn createStreamBSTN:auroraMainnet
 ```
 
+## Pausing contracts (Aurora Labs)
+
+The default admin role can pause and unpause the contracts.
+The pause role keys can only pause the contracts.
+
+- Provide PRIVATE_KEY environment variable:
+```bash
+#.env file
+PRIVATE_KEY= # Pause role or default admin.
+```
+
+- Review and execute the script in ./scripts/pause.js
+```bash
+yarn pause:auroraMainnet
+```
+
+- or execute `function adminPause(uint flags)` directly from MetaMask/Gnosis using the hex data:
+```bash
+0x2692c59f0000000000000000000000000000000000000000000000000000000000000001
+```
+
 ## Verifying contracts
 
 Proxy contracts were already automatically verified because of the automatic bytecode matching in [Aurorascan](https://aurorascan.dev), however to verify the implementation contracts, you have to use the `hardhat verify` as follows:

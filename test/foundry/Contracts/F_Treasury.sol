@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import "./ITreasury.sol";
-import "./AdminControlled.sol";
+import "contracts/ITreasury.sol";
+import "contracts/AdminControlled.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
@@ -33,9 +33,6 @@ contract Treasury is ITreasury, AdminControlled {
         uint256 timestamp
     );
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() initializer {}
-
     /// @notice initializes ownable Treasury with list of managers and supported tokens
     /// @param _supportedTokens list of supported tokens
     function initialize(address[] memory _supportedTokens, uint256 _flags)
@@ -45,7 +42,6 @@ contract Treasury is ITreasury, AdminControlled {
         for (uint256 i = 0; i < _supportedTokens.length; i++) {
             require(_supportedTokens[i] != address(0), "INVALID_TOKEN_ADDRESS");
             isSupportedToken[_supportedTokens[i]] = true;
-            emit TokenAdded(_supportedTokens[i], msg.sender, block.timestamp);
         }
         __AdminControlled_init(_flags);
         _grantRole(TREASURY_MANAGER_ROLE, msg.sender);

@@ -52,7 +52,9 @@ module.exports = {
     timeout: 300000,
   },
   networks: {
-    hardhat: {},
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_KEY}`,
       accounts: accountsTestnet,
@@ -78,5 +80,4 @@ module.exports = {
     clear: true,
     runOnCompile: true,
   },
-  allowUnlimitedContractSize: true,
 };

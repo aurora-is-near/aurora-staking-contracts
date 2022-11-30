@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
-import "./ITreasury.sol";
-import "./AdminControlled.sol";
+import "contracts/ITreasury.sol";
+import "contracts/AdminControlled.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
@@ -81,8 +81,6 @@ contract JetStakingV1 is AdminControlled {
     mapping(address => User) public users;
     Stream[] streams;
 
-    uint256 streamStartBuffer;
-
     // events
     event Staked(address indexed user, uint256 amount, uint256 shares);
 
@@ -139,9 +137,6 @@ contract JetStakingV1 is AdminControlled {
         require(users[msg.sender].auroraShares != 0, "ZERO_USER_SHARES");
         _;
     }
-
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() initializer {}
 
     /// @dev initialize the contract and deploys the first stream (AURORA)
     /// @notice By calling this function, the deployer of this contract must
@@ -356,8 +351,6 @@ contract JetStakingV1 is AdminControlled {
             stream.auroraDepositAmount = newAuroraDepositAmount;
             // update stream reward schedules
             _updateStreamRewardSchedules(streamId, rewardTokenAmount);
-            // TODO reorder the events
-            // slither-disable-next-line reentrancy-events
             IERC20Upgradeable(auroraToken).safeTransfer(
                 stream.manager,
                 refundAuroraAmount
@@ -420,9 +413,7 @@ contract JetStakingV1 is AdminControlled {
                 ? releaseAuroraAmount
                 : auroraTreasury // should not happen
         );
-        // Move the rest of rewards to the stream fund receiver.
-        // Moving the rest of reward tokens to the stream owner
-        // will be handled outside of the scope of this contract.
+        // move the rest of rewards to the stream owner
         ITreasury(treasury).payRewards(
             streamFundReceiver,
             stream.rewardToken,
@@ -441,7 +432,6 @@ contract JetStakingV1 is AdminControlled {
     {
         Stream storage stream = streams[streamId];
         if (stream.status != StreamStatus.ACTIVE) return 0;
-        // slither-disable-next-line similar-names
         uint256 scheduledReward = getRewardsAmount(
             streamId,
             stream.lastTimeOwnerClaimed
@@ -825,7 +815,6 @@ contract JetStakingV1 is AdminControlled {
         returns (uint256)
     {
         require(lastUpdate <= block.timestamp, "INVALID_LAST_UPDATE");
-        // slither-disable-next-line incorrect-equality
         if (lastUpdate == block.timestamp) return 0; // No more rewards since last update
         uint256 streamStart = streams[streamId].schedule.time[0];
         if (block.timestamp <= streamStart) return 0; // Stream didn't start
@@ -919,7 +908,6 @@ contract JetStakingV1 is AdminControlled {
     /// @dev gets the total amount of staked aurora
     /// @return totalAmountOfStakedAurora + latest reward schedule
     function getTotalAmountOfStakedAurora() external view returns (uint256) {
-        // slither-disable-next-line incorrect-equality
         if (touchedAt == 0) return 0;
         return totalAmountOfStakedAurora + getRewardsAmount(0, touchedAt);
     }
@@ -950,7 +938,6 @@ contract JetStakingV1 is AdminControlled {
             }
         }
         // find end index
-        // slither-disable-next-line incorrect-equality
         if (end == schedule.time[scheduleTimeLength - 1]) {
             endIndex = scheduleTimeLength - 2;
         } else {
@@ -1012,16 +999,13 @@ contract JetStakingV1 is AdminControlled {
     }
 
     /// @dev called before touching the contract reserves (stake/unstake)
-    // slither-disable-next-line costly-loop
     function _before() internal {
-        // slither-disable-next-line incorrect-equality
         if (touchedAt == block.timestamp) return; // Already updated by previous tx in same block.
         if (totalAuroraShares != 0) {
             // Don't release rewards if there are no stakers.
             totalAmountOfStakedAurora += getRewardsAmount(0, touchedAt);
             uint256 streamsLength = streams.length;
             for (uint256 i = 1; i < streamsLength; i++) {
-                // slither-disable-next-line incorrect-equality
                 if (streams[i].status == StreamStatus.ACTIVE) {
                     // If stream becomes blacklisted, no more rewards are released.
                     streams[i].rps = getLatestRewardPerShare(i);
@@ -1055,7 +1039,6 @@ contract JetStakingV1 is AdminControlled {
     /// @param streamId the stream index
     function _moveRewardsToPending(address account, uint256 streamId) internal {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
-        // slither-disable-next-line incorrect-equality
         require(
             streams[streamId].status == StreamStatus.ACTIVE,
             "INACTIVE_OR_PROPOSED_STREAM"
@@ -1068,9 +1051,6 @@ contract JetStakingV1 is AdminControlled {
         uint256 reward = ((streams[streamId].rps -
             userAccount.rpsDuringLastClaim[streamId]) *
             userAccount.streamShares) / RPS_MULTIPLIER;
-
-        // TODO replace with reward < 1 instead?
-        // slither-disable-next-line incorrect-equality
         if (reward == 0) return; // All rewards claimed or stream schedule didn't start
         userAccount.pendings[streamId] += reward;
         userAccount.rpsDuringLastClaim[streamId] = streams[streamId].rps;
@@ -1087,7 +1067,6 @@ contract JetStakingV1 is AdminControlled {
     function _moveAllRewardsToPending(address account) internal {
         uint256 streamsLength = streams.length;
         for (uint256 i = 1; i < streamsLength; i++) {
-            // slither-disable-next-line incorrect-equality
             if (streams[i].status == StreamStatus.ACTIVE)
                 _moveRewardsToPending(account, i);
         }
@@ -1101,7 +1080,6 @@ contract JetStakingV1 is AdminControlled {
         internal
     {
         for (uint256 i = 0; i < streamIds.length; i++) {
-            // slither-disable-next-line incorrect-equality
             if (streams[streamIds[i]].status == StreamStatus.ACTIVE)
                 _moveRewardsToPending(account, streamIds[i]);
         }
@@ -1114,22 +1092,17 @@ contract JetStakingV1 is AdminControlled {
     /// Unclaimed rewards will be lost.
     /// `_before()` must be called before `_stake` to update streams rps
     /// compounded AURORA rewards.
-    //slither-disable-next-line costly-loop
     function _stake(address account, uint256 amount) internal {
         // recalculation of shares for user
         User storage userAccount = users[account];
         uint256 _amountOfShares = 0;
-        // TODO change to be < 1 instead
-        // slither-disable-next-line incorrect-equality
         if (totalAuroraShares == 0) {
             // initialize the number of shares (_amountOfShares) owning 100% of the stake (amount)
             _amountOfShares = amount;
         } else {
-            // slither-disable-next-line divide-before-multiply
             uint256 numerator = amount * totalAuroraShares;
             _amountOfShares = numerator / totalAmountOfStakedAurora;
             // check that rounding is needed (result * denominator < numerator).
-            // slither-disable-next-line divide-before-multiply
             if (_amountOfShares * totalAmountOfStakedAurora < numerator) {
                 // Round up so users don't get less sharesValue than their staked amount
                 _amountOfShares += 1;
@@ -1211,15 +1184,15 @@ contract JetStakingV1 is AdminControlled {
         );
         // scheduleTimes[0] == proposal expiration time
         require(
-            scheduleTimes[0] > block.timestamp + streamStartBuffer,
-            "INVALID_STREAM_PROPOSAL_EXPIRATION_DATE"
+            scheduleTimes[0] > block.timestamp,
+            "INVALID_STREAM_EXPIRATION_DATE"
         );
         require(
             scheduleTimes.length == scheduleRewards.length,
             "INVALID_SCHEDULE_VALUES"
         );
         require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
-        require(tau != 0 && tau < ONE_MONTH, "INVALID_TAU_PERIOD");
+        require(tau != 0, "INVALID_TAU_PERIOD");
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1],
@@ -1262,23 +1235,10 @@ contract JetStakingV1 is AdminControlled {
         uint256 pendingAmount = userAccount.pendings[streamId];
         userAccount.pendings[streamId] = 0;
         emit Released(streamId, msg.sender, pendingAmount);
-        // slither-disable-next-line calls-loop
         ITreasury(treasury).payRewards(
             msg.sender,
             streams[streamId].rewardToken,
             pendingAmount
         );
-    }
-
-    /// @dev update the minimum period of time between current timestamp and the start of schedule
-    /// called only stream manager role
-    /// @param _streamStartBuffer a minimum period value
-    // TODO fix visibility
-    // slither-disable-next-line external-function
-    function updateStreamStartBuffer(uint256 _streamStartBuffer)
-        public
-        onlyRole(STREAM_MANAGER_ROLE)
-    {
-        streamStartBuffer = _streamStartBuffer;
     }
 }
