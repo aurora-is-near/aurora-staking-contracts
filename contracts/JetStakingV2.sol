@@ -267,7 +267,7 @@ contract JetStakingV2 is AdminControlled {
             stream.schedule.reward[i] += scheduleRewards[0];
         }
         // extend Aurora stream schedule.
-        for(uint256 i = 0; i < scheduleTimes.length; i++) {
+        for (uint256 i = 0; i < scheduleTimes.length; i++) {
             stream.schedule.time.push(scheduleTimes[i]);
             stream.schedule.reward.push(scheduleRewards[i]);
         }
