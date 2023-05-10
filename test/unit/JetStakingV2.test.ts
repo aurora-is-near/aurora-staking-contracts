@@ -36,7 +36,8 @@ describe("JetStakingV2", function () {
         const JetStakingV1 = await ethers.getContract('JetStakingV1')
         const currentJet = await ethers.getContractAt('JetStakingV1', JetStakingV1.address);
         const schedule = await currentJet.getStreamSchedule(0);
-        startTime = schedule[0][4] + 1;
+        console.log(schedule[0][4].toNumber());
+        startTime = schedule[0][4].toNumber() + 1;
         console.log(`JetStaking contract address ${JetStakingV1.address}`);
         const JetStakingV2 = await ethers.getContractFactory('JetStakingTestingV2');
         scheduleTimes = [

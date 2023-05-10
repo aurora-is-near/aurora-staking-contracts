@@ -257,10 +257,20 @@ contract JetStakingV2 is AdminControlled {
             address(treasury),
             scheduleRewards[0]
         );
-        // update stream schedule
-        // TODO: extend the schedule instead of replacing it.
-        Schedule memory schedule = Schedule(scheduleTimes, scheduleRewards);
-        stream.schedule = schedule;
+        // Delete the last schedule element
+        // The last element will be replaced by
+        // the first element in the new schedule.
+        stream.schedule.time.pop();
+        stream.schedule.reward.pop();
+        // make the schedule rewards consistent.
+        for (uint256 i = 0; i < stream.schedule.time.length; i++) {
+            stream.schedule.reward[i] += scheduleRewards[0];
+        }
+        // extend Aurora stream schedule.
+        for(uint256 i = 0; i < scheduleTimes.length; i++) {
+            stream.schedule.time.push(scheduleTimes[i]);
+            stream.schedule.reward.push(scheduleRewards[i]);
+        }
     }
 
     /// @dev An admin of the staking contract can whitelist (propose) a stream.
