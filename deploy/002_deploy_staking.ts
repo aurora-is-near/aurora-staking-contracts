@@ -33,7 +33,14 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     console.log(`Main AURORA stream will start @ ${new Date(startTime * 1000).toLocaleString()}`)
     const flags = 0
     console.log(`Getting Aurora token address`);
-    const auroraAddress = AURORA_TOKEN? AURORA_TOKEN : (await hre.ethers.getContract("Token")).address
+    let auroraAddress = "";
+    if (AURORA_TOKEN?.toString().startsWith("0x")){
+        auroraAddress = AURORA_TOKEN.toString();
+    } else {
+        const token = await hre.ethers.getContract("Token");
+        const auroraToken = await hre.ethers.getContractAt("Token", token.address);
+        auroraAddress = auroraToken.address;
+    }
     console.log(`Aurora token address is: ${auroraAddress}`)
 
     // Deploy JetStakingV1.
