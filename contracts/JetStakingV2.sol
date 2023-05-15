@@ -435,8 +435,8 @@ contract JetStakingV2 is AdminControlled {
     }
 
     /// @dev extend Aurora stream reward schedule. It can be only called by the default
-    /// contract admin. It can be only called if the current reward schedule is over. Also
-    /// it requires to pause the contract before calling it.
+    /// contract admin. It can accept extending the schedule if the new schedule is
+    /// not overlapping with the current schedule. Also, it requires to pause the contract before calling it.
     /// @param scheduleTimes timestamp denoting the start of each scheduled interval. Last element is the end of the stream.
     /// @param scheduleRewards remaining rewards to be delivered at the beginning of each scheduled interval. Last element is always zero.
     function extendAuroraStreamSchedule(

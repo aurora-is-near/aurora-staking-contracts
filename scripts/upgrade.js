@@ -10,6 +10,7 @@ async function main() {
     console.log('Owner address: ', owner)
     const instance = await upgrades.upgradeProxy(PROXY, contractV2, { from: owner })
     console.log(`Contract ${CONTRACT_NAME} has been upgraded @ address: ${instance.address}`)
+    //TODO: extend the current Aurora schedule.
 }
 
 main();
