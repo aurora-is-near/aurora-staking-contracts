@@ -8,7 +8,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const [ deployer ] = await hre.ethers.getSigners()
     const auroraSupply = ethers.utils.parseUnits("1000000", 18)
     let tokenAddress: Address
-    if(AURORA_TOKEN) {
+    if(AURORA_TOKEN?.toString().startsWith("0x")) {
         tokenAddress = AURORA_TOKEN
     } else {
         const name = "AuroraToken"
