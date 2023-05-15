@@ -429,6 +429,52 @@ contract JetStakingV2 is AdminControlled {
         );
     }
 
+    /// @dev extend Aurora stream reward schedule. It can be only called by the default
+    /// contract admin. It can be only called if the current reward schedule is over. Also
+    /// it requires to pause the contract before calling it.
+    /// @param scheduleTimes timestamp denoting the start of each scheduled interval. Last element is the end of the stream.
+    /// @param scheduleRewards remaining rewards to be delivered at the beginning of each scheduled interval. Last element is always zero.
+    function extendAuroraStreamSchedule(
+        uint256[] memory scheduleTimes,
+        uint256[] memory scheduleRewards
+    ) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(paused != 0, "REQUIRE_PAUSE");
+        Stream storage stream = streams[0];
+        // requires ending the current stream in order to extend it.
+        // This will avoid mixing old and new rewards.
+        require(
+            scheduleTimes[0] >
+                stream.schedule.time[stream.schedule.time.length - 1],
+            "INVALID_SCHEDULE_START_TIME"
+        );
+        // validate stream schedule
+        _validateStreamSchedule(
+            scheduleRewards[0],
+            scheduleTimes,
+            scheduleRewards
+        );
+        // move rewards to the treasury
+        IERC20Upgradeable(stream.rewardToken).safeTransferFrom(
+            msg.sender,
+            address(treasury),
+            scheduleRewards[0]
+        );
+        // Delete the last schedule element
+        // The last element will be replaced by
+        // the first element in the new schedule.
+        stream.schedule.time.pop();
+        stream.schedule.reward.pop();
+        // make the schedule rewards consistent.
+        for (uint256 i = 0; i < stream.schedule.time.length; i++) {
+            stream.schedule.reward[i] += scheduleRewards[0];
+        }
+        // extend Aurora stream schedule.
+        for (uint256 i = 0; i < scheduleTimes.length; i++) {
+            stream.schedule.time.push(scheduleTimes[i]);
+            stream.schedule.reward.push(scheduleRewards[i]);
+        }
+    }
+
     /// @dev Stream owner claimable AURORA.
     /// @param streamId the stream index
     function getStreamOwnerClaimableAmount(uint256 streamId)
@@ -1206,6 +1252,23 @@ contract JetStakingV2 is AdminControlled {
         require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
         require(minDepositAmount > 0, "ZERO_MIN_DEPOSIT");
         require(minDepositAmount <= maxDepositAmount, "INVALID_MIN_DEPOSIT");
+        require(tau != 0, "INVALID_TAU_PERIOD");
+        _validateStreamSchedule(
+            maxDepositAmount,
+            scheduleTimes,
+            scheduleRewards
+        );
+    }
+
+    /// @dev validate stream schedule parameters.abi
+    /// @param maxDepositAmount the max reward token deposit
+    /// @param scheduleTimes the stream schedule time list
+    /// @param scheduleRewards the stream schedule reward list
+    function _validateStreamSchedule(
+        uint256 maxDepositAmount,
+        uint256[] memory scheduleTimes,
+        uint256[] memory scheduleRewards
+    ) internal view virtual {
         require(
             maxDepositAmount == scheduleRewards[0],
             "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE"
@@ -1220,7 +1283,6 @@ contract JetStakingV2 is AdminControlled {
             "INVALID_SCHEDULE_VALUES"
         );
         require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
-        require(tau != 0, "INVALID_TAU_PERIOD");
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1],
