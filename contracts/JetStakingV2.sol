@@ -50,7 +50,7 @@ contract JetStakingV2 is AdminControlled {
     struct User {
         uint256 deposit;
         uint256 auroraShares;
-        uint256 streamShares; // streamShare is no longer used (always refer to aurora shares for stream reward calc)
+        uint256 streamShares;
         mapping(uint256 => uint256) pendings; // The amount of tokens pending release for user per stream
         mapping(uint256 => uint256) releaseTime; // The release moment per stream
         mapping(uint256 => uint256) rpsDuringLastClaim; // RPS or reward per share during the previous rewards claim
@@ -226,53 +226,6 @@ contract JetStakingV2 is AdminControlled {
         );
     }
 
-    /// @dev extend Aurora stream reward schedule. It can be
-    /// only called by the default contract admin. This function
-    // can be only called if the current reward schedule is over.
-    // Also it require to pause the contract before calling it.
-    /// @param scheduleTimes timestamp denoting the start of each scheduled interval. Last element is the end of the stream.
-    /// @param scheduleRewards remaining rewards to be delivered at the beginning of each scheduled interval. Last element is always zero.
-    function extendAuroraStreamSchedule(
-        uint256[] memory scheduleTimes,
-        uint256[] memory scheduleRewards
-    ) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(paused != 0, "REQUIRE_PAUSE");
-        Stream storage stream = streams[0];
-        // requires ending the current stream in order to extend it.
-        // This will avoid mixing old and new rewards.
-        require(
-            scheduleTimes[0] >
-                stream.schedule.time[stream.schedule.time.length - 1],
-            "INVALID_SCHEDULE_START_TIME"
-        );
-        // validate stream schedule
-        _validateStreamSchedule(
-            scheduleRewards[0],
-            scheduleTimes,
-            scheduleRewards
-        );
-        // move rewards to the treasury
-        IERC20Upgradeable(stream.rewardToken).safeTransferFrom(
-            msg.sender,
-            address(treasury),
-            scheduleRewards[0]
-        );
-        // Delete the last schedule element
-        // The last element will be replaced by
-        // the first element in the new schedule.
-        stream.schedule.time.pop();
-        stream.schedule.reward.pop();
-        // make the schedule rewards consistent.
-        for (uint256 i = 0; i < stream.schedule.time.length; i++) {
-            stream.schedule.reward[i] += scheduleRewards[0];
-        }
-        // extend Aurora stream schedule.
-        for (uint256 i = 0; i < scheduleTimes.length; i++) {
-            stream.schedule.time.push(scheduleTimes[i]);
-            stream.schedule.reward.push(scheduleRewards[i]);
-        }
-    }
-
     /// @dev An admin of the staking contract can whitelist (propose) a stream.
     /// Whitelisting of the stream provides the option for the stream
     /// owner (presumably the issuing party of a specific token) to
@@ -297,7 +250,7 @@ contract JetStakingV2 is AdminControlled {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tau
-    ) external onlyRole(STREAM_MANAGER_ROLE) {
+    ) external virtual onlyRole(STREAM_MANAGER_ROLE) {
         _validateStreamParameters(
             streamOwner,
             rewardToken,
@@ -351,6 +304,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param streamId the stream index
     function cancelStreamProposal(uint256 streamId)
         external
+        virtual
         onlyRole(STREAM_MANAGER_ROLE)
     {
         Stream storage stream = streams[streamId];
@@ -376,6 +330,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param streamId stream id
     function createStream(uint256 streamId, uint256 rewardTokenAmount)
         external
+        virtual
         pausable(1)
     {
         Stream storage stream = streams[streamId];
@@ -432,7 +387,7 @@ contract JetStakingV2 is AdminControlled {
 
     /// @dev Get the treasury balance
     /// @param token the token address
-    function getTreasuryBalance(address token) public view returns (uint256) {
+    function getTreasuryBalance(address token) public view virtual returns (uint256) {
         return IERC20Upgradeable(token).balanceOf(treasury);
     }
 
@@ -441,6 +396,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param streamFundReceiver receives the rest of the reward tokens in the stream
     function removeStream(uint256 streamId, address streamFundReceiver)
         external
+        virtual
         onlyRole(STREAM_MANAGER_ROLE)
     {
         require(streamId != 0, "AURORA_STREAM_NOT_REMOVABLE");
@@ -478,6 +434,7 @@ contract JetStakingV2 is AdminControlled {
     function getStreamOwnerClaimableAmount(uint256 streamId)
         public
         view
+        virtual
         returns (uint256)
     {
         Stream storage stream = streams[streamId];
@@ -498,6 +455,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param streamId the stream index
     function releaseAuroraRewardsToStreamOwner(uint256 streamId)
         external
+        virtual
         pausable(1)
     {
         require(streamId != 0, "AURORA_STREAM_NA");
@@ -534,6 +492,7 @@ contract JetStakingV2 is AdminControlled {
     function getStream(uint256 streamId)
         external
         view
+        virtual
         returns (
             address streamOwner,
             address rewardToken,
@@ -569,6 +528,7 @@ contract JetStakingV2 is AdminControlled {
     function getStreamSchedule(uint256 streamId)
         external
         view
+        virtual
         returns (
             uint256[] memory scheduleTimes,
             uint256[] memory scheduleRewards
@@ -582,7 +542,7 @@ contract JetStakingV2 is AdminControlled {
 
     /// @dev get the streams count
     /// @return streams.length
-    function getStreamsCount() external view returns (uint256) {
+    function getStreamsCount() external view virtual returns (uint256) {
         return streams.length;
     }
 
@@ -593,6 +553,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param _treasury treasury contract address for the reward tokens
     function updateTreasury(address _treasury)
         external
+        virtual
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         // enforce pausing this contract before updating the address.
@@ -613,7 +574,7 @@ contract JetStakingV2 is AdminControlled {
         address[] calldata accounts,
         uint256[] calldata amounts,
         uint256 batchAmount
-    ) external pausable(1) onlyRole(AIRDROP_ROLE) {
+    ) external virtual pausable(1) onlyRole(AIRDROP_ROLE) {
         uint256 accountsLength = accounts.length;
         require(accountsLength == amounts.length, "INVALID_ARRAY_LENGTH");
         _before();
@@ -637,6 +598,7 @@ contract JetStakingV2 is AdminControlled {
     /// only distribute to accounts without stake
     function stakeOnBehalfOfAnotherUser(address account, uint256 amount)
         external
+        virtual
         pausable(1)
         onlyRole(AIRDROP_ROLE)
     {
@@ -653,13 +615,13 @@ contract JetStakingV2 is AdminControlled {
     /// It will require a waiting time untill it get released. Users call
     /// this in function in order to claim rewards.
     /// @param streamId stream index
-    function moveRewardsToPending(uint256 streamId) external pausable(1) {
+    function moveRewardsToPending(uint256 streamId) external virtual pausable(1) {
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
 
     /// @dev moves all the user rewards to pending reward.
-    function moveAllRewardsToPending() external pausable(1) {
+    function moveAllRewardsToPending() external virtual pausable(1) {
         _before();
         // Claim all streams while skipping inactive streams.
         _moveAllRewardsToPending(msg.sender);
@@ -670,6 +632,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param streamIds stream indexes
     function batchMoveRewardsToPending(uint256[] calldata streamIds)
         external
+        virtual
         pausable(1)
     {
         _before();
@@ -681,6 +644,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param streamId to claim.
     function claimOnBehalfOfAnotherUser(address account, uint256 streamId)
         external
+        virtual
         pausable(1)
         onlyRole(CLAIM_ROLE)
     {
@@ -692,6 +656,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param account the user account address.
     function claimAllOnBehalfOfAnotherUser(address account)
         external
+        virtual
         pausable(1)
         onlyRole(CLAIM_ROLE)
     {
@@ -703,6 +668,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param accounts the user account addresses.
     function claimAllOnBehalfOfOtherUsers(address[] calldata accounts)
         external
+        virtual
         pausable(1)
         onlyRole(CLAIM_ROLE)
     {
@@ -719,7 +685,7 @@ contract JetStakingV2 is AdminControlled {
     function batchClaimOnBehalfOfAnotherUser(
         address account,
         uint256[] calldata streamIds
-    ) external pausable(1) onlyRole(CLAIM_ROLE) {
+    ) external virtual pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         _batchClaimRewards(account, streamIds);
     }
@@ -729,7 +695,7 @@ contract JetStakingV2 is AdminControlled {
     function batchClaimOnBehalfOfOtherUsers(
         address[] calldata accounts,
         uint256[] calldata streamIds
-    ) external pausable(1) onlyRole(CLAIM_ROLE) {
+    ) external virtual pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         uint256 accountsLength = accounts.length;
         for (uint256 i = 0; i < accountsLength; i++) {
@@ -741,7 +707,7 @@ contract JetStakingV2 is AdminControlled {
     /// The user should approve these tokens to the treasury
     /// contract in order to complete the stake.
     /// @param amount is the AURORA amount.
-    function stake(uint256 amount) external pausable(1) {
+    function stake(uint256 amount) external virtual pausable(1) {
         _before();
         _stake(msg.sender, amount);
         IERC20Upgradeable(auroraToken).safeTransferFrom(
@@ -754,7 +720,7 @@ contract JetStakingV2 is AdminControlled {
     /// @dev withdraw amount in the pending pool. User should wait for
     /// pending time (tau constant) in order to be able to withdraw.
     /// @param streamId stream index
-    function withdraw(uint256 streamId) external pausable(1) {
+    function withdraw(uint256 streamId) external virtual pausable(1) {
         require(
             block.timestamp > users[msg.sender].releaseTime[streamId],
             "INVALID_RELEASE_TIME"
@@ -765,7 +731,7 @@ contract JetStakingV2 is AdminControlled {
     /// @dev withdraw all claimed balances which have passed pending periode.
     /// This function will reach gas limit with too many streams,
     /// so the frontend will allow individual stream withdrawals and disable withdrawAll.
-    function withdrawAll() external pausable(1) {
+    function withdrawAll() external virtual pausable(1) {
         User storage userAccount = users[msg.sender];
         uint256 streamsLength = streams.length;
         for (uint256 i = 0; i < streamsLength; i++) {
@@ -781,7 +747,7 @@ contract JetStakingV2 is AdminControlled {
     /// @dev withdraw a set of stream Ids.
     /// Allows user to select stream ids to withdraw from UI.
     /// @param streamIds to withdraw.
-    function batchWithdraw(uint256[] calldata streamIds) external pausable(1) {
+    function batchWithdraw(uint256[] calldata streamIds) external virtual pausable(1) {
         User storage userAccount = users[msg.sender];
         for (uint256 i = 0; i < streamIds.length; i++) {
             if (
@@ -799,6 +765,7 @@ contract JetStakingV2 is AdminControlled {
     function getUserTotalDeposit(address account)
         external
         view
+        virtual
         returns (uint256)
     {
         return users[account].deposit;
@@ -807,7 +774,7 @@ contract JetStakingV2 is AdminControlled {
     /// @dev gets the user shares
     /// @param account the user address
     /// @return user shares
-    function getUserShares(address account) external view returns (uint256) {
+    function getUserShares(address account) external view virtual returns (uint256) {
         return users[account].auroraShares;
     }
 
@@ -815,6 +782,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param amount to unstake
     function unstake(uint256 amount)
         external
+        virtual
         pausable(1)
         onlyValidSharesAmount
     {
@@ -825,7 +793,7 @@ contract JetStakingV2 is AdminControlled {
     }
 
     /// @dev unstake all the user's shares
-    function unstakeAll() external pausable(1) onlyValidSharesAmount {
+    function unstakeAll() external virtual pausable(1) onlyValidSharesAmount {
         _before();
         uint256 stakeValue = (totalAmountOfStakedAurora *
             users[msg.sender].auroraShares) / totalAuroraShares;
@@ -839,9 +807,11 @@ contract JetStakingV2 is AdminControlled {
     function getAmountOfShares(uint256 streamId, address account)
         external
         view
+        virtual
         returns (uint256)
     {
-        return users[account].auroraShares;
+        if (streamId == 0) return users[account].auroraShares;
+        return users[account].streamShares;
     }
 
     /// @dev gets reward per share (RPS) for a stream
@@ -850,6 +820,7 @@ contract JetStakingV2 is AdminControlled {
     function getRewardPerShare(uint256 streamId)
         external
         view
+        virtual
         returns (uint256)
     {
         return streams[streamId].rps;
@@ -861,6 +832,7 @@ contract JetStakingV2 is AdminControlled {
     function getRewardsAmount(uint256 streamId, uint256 lastUpdate)
         public
         view
+        virtual
         returns (uint256)
     {
         require(lastUpdate <= block.timestamp, "INVALID_LAST_UPDATE");
@@ -894,14 +866,15 @@ contract JetStakingV2 is AdminControlled {
     function getLatestRewardPerShare(uint256 streamId)
         public
         view
+        virtual
         returns (uint256)
     {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
-        require(totalAuroraShares != 0, "ZERO_STREAM_SHARES");
+        require(totalStreamShares != 0, "ZERO_STREAM_SHARES");
         return
             streams[streamId].rps +
             (getRewardsAmount(streamId, touchedAt) * RPS_MULTIPLIER) /
-            totalAuroraShares;
+            totalStreamShares;
     }
 
     /// @dev gets the user's reward per share (RPS) for a stream
@@ -910,6 +883,7 @@ contract JetStakingV2 is AdminControlled {
     function getRewardPerShareForUser(uint256 streamId, address account)
         external
         view
+        virtual
         returns (uint256)
     {
         return users[account].rpsDuringLastClaim[streamId];
@@ -921,12 +895,13 @@ contract JetStakingV2 is AdminControlled {
     function getStreamClaimableAmount(uint256 streamId, address account)
         external
         view
+        virtual
         returns (uint256)
     {
         uint256 latestRps = getLatestRewardPerShare(streamId);
         User storage userAccount = users[account];
         uint256 userRps = userAccount.rpsDuringLastClaim[streamId];
-        uint256 userShares = userAccount.auroraShares;
+        uint256 userShares = userAccount.streamShares;
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
     }
 
@@ -937,6 +912,7 @@ contract JetStakingV2 is AdminControlled {
     function getPending(uint256 streamId, address account)
         external
         view
+        virtual
         returns (uint256)
     {
         return users[account].pendings[streamId];
@@ -949,6 +925,7 @@ contract JetStakingV2 is AdminControlled {
     function getReleaseTime(uint256 streamId, address account)
         external
         view
+        virtual
         returns (uint256)
     {
         return users[account].releaseTime[streamId];
@@ -1010,7 +987,7 @@ contract JetStakingV2 is AdminControlled {
         uint256 streamId,
         uint256 start,
         uint256 end
-    ) public view returns (uint256) {
+    ) public view virtual returns (uint256) {
         Schedule storage schedule = streams[streamId].schedule;
         uint256 startIndex;
         uint256 endIndex;
@@ -1064,23 +1041,30 @@ contract JetStakingV2 is AdminControlled {
         touchedAt = block.timestamp;
     }
 
-    /// @dev calculate the weighted stream shares at given timestamp.
-    /// @param _timestamp the timestamp refering to the current or older timestamp
-    function _weightedShares(uint256 _shares, uint256 _timestamp)
+    /// @dev calculate the weighted stream shares at given timeshamp.
+    /// @param timestamp the timestamp refering to the current or older timestamp
+    function _weightedShares(uint256 shares, uint256 timestamp)
         internal
         view
+        virtual
         returns (uint256)
     {
-        // The DAO decided to remove this boosting coefficient.
-        // More details can be found here: https://forum.aurora.dev/t/aurora-token-economy-2-0/2166
-        return 1;
+        uint256 slopeStart = streams[0].schedule.time[0] + ONE_MONTH;
+        uint256 slopeEnd = slopeStart + FOUR_YEARS;
+        if (timestamp <= slopeStart) return shares * maxWeight;
+        if (timestamp >= slopeEnd) return shares * minWeight;
+        return
+            shares *
+            minWeight +
+            (shares * (maxWeight - minWeight) * (slopeEnd - timestamp)) /
+            (slopeEnd - slopeStart);
     }
 
     /// @dev allocate the collected reward to the pending tokens
     /// Rewards will become withdrawable after the release time.
     /// @param account is the staker address
     /// @param streamId the stream index
-    function _moveRewardsToPending(address account, uint256 streamId) internal {
+    function _moveRewardsToPending(address account, uint256 streamId) internal virtual {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         require(
             streams[streamId].status == StreamStatus.ACTIVE,
@@ -1093,7 +1077,7 @@ contract JetStakingV2 is AdminControlled {
         );
         uint256 reward = ((streams[streamId].rps -
             userAccount.rpsDuringLastClaim[streamId]) *
-            userAccount.auroraShares) / RPS_MULTIPLIER;
+            userAccount.streamShares) / RPS_MULTIPLIER;
         if (reward == 0) return; // All rewards claimed or stream schedule didn't start
         userAccount.pendings[streamId] += reward;
         userAccount.rpsDuringLastClaim[streamId] = streams[streamId].rps;
@@ -1107,7 +1091,7 @@ contract JetStakingV2 is AdminControlled {
 
     /// @dev move all the streams rewards for a user to the pending tokens
     /// @param account is the staker address
-    function _moveAllRewardsToPending(address account) internal {
+    function _moveAllRewardsToPending(address account) internal virtual {
         uint256 streamsLength = streams.length;
         for (uint256 i = 1; i < streamsLength; i++) {
             if (streams[i].status == StreamStatus.ACTIVE)
@@ -1121,6 +1105,7 @@ contract JetStakingV2 is AdminControlled {
     /// @param streamIds to claim.
     function _batchClaimRewards(address account, uint256[] calldata streamIds)
         internal
+        virtual
     {
         for (uint256 i = 0; i < streamIds.length; i++) {
             if (streams[streamIds[i]].status == StreamStatus.ACTIVE)
@@ -1135,7 +1120,7 @@ contract JetStakingV2 is AdminControlled {
     /// Unclaimed rewards will be lost.
     /// `_before()` must be called before `_stake` to update streams rps
     /// compounded AURORA rewards.
-    function _stake(address account, uint256 amount) internal {
+    function _stake(address account, uint256 amount) internal virtual {
         // recalculation of shares for user
         User storage userAccount = users[account];
         uint256 _amountOfShares = 0;
@@ -1156,6 +1141,13 @@ contract JetStakingV2 is AdminControlled {
         totalAmountOfStakedAurora += amount;
         userAccount.deposit += amount;
 
+        // Calculate stream shares
+        uint256 weightedAmountOfSharesPerStream = _weightedShares(
+            _amountOfShares,
+            block.timestamp
+        );
+        totalStreamShares += weightedAmountOfSharesPerStream;
+        userAccount.streamShares += weightedAmountOfSharesPerStream;
         uint256 streamsLength = streams.length;
         for (uint256 i = 1; i < streamsLength; i++) {
             userAccount.rpsDuringLastClaim[i] = streams[i].rps; // The new shares should not claim old rewards
@@ -1167,14 +1159,16 @@ contract JetStakingV2 is AdminControlled {
     /// The UI must make sure to claim rewards before unstaking.
     /// Unclaimed rewards will be lost.
     /// `_before()` must be called before `_unstake` to update streams rps
-    function _unstake(uint256 amount, uint256 stakeValue) internal {
+    function _unstake(uint256 amount, uint256 stakeValue) internal virtual {
         require(amount != 0, "ZERO_AMOUNT");
         require(amount <= stakeValue, "NOT_ENOUGH_STAKE_BALANCE");
         User storage userAccount = users[msg.sender];
         // move rewards to pending
         // remove the shares from everywhere
         totalAuroraShares -= userAccount.auroraShares;
+        totalStreamShares -= userAccount.streamShares;
         userAccount.auroraShares = 0;
+        userAccount.streamShares = 0;
         // update the total Aurora staked and deposits
         totalAmountOfStakedAurora -= stakeValue;
         userAccount.deposit = 0;
@@ -1206,25 +1200,12 @@ contract JetStakingV2 is AdminControlled {
         uint256[] memory scheduleTimes,
         uint256[] memory scheduleRewards,
         uint256 tau
-    ) internal view {
+    ) internal view virtual {
         require(streamOwner != address(0), "INVALID_STREAM_OWNER_ADDRESS");
         require(rewardToken != address(0), "INVALID_REWARD_TOKEN_ADDRESS");
         require(maxDepositAmount > 0, "ZERO_MAX_DEPOSIT");
         require(minDepositAmount > 0, "ZERO_MIN_DEPOSIT");
         require(minDepositAmount <= maxDepositAmount, "INVALID_MIN_DEPOSIT");
-        require(tau != 0, "INVALID_TAU_PERIOD");
-        _validateStreamSchedule(
-            maxDepositAmount,
-            scheduleTimes,
-            scheduleRewards
-        );
-    }
-
-    function _validateStreamSchedule(
-        uint256 maxDepositAmount,
-        uint256[] memory scheduleTimes,
-        uint256[] memory scheduleRewards
-    ) internal view {
         require(
             maxDepositAmount == scheduleRewards[0],
             "MAX_DEPOSIT_MUST_EQUAL_SCHEDULE"
@@ -1239,6 +1220,7 @@ contract JetStakingV2 is AdminControlled {
             "INVALID_SCHEDULE_VALUES"
         );
         require(scheduleTimes.length >= 2, "SCHEDULE_TOO_SHORT");
+        require(tau != 0, "INVALID_TAU_PERIOD");
         for (uint256 i = 1; i < scheduleTimes.length; i++) {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1],
@@ -1262,7 +1244,7 @@ contract JetStakingV2 is AdminControlled {
     function _updateStreamRewardSchedules(
         uint256 streamId,
         uint256 rewardTokenAmount
-    ) internal {
+    ) internal virtual {
         uint256 streamScheduleRewardLength = streams[streamId]
             .schedule
             .reward
@@ -1276,7 +1258,7 @@ contract JetStakingV2 is AdminControlled {
 
     /// @dev withdraw stream rewards after the release time.
     /// @param streamId the stream index
-    function _withdraw(uint256 streamId) internal {
+    function _withdraw(uint256 streamId) internal virtual {
         User storage userAccount = users[msg.sender];
         uint256 pendingAmount = userAccount.pendings[streamId];
         userAccount.pendings[streamId] = 0;
