@@ -387,7 +387,12 @@ contract JetStakingV2 is AdminControlled {
 
     /// @dev Get the treasury balance
     /// @param token the token address
-    function getTreasuryBalance(address token) public view virtual returns (uint256) {
+    function getTreasuryBalance(address token)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
         return IERC20Upgradeable(token).balanceOf(treasury);
     }
 
@@ -661,7 +666,11 @@ contract JetStakingV2 is AdminControlled {
     /// It will require a waiting time untill it get released. Users call
     /// this in function in order to claim rewards.
     /// @param streamId stream index
-    function moveRewardsToPending(uint256 streamId) external virtual pausable(1) {
+    function moveRewardsToPending(uint256 streamId)
+        external
+        virtual
+        pausable(1)
+    {
         _before();
         _moveRewardsToPending(msg.sender, streamId);
     }
@@ -793,7 +802,11 @@ contract JetStakingV2 is AdminControlled {
     /// @dev withdraw a set of stream Ids.
     /// Allows user to select stream ids to withdraw from UI.
     /// @param streamIds to withdraw.
-    function batchWithdraw(uint256[] calldata streamIds) external virtual pausable(1) {
+    function batchWithdraw(uint256[] calldata streamIds)
+        external
+        virtual
+        pausable(1)
+    {
         User storage userAccount = users[msg.sender];
         for (uint256 i = 0; i < streamIds.length; i++) {
             if (
@@ -820,7 +833,12 @@ contract JetStakingV2 is AdminControlled {
     /// @dev gets the user shares
     /// @param account the user address
     /// @return user shares
-    function getUserShares(address account) external view virtual returns (uint256) {
+    function getUserShares(address account)
+        external
+        view
+        virtual
+        returns (uint256)
+    {
         return users[account].auroraShares;
     }
 
@@ -1110,7 +1128,10 @@ contract JetStakingV2 is AdminControlled {
     /// Rewards will become withdrawable after the release time.
     /// @param account is the staker address
     /// @param streamId the stream index
-    function _moveRewardsToPending(address account, uint256 streamId) internal virtual {
+    function _moveRewardsToPending(address account, uint256 streamId)
+        internal
+        virtual
+    {
         require(streamId != 0, "AURORA_REWARDS_COMPOUND");
         require(
             streams[streamId].status == StreamStatus.ACTIVE,

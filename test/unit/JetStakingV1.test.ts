@@ -29,6 +29,7 @@ describe("JetStakingV1", function () {
     
     before(async () => {
         // deploys all the contracts
+        await makeSnapshot(); // snapshot id 0x7     
         [auroraOwner, stakingAdmin, user1, user2, user3, user4, user5, spender, streamOwner, streamManager] = await ethers.getSigners()
         const supply = ethers.utils.parseUnits("10000000000", 18)
         oneDay = 86400
@@ -110,6 +111,10 @@ describe("JetStakingV1", function () {
         expect(await jet.hasRole(defaultAdminRole, stakingAdmin.address)).to.be.eq(true)
         expect(await jet.hasRole(streamManagerRole, streamManager.address)).to.be.eq(true)
     })
+    async function makeSnapshot() {
+        // snapshot is global
+        return await network.provider.request({ method: 'evm_snapshot', params: ["V1"] });
+    }
 
     beforeEach(async () => {        
         await deployments.fixture()
