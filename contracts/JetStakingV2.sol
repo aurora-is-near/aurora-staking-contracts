@@ -448,7 +448,7 @@ contract JetStakingV2 is AdminControlled {
         // requires ending the current stream in order to extend it.
         // This will avoid mixing old and new rewards.
         require(
-            scheduleTimes[0] >
+            scheduleTimes[0] ==
                 stream.schedule.time[stream.schedule.time.length - 1],
             "INVALID_SCHEDULE_START_TIME"
         );
