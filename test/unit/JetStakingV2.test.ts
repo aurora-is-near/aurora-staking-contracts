@@ -356,7 +356,7 @@ describe("JetStakingV2", function () {
             scheduleTimes.slice(0,1),
             scheduleRewards.slice(0,1),
             tauPerStream
-        )).to.be.revertedWith("SCHEDULE_TOO_SHORT")
+        )).to.be.revertedWith("E45")
         const tx = await jetV2.connect(streamManager).proposeStream(
             user1.address,
             streamToken1.address,
@@ -1188,14 +1188,14 @@ describe("JetStakingV2", function () {
             tauPerStream
         )
         await expect(jetV2.tempMoveRewardsToPending(user2.address, Ids[0]))
-        .to.be.revertedWith("INACTIVE_OR_PROPOSED_STREAM")
+        .to.be.revertedWith("E37")
 
         // approve reward tokens
         await streamToken1.connect(user1).approve(jetV2.address, maxRewardProposalAmountForAStream)
         // create a stream
         await jetV2.connect(user1).createStream(Ids[0], maxRewardProposalAmountForAStream)
         await expect(jetV2.tempMoveRewardsToPending(user2.address, Ids[0]))
-        .to.be.revertedWith("USER_DOES_NOT_HAVE_ACTUAL_STAKE")
+        .to.be.revertedWith("E38")
     })
     it('should return if _before called twice whithin the same block', async() => {
         await jetV2.callBeforeTwice()
@@ -1642,11 +1642,11 @@ describe("JetStakingV2", function () {
             ]
         )
         await expect(jetV2.connect(stakingAdmin).updateTreasury(newTreasury.address))
-        .to.be.revertedWith("REQUIRE_PAUSE")
+        .to.be.revertedWith("E16")
         await jetV2.connect(stakingAdmin).adminPause(1)
         await jetV2.connect(stakingAdmin).updateTreasury(newTreasury.address)
         await expect(jetV2.connect(stakingAdmin).updateTreasury(newTreasury.address))
-        .to.be.revertedWith("SAME_ADDRESS")
+        .to.be.revertedWith("E4")
         expect(newTreasury.address).to.be.eq(await jetV2.treasury())
     })
     it('should admin remove stream', async () => {
@@ -2007,7 +2007,7 @@ describe("JetStakingV2", function () {
         // user 5 trying to unstakeAll again
         console.log(`user 2 shares after unstaking all: ${ethers.utils.formatEther(await jetV2.getUserShares(user5.address))}`)
         await expect(jetV2.connect(user5).unstakeAll()).to.be.revertedWith(
-            'ZERO_TOTAL_AURORA_SHARES'
+            'E1'
         )
     })
 
@@ -2336,7 +2336,7 @@ describe("JetStakingV2", function () {
         // user 5 trying to unstakeAll again
         console.log(`user 1 shares after unstaking all: ${ethers.utils.formatEther(await jetV2.getUserShares(user4.address))}`)
         await expect(jet.connect(user4).unstakeAll()).to.be.revertedWith(
-            'ZERO_TOTAL_AURORA_SHARES'
+            'E1'
         )
     })
 
@@ -2428,7 +2428,7 @@ describe("JetStakingV2", function () {
         // user 5 trying to unstakeAll again
         console.log(`user 1 shares after unstaking all: ${ethers.utils.formatEther(await jetV2.getUserShares(user4.address))}`)
         await expect(jetV2.connect(user4).unstakeAll()).to.be.revertedWith(
-            'ZERO_TOTAL_AURORA_SHARES'
+            'E1'
         )
     })
 
