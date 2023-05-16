@@ -2624,7 +2624,7 @@ describe("JetStakingV2", function () {
 
     it("should be able to upgrade and extend Aurora stream", async() => {
         const schedule = await jet.getStreamSchedule(0);
-        startTime = schedule[0][4].toNumber() + 1;
+        startTime = schedule[0][4].toNumber();
         // console.log(startTime)
         const streamId = 0 // Aurora stream
         scheduleTimes = [
