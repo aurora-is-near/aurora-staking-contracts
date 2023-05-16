@@ -2659,5 +2659,11 @@ describe("JetStakingV2", function () {
             "scheduleRewards: ",
             JSON.stringify(streamSchedule.scheduleRewards.map((amount: { toString: () => any; }) => amount.toString()))
         );
+        // unpause the contract
+        await jetV2.connect(auroraOwner).adminPause(0)
+        // users stakes some aurora tokens.
+        const amount1 = ethers.utils.parseUnits("1", 0)
+        await auroraToken.connect(user1).approve(jetV2.address, amount1)
+        await jetV2.connect(user1).stake(amount1)
     })
 });

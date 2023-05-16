@@ -899,10 +899,11 @@ contract JetStakingV2 is AdminControlled {
         virtual
         returns (uint256)
     {
-        require(lastUpdate <= block.timestamp, "INVALID_LAST_UPDATE");
-        if (lastUpdate == block.timestamp) return 0; // No more rewards since last update
+        uint256 currentTimestamp = block.timestamp;
+        require(lastUpdate <= currentTimestamp, "INVALID_LAST_UPDATE");
+        if (lastUpdate == currentTimestamp) return 0; // No more rewards since last update
         uint256 streamStart = streams[streamId].schedule.time[0];
-        if (block.timestamp <= streamStart) return 0; // Stream didn't start
+        if (currentTimestamp <= streamStart) return 0; // Stream didn't start
         uint256 streamEnd = streams[streamId].schedule.time[
             streams[streamId].schedule.time.length - 1
         ];
@@ -915,8 +916,8 @@ contract JetStakingV2 is AdminControlled {
             // Release rewards from stream start.
             start = streamStart;
         }
-        if (block.timestamp < streamEnd) {
-            end = block.timestamp;
+        if (currentTimestamp < streamEnd) {
+            end = currentTimestamp;
         } else {
             // The stream already finished between the last update and now.
             end = streamEnd;
@@ -1052,7 +1053,7 @@ contract JetStakingV2 is AdminControlled {
         uint256 start,
         uint256 end
     ) public view virtual returns (uint256) {
-        Schedule storage schedule = streams[streamId].schedule;
+        Schedule memory schedule = streams[streamId].schedule;
         uint256 startIndex;
         uint256 endIndex;
         (startIndex, endIndex) = startEndScheduleIndex(streamId, start, end);

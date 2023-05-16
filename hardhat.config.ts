@@ -8,6 +8,7 @@ import 'hardhat-deploy';
 import 'solidity-coverage';
 import 'hardhat-docgen';
 import "@nomiclabs/hardhat-etherscan";
+import "hardhat-contract-sizer";
 
 dotenv.config();
 
@@ -43,6 +44,12 @@ module.exports = {
       }
     }
   },
+  contractSizer: {
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: false,
+  },
+
   namedAccounts: {
     owner: {
       default: 0,
