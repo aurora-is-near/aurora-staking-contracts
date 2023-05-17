@@ -598,33 +598,6 @@ contract JetStakingV2 is AdminControlled {
         treasury = _treasury;
     }
 
-    /// @dev stakeOnBehalfOfOtherUsers called for airdropping Aurora users
-    /// @param accounts the account address
-    /// @param amounts in AURORA tokens
-    /// @param batchAmount equals to the sum of amounts
-    /// WARNING: rewards are not claimed during stake. Airdrop script must claim or
-    /// only distribute to accounts without stake
-    function stakeOnBehalfOfOtherUsers(
-        address[] calldata accounts,
-        uint256[] calldata amounts,
-        uint256 batchAmount
-    ) external virtual pausable(1) onlyRole(AIRDROP_ROLE) {
-        uint256 accountsLength = accounts.length;
-        require(accountsLength == amounts.length, "E25"); // INVALID_ARRAY_LENGTH
-        _before();
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < accountsLength; i++) {
-            totalAmount += amounts[i];
-            _stake(accounts[i], amounts[i]);
-        }
-        require(totalAmount == batchAmount, "E26"); // INVALID_BATCH_AMOUNT
-        IERC20Upgradeable(auroraToken).safeTransferFrom(
-            msg.sender,
-            address(treasury),
-            batchAmount
-        );
-    }
-
     /// @dev stakeOnBehalfOfAnotherUser is called for airdropping Aurora users
     /// @param account the account address
     /// @param amount in AURORA tokens
@@ -677,19 +650,6 @@ contract JetStakingV2 is AdminControlled {
         _batchClaimRewards(msg.sender, streamIds);
     }
 
-    /// @dev Claim a stream's rewards on behalf of another user.
-    /// @param account the user account address.
-    /// @param streamId to claim.
-    function claimOnBehalfOfAnotherUser(address account, uint256 streamId)
-        external
-        virtual
-        pausable(1)
-        onlyRole(CLAIM_ROLE)
-    {
-        _before();
-        _moveRewardsToPending(account, streamId);
-    }
-
     /// @dev Claim all stream rewards on behalf of another user.
     /// @param account the user account address.
     function claimAllOnBehalfOfAnotherUser(address account)
@@ -702,21 +662,6 @@ contract JetStakingV2 is AdminControlled {
         _moveAllRewardsToPending(account);
     }
 
-    /// @dev Claim all stream rewards on behalf of other users.
-    /// @param accounts the user account addresses.
-    function claimAllOnBehalfOfOtherUsers(address[] calldata accounts)
-        external
-        virtual
-        pausable(1)
-        onlyRole(CLAIM_ROLE)
-    {
-        _before();
-        uint256 accountsLength = accounts.length;
-        for (uint256 i = 0; i < accountsLength; i++) {
-            _moveAllRewardsToPending(accounts[i]);
-        }
-    }
-
     /// @dev batchClaimOnBehalfOfAnotherUser when gas limits prevent users from claiming all.
     /// @param account the user account address.
     /// @param streamIds to claim.
@@ -726,19 +671,6 @@ contract JetStakingV2 is AdminControlled {
     ) external virtual pausable(1) onlyRole(CLAIM_ROLE) {
         _before();
         _batchClaimRewards(account, streamIds);
-    }
-
-    /// @dev Claim all stream rewards on behalf of other users.
-    /// @param accounts the user account addresses.
-    function batchClaimOnBehalfOfOtherUsers(
-        address[] calldata accounts,
-        uint256[] calldata streamIds
-    ) external virtual pausable(1) onlyRole(CLAIM_ROLE) {
-        _before();
-        uint256 accountsLength = accounts.length;
-        for (uint256 i = 0; i < accountsLength; i++) {
-            _batchClaimRewards(accounts[i], streamIds);
-        }
     }
 
     /// @dev a user stakes amount of AURORA tokens
