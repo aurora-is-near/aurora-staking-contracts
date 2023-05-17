@@ -965,7 +965,7 @@ contract JetStakingV2 is AdminControlled {
         uint256 start,
         uint256 end
     ) public view virtual returns (uint256) {
-        Schedule memory schedule = streams[streamId].schedule;
+        Schedule storage schedule = streams[streamId].schedule;
         uint256 startIndex;
         uint256 endIndex;
         (startIndex, endIndex) = startEndScheduleIndex(streamId, start, end);
