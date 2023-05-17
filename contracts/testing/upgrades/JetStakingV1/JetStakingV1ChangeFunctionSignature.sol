@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
-import "../../JetStakingTesting.sol";
+import "../../JetStakingTestingV1.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-contract JetStakingV1ChangeFunctionSignature is JetStakingTesting {
+contract JetStakingV1ChangeFunctionSignature is JetStakingTestingV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     function batchStakeOnBehalfOfOtherUsers(

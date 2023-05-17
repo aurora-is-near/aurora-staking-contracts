@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 import "../JetStakingV1.sol";
 
-contract JetStakingTesting is JetStakingV1 {
+contract JetStakingTestingV1 is JetStakingV1 {
     function before(uint256 startTime, uint256 endTime)
         public
         view
