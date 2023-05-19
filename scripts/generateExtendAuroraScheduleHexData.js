@@ -46,7 +46,6 @@ async function main() {
       ])
       const encoded = iface.encodeFunctionData(
         "extendAuroraStreamSchedule",
-        // [stakingContractAddress, ethers.utils.parseUnits("250000", 18)] // for testing
         [scheduleTimes, scheduleRewards]
       )
       console.log(`Hex data for approval request: ${encoded}`);
