@@ -48,7 +48,7 @@ async function main() {
         "extendAuroraStreamSchedule",
         [scheduleTimes, scheduleRewards]
       )
-      console.log(`Hex data for approval request: ${encoded}`);
+      console.log(`Hex data for extending schedule request: ${encoded}`);
 }
 
 main()
