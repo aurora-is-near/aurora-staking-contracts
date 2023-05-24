@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
-import "../JetStakingV1.sol";
+import "../JetStaking/JetStakingV1.sol";
 
 contract JetStakingTestingV1 is JetStakingV1 {
     function before(uint256 startTime, uint256 endTime)
