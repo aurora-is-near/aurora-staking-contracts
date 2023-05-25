@@ -30,11 +30,34 @@ contract JetStakingV3 is JetStakingV2 {
     /// @dev set the old weighted share streams
     /// @notice This function must be called prior upgrading the contract.
     /// And the contract must be paused before initializing it.
-    function initializeOldWeightedStreams() public initializer {
+    function initializeOldWeightedStreams()
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(paused != 0, "E16"); // REQUIRE_PAUSE
         for (uint256 i = 1; i < streams.length; i++) {
             oldWeightedShareStreams[i] = true;
         }
+    }
+
+    /// @dev calculates and gets the latest reward per share (RPS) for a stream
+    /// @param streamId stream index
+    /// @return streams[streamId].rps + scheduled reward up till now
+    function getLatestRewardPerShare(uint256 streamId)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        require(streamId != 0, "E29"); // AURORA_REWARDS_COMPOUND
+        uint256 totalShares = oldWeightedShareStreams[streamId]
+            ? totalStreamShares
+            : totalAuroraShares;
+        require(totalShares != 0, "E30"); // ZERO_STREAM_SHARES
+        return
+            streams[streamId].rps +
+            (getRewardsAmount(streamId, touchedAt) * RPS_MULTIPLIER) /
+            totalShares;
     }
 
     /// @dev gets the user's stream claimable amount
