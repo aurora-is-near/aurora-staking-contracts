@@ -2220,4 +2220,55 @@ describe("JetStakingV3", function () {
         await auroraToken.connect(user1).approve(jetV3.address, amount1)
         await jetV3.connect(user1).stake(amount1)
     })
+    it("should test the max memory size for created stream schedule", async() => {
+        const rewardAllocation =  ethers.utils.parseUnits("200000", 18);
+        const rewardsPerQuarter = [];
+        rewardsPerQuarter.push(rewardAllocation); // First element is the total rewardAllocation
+        let currentQuarterReward = rewardAllocation;
+        let currentQuarter = 2;
+        const maxNumberOfQuarters = 200
+
+        while (currentQuarter <= maxNumberOfQuarters && currentQuarterReward != ethers.utils.parseUnits("0", 18) ) {
+            currentQuarterReward = currentQuarterReward.mul(1e11).div(114427378243); 
+            rewardsPerQuarter.push(currentQuarterReward);
+            currentQuarter++;
+        }
+
+        startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+        scheduleTimes = [];
+        scheduleRewards = [];
+        rewardsPerQuarter.forEach((reward, index) => {
+            const timestamp = startTime + index * (365 * 24 * 60 * 60 / 4);
+            scheduleTimes.push(timestamp);
+            scheduleRewards.push(reward);
+        });
+        // set the last reward to zero
+        scheduleRewards[199] = ethers.utils.parseUnits("0", 18)
+
+        // // propose and create new stream 
+        const auroraProposalAmountForAStream = 0
+        const maxRewardProposalAmountForAStream = rewardAllocation
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000", 18)
+        await auroraToken.connect(streamManager).approve(jet.address, auroraProposalAmountForAStream)
+    
+        await jetV3.connect(streamManager).proposeStream(
+            user1.address,
+            streamToken1.address,
+            auroraProposalAmountForAStream,
+            maxRewardProposalAmountForAStream,
+            minRewardProposalAmountForAStream,
+            scheduleTimes,
+            scheduleRewards,
+            tauPerStream
+        )
+        const id = await jetV3.getStreamsCount() - 1;
+        await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+        await jetV3.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        const start = startTime;
+        const end = scheduleTimes[1];
+        const result = await jetV3.rewardsSchedule(id, start, end);
+        expect(ethers.utils.formatEther(result)).to.eq(
+            ethers.utils.formatEther(scheduleRewards[0].sub(scheduleRewards[1]))
+        )
+    })
 });

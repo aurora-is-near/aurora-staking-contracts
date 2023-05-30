@@ -95,6 +95,52 @@ contract JetStakingV3 is JetStakingV2 {
         return userShares;
     }
 
+    /// @dev calculate the total amount of the released tokens within a period (start & end)
+    /// @param streamId the stream index
+    /// @param start is the start timestamp within the schedule
+    /// @param end is the end timestamp (e.g block.timestamp .. now)
+    /// @return amount of the released tokens for that period
+    function rewardsSchedule(
+        uint256 streamId,
+        uint256 start,
+        uint256 end
+    ) public view override returns (uint256) {
+        Schedule memory schedule = streams[streamId].schedule;
+        uint256 startIndex;
+        uint256 endIndex;
+        (startIndex, endIndex) = startEndScheduleIndex(streamId, start, end);
+        uint256 rewardScheduledAmount = 0;
+        uint256 reward = 0;
+        if (startIndex == endIndex) {
+            // start and end are within the same schedule period
+            reward =
+                schedule.reward[startIndex] -
+                schedule.reward[startIndex + 1];
+            rewardScheduledAmount =
+                (reward * (end - start)) /
+                (schedule.time[startIndex + 1] - schedule.time[startIndex]);
+        } else {
+            // start and end are not within the same schedule period
+            // Reward during the startIndex period
+            reward =
+                schedule.reward[startIndex] -
+                schedule.reward[startIndex + 1];
+            rewardScheduledAmount =
+                (reward * (schedule.time[startIndex + 1] - start)) /
+                (schedule.time[startIndex + 1] - schedule.time[startIndex]);
+            // Reward during the period from startIndex + 1  to endIndex - 1
+            rewardScheduledAmount +=
+                schedule.reward[startIndex + 1] -
+                schedule.reward[endIndex];
+            // Reward during the endIndex period
+            reward = schedule.reward[endIndex] - schedule.reward[endIndex + 1];
+            rewardScheduledAmount +=
+                (reward * (end - schedule.time[endIndex])) /
+                (schedule.time[endIndex + 1] - schedule.time[endIndex]);
+        }
+        return rewardScheduledAmount;
+    }
+
     /// @dev allocate the collected reward to the pending tokens
     /// Rewards will become withdrawable after the release time.
     /// @param account is the staker address
