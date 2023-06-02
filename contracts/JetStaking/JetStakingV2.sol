@@ -260,7 +260,7 @@ contract JetStakingV2 is AdminControlled {
             tau
         );
         // check aurora token address is supportedToken in the treasury
-        require(ITreasury(treasury).isSupportedToken(rewardToken), "E6"); //INVALID_SUPPORTED_TOKEN_ADDRESS
+        require(ITreasury(treasury).isSupportedToken(rewardToken), "E5"); //INVALID_SUPPORTED_TOKEN_ADDRESS
         Schedule memory schedule = Schedule(scheduleTimes, scheduleRewards);
         uint256 streamId = streams.length;
         streams.push(
@@ -330,7 +330,7 @@ contract JetStakingV2 is AdminControlled {
         pausable(1)
     {
         Stream storage stream = streams[streamId];
-        require(stream.status == StreamStatus.PROPOSED, "E8"); // STREAM_NOT_PROPOSED
+        require(stream.status == StreamStatus.PROPOSED, "E7"); // STREAM_NOT_PROPOSED
         require(stream.owner == msg.sender, "E9"); // INVALID_STREAM_OWNER
         require(stream.schedule.time[0] >= block.timestamp, "E10"); // STREAM_PROPOSAL_EXPIRED
         require(rewardTokenAmount <= stream.maxDepositAmount, "E11"); // REWARD_TOO_HIGH
@@ -1045,7 +1045,7 @@ contract JetStakingV2 is AdminControlled {
         internal
         virtual
     {
-        require(streamId != 0, "E36"); // AURORA_REWARDS_COMPOUND
+        require(streamId != 0, "E29"); // AURORA_REWARDS_COMPOUND
         require(streams[streamId].status == StreamStatus.ACTIVE, "E37"); // INACTIVE_OR_PROPOSED_STREAM
         User storage userAccount = users[account];
         require(userAccount.auroraShares != 0, "E38"); // USER_DOES_NOT_HAVE_ACTUAL_STAKE
@@ -1207,10 +1207,10 @@ contract JetStakingV2 is AdminControlled {
             require(
                 scheduleTimes[i] > scheduleTimes[i - 1] &&
                     scheduleRewards[i] <= scheduleRewards[i - 1],
-                "E48" // INVALID_SCHEDULE_PARAMS
+                "E45" // INVALID_SCHEDULE_PARAMS
             );
         }
-        require(scheduleRewards[scheduleRewards.length - 1] == 0, "E50"); // INVALID_SCHEDULE_PARAMS
+        require(scheduleRewards[scheduleRewards.length - 1] == 0, "E45"); // INVALID_SCHEDULE_PARAMS
     }
 
     /// @dev updates the stream reward schedule if the reward token amount is less than

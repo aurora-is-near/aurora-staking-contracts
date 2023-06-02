@@ -21,7 +21,7 @@ import "./JetStakingV2.sol";
 contract JetStakingV3 is JetStakingV2 {
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
-    uint256 private constant RPS_MULTIPLIER = 1e31;
+    uint256 public constant RPS_MULTIPLIER = 1e31;
     // we store all the current streams (old streams)
     // in this state variable. The main goal is to avoid
     // mixing old weighted shares stream calculations and the new ones.
