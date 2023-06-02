@@ -503,7 +503,7 @@ contract JetStakingV2 is AdminControlled {
         uint256 auroraStreamOwnerReward = getStreamOwnerClaimableAmount(
             streamId
         );
-        require(auroraStreamOwnerReward > 0, "E21"); // ZERO_REWARDS
+        require(auroraStreamOwnerReward > 0, "E2"); // ZERO_REWARDS
         stream.lastTimeOwnerClaimed = block.timestamp;
         stream.auroraClaimedAmount += auroraStreamOwnerReward;
         // check enough treasury balance

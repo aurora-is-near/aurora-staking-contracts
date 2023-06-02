@@ -24,7 +24,7 @@ The following tables list all the possible error codes that are used in the stak
 | E18      | AURORA_STREAM_NA |
 | E19      | INVALID_STREAM_OWNER |
 | E20      | INACTIVE_OR_PROPOSED_STREAM |
-| E21      | ZERO_REWARDS (DUP)|
+| E21      | --N/A-- |
 | E22      | --N/A-- |
 | E23      | --N/A-- |
 | E24      | --N/A-- |
