@@ -22,23 +22,7 @@ contract JetStakingV3 is JetStakingV2 {
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
     // 10**9 * 10**18 * 10**3 * 10= 10**31
     uint256 public constant RPS_MULTIPLIER = 1e31;
-    // we store all the current streams (old streams)
-    // in this state variable. The main goal is to avoid
-    // mixing old weighted shares stream calculations and the new ones.
-    mapping(uint256 => bool) public oldWeightedShareStreams;
-
-    /// @dev set the old weighted share streams
-    /// @notice This function must be called prior upgrading the contract.
-    /// And the contract must be paused before initializing it.
-    function initializeOldWeightedStreams()
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(paused != 0, "E16"); // REQUIRE_PAUSE
-        for (uint256 i = 1; i < streams.length; i++) {
-            oldWeightedShareStreams[i] = true;
-        }
-    }
+    uint256 private constant LAST_STREAM_ID = 5;
 
     /// @dev calculates and gets the latest reward per share (RPS) for a stream
     /// @param streamId stream index
@@ -50,7 +34,7 @@ contract JetStakingV3 is JetStakingV2 {
         returns (uint256)
     {
         require(streamId != 0, "E29"); // AURORA_REWARDS_COMPOUND
-        uint256 totalShares = oldWeightedShareStreams[streamId]
+        uint256 totalShares = streamId <= LAST_STREAM_ID
             ? totalStreamShares
             : totalAuroraShares;
         require(totalShares != 0, "E30"); // ZERO_STREAM_SHARES
@@ -72,7 +56,7 @@ contract JetStakingV3 is JetStakingV2 {
         uint256 latestRps = getLatestRewardPerShare(streamId);
         User storage userAccount = users[account];
         uint256 userRps = userAccount.rpsDuringLastClaim[streamId];
-        uint256 userShares = oldWeightedShareStreams[streamId]
+        uint256 userShares = streamId <= LAST_STREAM_ID
             ? userAccount.streamShares
             : userAccount.auroraShares;
         return ((latestRps - userRps) * userShares) / RPS_MULTIPLIER;
@@ -88,8 +72,7 @@ contract JetStakingV3 is JetStakingV2 {
         override
         returns (uint256)
     {
-        uint256 userShares = (oldWeightedShareStreams[streamId] &&
-            streamId != 0)
+        uint256 userShares = (streamId <= LAST_STREAM_ID && streamId != 0)
             ? users[account].streamShares
             : users[account].auroraShares;
         return userShares;
@@ -149,10 +132,10 @@ contract JetStakingV3 is JetStakingV2 {
         internal
         override
     {
-        require(streamId != 0, "E36"); // AURORA_REWARDS_COMPOUND
+        require(streamId != 0, "E29"); // AURORA_REWARDS_COMPOUND
         require(streams[streamId].status == StreamStatus.ACTIVE, "E37"); // INACTIVE_OR_PROPOSED_STREAM
         User storage userAccount = users[account];
-        uint256 shares = oldWeightedShareStreams[streamId]
+        uint256 shares = streamId <= LAST_STREAM_ID
             ? userAccount.streamShares
             : userAccount.auroraShares;
         require(userAccount.auroraShares != 0, "E38"); // USER_DOES_NOT_HAVE_ACTUAL_STAKE

@@ -53,6 +53,13 @@ describe("JetStakingV3", function () {
             // random example for other reward token contracts
             streamToken1 = await Token.connect(user1).deploy(supply, "StreamToken1", "ST1")
             streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
+            const streams = [
+                await Token.connect(user1).deploy(supply, "StreamToken3", "ST3"),
+                await Token.connect(user1).deploy(supply, "StreamToken4", "ST4"),
+                await Token.connect(user1).deploy(supply, "StreamToken5", "ST5"),
+                await Token.connect(user1).deploy(supply, "StreamToken6", "ST6"),
+                await Token.connect(user1).deploy(supply, "StreamToken7", "ST7")
+            ]
             const flags = 0
             const Treasury = await ethers.getContractFactory("Treasury")
             treasury = await upgrades.deployProxy(
@@ -61,7 +68,12 @@ describe("JetStakingV3", function () {
                     [
                         auroraToken.address,
                         streamToken1.address,
-                        streamToken2.address
+                        streamToken2.address,
+                        streams[0].address,
+                        streams[1].address,
+                        streams[2].address,
+                        streams[3].address,
+                        streams[4].address,
                     ],
                     flags
                 ]
@@ -125,6 +137,33 @@ describe("JetStakingV3", function () {
             expect(await jet.hasRole(pauseRole, stakingAdmin.address)).to.be.eq(true)
             expect(await jet.hasRole(defaultAdminRole, stakingAdmin.address)).to.be.eq(true)
             expect(await jet.hasRole(streamManagerRole, streamManager.address)).to.be.eq(true)
+            // create new 5 streams (before upgrading to V3).
+            const auroraProposalAmountForAStream = 0
+            const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+            const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+            for(let i = 0; i < 5; i++) {
+                let id = i + 1;
+                const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+                const scheduleTimes = [
+                    startTime,
+                    startTime + oneYear,
+                    startTime + 2 * oneYear,
+                    startTime + 3 * oneYear,
+                    startTime + 4 * oneYear
+                ]
+                await jet.connect(streamManager).proposeStream(
+                    user1.address,
+                    streams[i].address,
+                    auroraProposalAmountForAStream,
+                    maxRewardProposalAmountForAStream,
+                    minRewardProposalAmountForAStream,
+                    scheduleTimes,
+                    scheduleRewards,
+                    tauPerStream
+                )
+                await streams[i].connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+                await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+            }
             // upgrade V1 to V3
             const JetStakingV3 = await ethers.getContractFactory('JetStakingTestingV3');
             jetV3 = await upgrades.upgradeProxy(
@@ -159,7 +198,7 @@ describe("JetStakingV3", function () {
 
     it('should test multiple stakers reward calculation', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = 0
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -345,7 +384,7 @@ describe("JetStakingV3", function () {
 
     it('should allow admin to propose new stream', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -388,7 +427,7 @@ describe("JetStakingV3", function () {
     })
     it('should allow stream owner to create a stream', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -420,11 +459,11 @@ describe("JetStakingV3", function () {
         const {streamId, owner, } = await getEventLogs(tx.hash, constants.eventsABI.streamCreated, 0)
         expect(owner).to.be.eq(user1.address)
         expect(streamId.toNumber()).to.be.eq(id)
-        expect(await jetV3.getStreamsCount()).to.be.eq(2)
+        expect(await jetV3.getStreamsCount()).to.be.eq(7)
     })
     it('should refund stream owner when stream created with less rewards', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = 2
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -457,7 +496,7 @@ describe("JetStakingV3", function () {
     })
     it('should create stream and refund staking admin if deposit reward is less than the upper amount', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -512,7 +551,7 @@ describe("JetStakingV3", function () {
     it('should release aurora rewards to stream owner', async () => {
         await setupTest();
         const user1BalanceBefore = parseInt(ethers.utils.formatEther(await auroraToken.balanceOf(user1.address)))
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -845,7 +884,7 @@ describe("JetStakingV3", function () {
         await setupTest();
         // stake
         const amount = ethers.utils.parseUnits("1000", 18)
-        const Ids = [1, 2, 3]
+        const Ids = [6, 7, 8]
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
@@ -923,7 +962,7 @@ describe("JetStakingV3", function () {
         // withdraw batch and withdraw all
         await network.provider.send("evm_increaseTime", [tauPerStream + 1])
         await network.provider.send("evm_mine")
-        await jetV3.connect(user2).batchWithdraw([0, 1])
+        await jetV3.connect(user2).batchWithdraw([6, 7])
         const user2BalanceAfter = parseInt(await auroraToken.balanceOf(user1.address))
         expect(user2BalanceAfter).to.be.eq(user2BalanceBefore)
         const withdrawnBalance = parseInt(await streamToken1.balanceOf(user2.address))
@@ -935,7 +974,7 @@ describe("JetStakingV3", function () {
         await setupTest();
         // stake
         const amount = ethers.utils.parseUnits("1000", 18)
-        const Ids = [1]
+        const Ids = [await jetV3.getStreamsCount()]
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
@@ -1055,7 +1094,7 @@ describe("JetStakingV3", function () {
         await setupTest();
         // stake
         const amount = ethers.utils.parseUnits("1000", 18)
-        const Ids = [1]
+        const Ids = [await jetV3.getStreamsCount()]
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
@@ -1118,7 +1157,7 @@ describe("JetStakingV3", function () {
     it('should claim all rewards', async () => {
         await setupTest();
         // deploy stream
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1160,7 +1199,7 @@ describe("JetStakingV3", function () {
     })
     it('should get reward per share for user', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         expect(parseInt(await jetV3.getRewardPerShareForUser(id, user1.address))).to.be.eq(0)
          // deploy stream
         // approve aurora tokens to the stream proposal
@@ -1232,7 +1271,7 @@ describe("JetStakingV3", function () {
     })
     it('should get reward per share for a user', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         const user1RPSBefore = parseInt(await jetV3.getRewardPerShareForUser(id, user1.address))
         expect(user1RPSBefore).to.be.eq(0)
         expect(parseInt(await jetV3.getRewardPerShareForUser(id, user1.address))).to.be.eq(0)
@@ -1269,7 +1308,7 @@ describe("JetStakingV3", function () {
     })
     it('should get claimable amount', async() => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1314,7 +1353,7 @@ describe("JetStakingV3", function () {
     it('should restake the rest of aurora tokens', async () => {
         await setupTest();
         // deploy stream
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1384,7 +1423,7 @@ describe("JetStakingV3", function () {
             startTime + 3 * oneYear, 
             startTime + 4 * oneYear
         ]
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1437,7 +1476,7 @@ describe("JetStakingV3", function () {
             startTime + 3 * oneYear, 
             startTime + 4 * oneYear
         ]
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1489,7 +1528,7 @@ describe("JetStakingV3", function () {
             startTime + 3 * oneYear, 
             startTime + 4 * oneYear
         ]
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1562,7 +1601,7 @@ describe("JetStakingV3", function () {
     })
     it('should admin remove stream', async () => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1596,7 +1635,7 @@ describe("JetStakingV3", function () {
     })
     it('should admin cancel stream proposal after expiry date', async() => {
         await setupTest();
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1631,7 +1670,7 @@ describe("JetStakingV3", function () {
     })
     it('admin can claim streams on behalf of another user', async() => {
         await setupTest();
-        const Ids = [1, 2, 3]
+        const Ids = [6, 7, 8]
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = scheduleRewards[0]
@@ -1708,10 +1747,11 @@ describe("JetStakingV3", function () {
     it('estimageGas staking with multiple streams', async () => {
         await setupTest();
         // deploy streams
-        const streamCount = 20
+        const lastStreams = await jetV3.getStreamsCount()
+        const streamCount = lastStreams.toNumber() + 20;
         console.log("====================================================")
         console.log("Deploying", streamCount, "streams...")
-        for (let id = 1; id <= streamCount; id++) {
+        for (let id = lastStreams.toNumber(); id <= streamCount; id++) {
             // approve aurora tokens to the stream proposal
             const auroraProposalAmountForAStream = ethers.utils.parseUnits("10", 18)
             const maxRewardProposalAmountForAStream = scheduleRewards[0]
@@ -1780,8 +1820,8 @@ describe("JetStakingV3", function () {
     it('estimageGas claiming all with multiple users', async () => {
         await setupTest();
         // deploy streams
-        const streamCount = 4
-        for (let id = 1; id <= streamCount; id++) {
+        const streamCount = (await jetV3.getStreamsCount()) + 4
+        for (let id = (await jetV3.getStreamsCount()); id <= streamCount; id++) {
             // approve aurora tokens to the stream proposal
             const auroraProposalAmountForAStream = ethers.utils.parseUnits("10", 18)
             const maxRewardProposalAmountForAStream = scheduleRewards[0]
@@ -1806,10 +1846,10 @@ describe("JetStakingV3", function () {
                 scheduleRewards,
                 tauPerStream
             )
-            // approve reward tokens
-            await streamToken1.connect(user1).approve(jetV3.address, maxRewardProposalAmountForAStream)
-            // create a stream
-            await jetV3.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+            // // approve reward tokens
+            // await streamToken1.connect(user1).approve(jetV3.address, maxRewardProposalAmountForAStream)
+            // // create a stream
+            // await jetV3.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
         }
         await network.provider.send("evm_increaseTime", [101])
         await network.provider.send("evm_mine")
@@ -1840,7 +1880,7 @@ describe("JetStakingV3", function () {
     it('should not return zero stake value when a user unstakeAll', async () => {
         await setupTest();
         // init the staking contract and the streams
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1913,7 +1953,7 @@ describe("JetStakingV3", function () {
     it('should user 1 stakes before user 2 but both stake very small but the same amount and unstake at the same time', async () => {
         await setupTest();
         // init the staking contract and the streams
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -1994,7 +2034,7 @@ describe("JetStakingV3", function () {
     it('should return the right share calculations', async () => {
         await setupTest();
         // init the staking contract and the streams
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -2087,7 +2127,7 @@ describe("JetStakingV3", function () {
     it('should return the right share calculations 2', async () => {
         await setupTest();
         // init the staking contract and the streams
-        const id = 1
+        const id = await jetV3.getStreamsCount();
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = ethers.utils.parseUnits("10000", 18)
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)

@@ -38,6 +38,13 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         // random example for other reward token contracts
         streamToken1 = await Token.connect(user1).deploy(supply, "StreamToken1", "ST1")
         streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
+        const streams = [
+            await Token.connect(user1).deploy(supply, "StreamToken3", "ST3"),
+            await Token.connect(user1).deploy(supply, "StreamToken4", "ST4"),
+            await Token.connect(user1).deploy(supply, "StreamToken5", "ST5"),
+            await Token.connect(user1).deploy(supply, "StreamToken6", "ST6"),
+            await Token.connect(user1).deploy(supply, "StreamToken7", "ST7")
+        ]
         const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
         treasury = await upgrades.deployProxy(
@@ -46,7 +53,12 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
                 [
                     auroraToken.address,
                     streamToken1.address,
-                    streamToken2.address
+                    streamToken2.address,
+                    streams[0].address,
+                    streams[1].address,
+                    streams[2].address,
+                    streams[3].address,
+                    streams[4].address,
                 ],
                 flags
             ]
@@ -110,6 +122,34 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         expect(await jet.hasRole(pauseRole, stakingAdmin.address)).to.be.eq(true)
         expect(await jet.hasRole(defaultAdminRole, stakingAdmin.address)).to.be.eq(true)
         expect(await jet.hasRole(streamManagerRole, streamManager.address)).to.be.eq(true)
+
+        // create new 5 streams (before upgrading to V3).
+        const auroraProposalAmountForAStream = 0
+        const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
+        const minRewardProposalAmountForAStream = ethers.utils.parseUnits("100000000", 18)
+        for(let i = 0; i < 5; i++) {
+            let id = i + 1;
+            const startTime = (await ethers.provider.getBlock("latest")).timestamp + 100
+            const scheduleTimes = [
+                startTime,
+                startTime + oneYear,
+                startTime + 2 * oneYear,
+                startTime + 3 * oneYear,
+                startTime + 4 * oneYear
+            ]
+            await jet.connect(streamManager).proposeStream(
+                user1.address,
+                streams[i].address,
+                auroraProposalAmountForAStream,
+                maxRewardProposalAmountForAStream,
+                minRewardProposalAmountForAStream,
+                scheduleTimes,
+                scheduleRewards,
+                tauPerStream
+            )
+            await streams[i].connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
+            await jet.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
+        }
     })
 
     beforeEach(async () => {        
@@ -132,7 +172,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         await treasury.connect(auroraOwner).grantRole(defaultAdminRole, jet.address)
 
         // multiple users stake before the upgrade
-        const id = 1
+        const id = await jet.getStreamsCount()
         // approve aurora tokens to the stream proposal
         const auroraProposalAmountForAStream = 0
         const maxRewardProposalAmountForAStream = ethers.utils.parseUnits("200000000", 18)
@@ -270,8 +310,6 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
             jetv3.address
         );
         const jetV3 = await ethers.getContractAt('JetStakingV3', jet.address);
-        // init the contract by calling `initializeOldWeightedStreams`
-        await jetV3.connect(auroraOwner).initializeOldWeightedStreams();
         // unpause the contract
         await jet.connect(auroraOwner).adminPause(0);
         // propose and create new stream 
@@ -307,9 +345,6 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         const id = await jetV3.getStreamsCount() - 1;
         await streamToken1.connect(user1).approve(jet.address, maxRewardProposalAmountForAStream)
         await jetV3.connect(user1).createStream(id, maxRewardProposalAmountForAStream)
-        expect(
-            await jetV3.oldWeightedShareStreams(id)
-        ).to.be.eq(false);
         await auroraToken.connect(user3).approve(jetV2.address, amount1)
         const start = (await ethers.provider.getBlock("latest")).timestamp + 1
         await jetV2.connect(user3).stake(amount1)
