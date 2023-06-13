@@ -16,7 +16,7 @@ import "./JetStakingV2.sol";
  *      unless the user unstakes his full/partial amount of shares.
  *
  *      This contract is AdminControlled which has a tremendous power. However
- *      hopfully it be governed by a community wallet.
+ *      thankfully it is governed by a community multisig.
  */
 contract JetStakingV3 is JetStakingV2 {
     // RPS_MULTIPLIER = Aurora_max_supply x weight(1000) * 10 (large enough to always release rewards) =
