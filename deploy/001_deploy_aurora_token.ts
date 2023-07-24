@@ -4,7 +4,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const { AURORA_TOKEN, ONLY_DEPLOY_UPGRADE_V2, ONLY_DEPLOY_UPGRADE_V3 } = process.env
-    if(!ONLY_DEPLOY_UPGRADE_V3 || !ONLY_DEPLOY_UPGRADE_V2) {
+    if(!ONLY_DEPLOY_UPGRADE_V3 && !ONLY_DEPLOY_UPGRADE_V2) {
         const { deploy } = hre.deployments
         const [ deployer ] = await hre.ethers.getSigners()
         const auroraSupply = ethers.utils.parseUnits("1000000", 18)

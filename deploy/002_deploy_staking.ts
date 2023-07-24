@@ -19,9 +19,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         CLAIM_ROLE_ADDRESS,
         STREAM_MANAGER_ROLE_ADDRESS,
         TREASURY_MANAGER_ROLE_ADDRESS,
-        ONLY_DEPLOY_UPGRADE
+        ONLY_DEPLOY_UPGRADE_V2,
+        ONLY_DEPLOY_UPGRADE_V3
     } = process.env
-    if(!ONLY_DEPLOY_UPGRADE) { 
+    if(!ONLY_DEPLOY_UPGRADE_V2 &&  !ONLY_DEPLOY_UPGRADE_V3) { 
         const tri = "0xFa94348467f64D5A457F75F8bc40495D33c65aBB"
         const bastion = "0x9f1f933c660a1dc856f0e0fe058435879c5ccef0"
         const wnear = "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
