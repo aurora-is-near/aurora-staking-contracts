@@ -10,16 +10,6 @@
       "address": "0xccc2b1aD21666A5847A804a73a41F904C4a4A0Ec",
       "txHash": "0x1ddb7a47722bbb4e2f5c9ed0412e36b729d2b41f0fefd3699df24a164b7aa8bf",
       "kind": "uups"
-    },
-    {
-      "address": "0xFCB4fE06Ef410228Bd393b2C139feFfDeE6E393B",
-      "txHash": "0xb3ff2cdf0380361835d4a543e62f64531f6be4dc3b81553c5d198a8d3cb7576c",
-      "kind": "uups"
-    },
-    {
-      "address": "0x291837D7b91eFA3ca6Ac702c82dDb16C0F7FF703",
-      "txHash": "0x325bbd06fc3221209b01ea91bfa7f5a6e65239e649fd24413f2fc2152a14f470",
-      "kind": "uups"
     }
   ],
   "impls": {
@@ -246,7 +236,7 @@
             "slot": "252",
             "type": "t_uint256",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:35"
+            "src": "contracts/JetStakingV1.sol:35"
           },
           {
             "label": "touchedAt",
@@ -254,7 +244,7 @@
             "slot": "253",
             "type": "t_uint256",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:36"
+            "src": "contracts/JetStakingV1.sol:36"
           },
           {
             "label": "totalAuroraShares",
@@ -262,7 +252,7 @@
             "slot": "254",
             "type": "t_uint256",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:37"
+            "src": "contracts/JetStakingV1.sol:37"
           },
           {
             "label": "totalStreamShares",
@@ -270,7 +260,7 @@
             "slot": "255",
             "type": "t_uint256",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:38"
+            "src": "contracts/JetStakingV1.sol:38"
           },
           {
             "label": "treasury",
@@ -278,7 +268,7 @@
             "slot": "256",
             "type": "t_address",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:39"
+            "src": "contracts/JetStakingV1.sol:39"
           },
           {
             "label": "auroraToken",
@@ -286,7 +276,7 @@
             "slot": "257",
             "type": "t_address",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:40"
+            "src": "contracts/JetStakingV1.sol:40"
           },
           {
             "label": "maxWeight",
@@ -294,7 +284,7 @@
             "slot": "258",
             "type": "t_uint256",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:41"
+            "src": "contracts/JetStakingV1.sol:41"
           },
           {
             "label": "minWeight",
@@ -302,7 +292,7 @@
             "slot": "259",
             "type": "t_uint256",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:42"
+            "src": "contracts/JetStakingV1.sol:42"
           },
           {
             "label": "users",
@@ -310,7 +300,7 @@
             "slot": "260",
             "type": "t_mapping(t_address,t_struct(User)2185_storage)",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:81"
+            "src": "contracts/JetStakingV1.sol:81"
           },
           {
             "label": "streams",
@@ -318,7 +308,7 @@
             "slot": "261",
             "type": "t_array(t_struct(Stream)2223_storage)dyn_storage",
             "contract": "JetStakingV1",
-            "src": "contracts/JetStaking/JetStakingV1.sol:82"
+            "src": "contracts/JetStakingV1.sol:82"
           }
         ],
         "types": {
