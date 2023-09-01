@@ -12,7 +12,7 @@ metadata:
   links: []
   annotations:
     aurora.dev/security-tier: "1"
-    backstage.io/source-location: url:https://github.com/aurora-is-near/aurora-staking-contracts/blob/main/contracts/JetStakingV1.sol
+    backstage.io/source-location: url:https://github.com/aurora-is-near/aurora-staking-contracts/blob/main/contracts/JetStaking/JetStakingV3.sol
 spec:
   owner: aurora-plus-team
   type: contract
