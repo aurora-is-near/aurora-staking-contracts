@@ -1146,6 +1146,10 @@
   dependencies:
     antlr4ts "^0.5.0-alpha.4"
 
+"@spherex-xyz/contracts@github:spherex-xyz/spherex-protect-contracts#feature/proxy-oz-4.4.2":
+  version "1.0.5"
+  resolved "https://codeload.github.com/spherex-xyz/spherex-protect-contracts/tar.gz/dd9a50f277a613091236c2eb063f48b5323b9fe8"
+
 "@szmarczak/http-timer@^1.1.2":
   version "1.1.2"
   resolved "https://registry.npmjs.org/@szmarczak/http-timer/-/http-timer-1.1.2.tgz"

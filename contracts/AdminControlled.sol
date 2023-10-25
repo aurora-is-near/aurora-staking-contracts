@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {ProtectedUUPSUpgradeable} from "@spherex-xyz/contracts/src/ProtectedProxies/ProtectedUUPSUpgradeable.sol";
+import {SphereXProtectedSubProxy} from "@spherex-xyz/contracts/src/SphereXProtectedSubProxy.sol"; // For artifact creation
 
 /**
  * @title AdminControlled
@@ -18,7 +19,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
  *      - Changing state variable value using its storage slot
  *      - Role management using AccessControlled ABIs
  */
-contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
+contract AdminControlled is ProtectedUUPSUpgradeable, AccessControlUpgradeable {
     uint256 public paused;
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
@@ -35,7 +36,6 @@ contract AdminControlled is UUPSUpgradeable, AccessControlUpgradeable {
     /// @param _flags flags variable will be used for pausing this contract.
     /// the default flags value is zero.
     function __AdminControlled_init(uint256 _flags) internal {
-        __UUPSUpgradeable_init();
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSE_ROLE, msg.sender);
