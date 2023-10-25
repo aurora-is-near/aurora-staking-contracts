@@ -2,6 +2,8 @@ import { Contract, ContractFactory } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
 export async function deploySubProxy(contractFactory: ContractFactory, initialize_args: any[]): Promise<Contract> {
+  const [ deployer ] = await ethers.getSigners()
+
   let contract = await contractFactory.deploy();
   await contract.deployed();
   console.log(`Deploy Imp done @ ${contract.address}`);
@@ -12,7 +14,7 @@ export async function deploySubProxy(contractFactory: ContractFactory, initializ
   let proxy = await upgrades.deployProxy(
     MiddlewareProxy,
     [
-      "0x0000000000000000000000000000000000000000",
+      deployer.address,
       "0x0000000000000000000000000000000000000000",
       "0x0000000000000000000000000000000000000000",
       contract.address,
