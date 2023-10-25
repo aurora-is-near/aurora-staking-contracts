@@ -1,5 +1,7 @@
 import { expect } from "chai";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
+import {deploySubProxy, upgradeSubProxy} from "../../scripts/middleware_utils"
+
 
 describe("TreasuryUpgrade", function () {
     let auroraOwner: any
@@ -30,7 +32,7 @@ describe("TreasuryUpgrade", function () {
         streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
         streamToken3 = await Token.connect(user2).deploy(supply, "StreamToken3", "ST3")
         const Treasury = await ethers.getContractFactory("Treasury")
-        treasury = await upgrades.deployProxy(
+        treasury = await deploySubProxy(
             Treasury, 
             [
                 [
@@ -50,8 +52,8 @@ describe("TreasuryUpgrade", function () {
     })
     it('should test Treasury change function signature', async() => {
         const TreasuryChangeFunctionSignature = await ethers.getContractFactory('TreasuryChangeFunctionSignature')
-        treasuryV2 = await upgrades.upgradeProxy(
-            treasury.address,
+        treasuryV2 = await upgradeSubProxy(
+            treasury,
             TreasuryChangeFunctionSignature
         )
         await treasuryV2.connect(auroraOwner)["addSupportedToken(address,bool)"](
@@ -61,16 +63,16 @@ describe("TreasuryUpgrade", function () {
     })
     it('should test Treasury change in storage', async() => {
         const TreasuryChangeInStorage = await ethers.getContractFactory('TreasuryChangeInStorage')
-        treasuryV2 = await upgrades.upgradeProxy(
-            treasury.address,
+        treasuryV2 = await upgradeSubProxy(
+            treasury,
             TreasuryChangeInStorage
         )
         expect(await treasuryV2.newTreasury()).to.be.eq('0x0000000000000000000000000000000000000000')
     })
     it('should test Treasury change in storage and logic', async() => {
         const TreasuryChangeInStorageAndLogic = await ethers.getContractFactory('TreasuryChangeInStorageAndLogic')
-        treasuryV2 = await upgrades.upgradeProxy(
-            treasury.address,
+        treasuryV2 = await upgradeSubProxy(
+            treasury,
             TreasuryChangeInStorageAndLogic,
             {
                 call:{ fn: "updateStorageVar(address)", args: [manager1.address] }
@@ -82,8 +84,8 @@ describe("TreasuryUpgrade", function () {
     })
     it('should test Treasury extra functionality', async() => {
         const TreasuryExtraFunctionality = await ethers.getContractFactory('TreasuryExtraFunctionality')
-        treasuryV2 = await upgrades.upgradeProxy(
-            treasury.address,
+        treasuryV2 = await upgradeSubProxy(
+            treasury,
             TreasuryExtraFunctionality
         )
         expect(await treasuryV2.dummy()).to.be.eq(1)

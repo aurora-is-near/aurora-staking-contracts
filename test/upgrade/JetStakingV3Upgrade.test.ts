@@ -1,5 +1,7 @@
 import { expect } from "chai";
-import { ethers, network, deployments, upgrades } from "hardhat";
+import { ethers, network, deployments } from "hardhat";
+import {deploySubProxy} from "../../scripts/middleware_utils"
+
 
 describe("JetStakingV3UpgradeWithMultiSig", function () {
     let auroraOwner: any
@@ -47,7 +49,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         ]
         const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
-        treasury = await upgrades.deployProxy(
+        treasury = await deploySubProxy(
             Treasury, 
             [
                 [
@@ -86,7 +88,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
             // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
             ethers.utils.parseUnits("0", 18),  // 0
         ]
-        jet = await upgrades.deployProxy(
+        jet = await deploySubProxy(
             JetStakingV1,
             [
                 auroraToken.address,
@@ -258,7 +260,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
             log: true,
         });
         // upgrade the contract to V2
-        await jet.connect(auroraOwner).upgradeTo(
+        await jet.connect(auroraOwner).subUpgradeTo(
             jetv2.address
         );
         // get contract with ABI and the proxy address
@@ -306,7 +308,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         // pause the contract
         await jet.connect(auroraOwner).adminPause(1);
         // upgrade the contract to V3
-        await jet.connect(auroraOwner).upgradeTo(
+        await jet.connect(auroraOwner).subUpgradeTo(
             jetv3.address
         );
         const jetV3 = await ethers.getContractAt('JetStakingV3', jet.address);

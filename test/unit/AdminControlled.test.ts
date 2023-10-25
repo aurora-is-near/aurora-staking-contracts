@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
+import {deploySubProxy} from "../../scripts/middleware_utils"
 
 describe("AdminControlled", function () {
     let admin: any
@@ -17,7 +18,7 @@ describe("AdminControlled", function () {
         const supply = ethers.utils.parseUnits("1000000000", 18)
         targetContract = await TargetContract.connect(admin).deploy()
         const flags = 0
-        adminControlled = await upgrades.deployProxy(
+        adminControlled = await deploySubProxy(
             AdminControlled,
             [
                 flags

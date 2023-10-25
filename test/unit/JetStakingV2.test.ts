@@ -1,7 +1,9 @@
 import { expect } from "chai";
-import { ethers, network, deployments, upgrades } from "hardhat";
+import { ethers, network, deployments } from "hardhat";
 import * as constants from './constants'
 import { getEventLogs } from "./testHelper";
+import {deploySubProxy, upgradeSubProxy} from "../../scripts/middleware_utils"
+
 
 describe("JetStakingV2", function () {
     let auroraOwner: any
@@ -43,7 +45,7 @@ describe("JetStakingV2", function () {
         streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
         const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
-        treasury = await upgrades.deployProxy(
+        treasury = await deploySubProxy(
             Treasury, 
             [
                 [
@@ -77,7 +79,7 @@ describe("JetStakingV2", function () {
             // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
             ethers.utils.parseUnits("0", 18),  // 0
         ]
-        jet = await upgrades.deployProxy(
+        jet = await deploySubProxy(
             JetStakingV1,
             [
                 auroraToken.address,
@@ -115,8 +117,8 @@ describe("JetStakingV2", function () {
         expect(await jet.hasRole(streamManagerRole, streamManager.address)).to.be.eq(true)
         const JetStakingV2 = await ethers.getContractFactory('JetStakingTestingV2');
         // upgrade V1 to V2
-        jetV2 = await upgrades.upgradeProxy(
-            jet.address,
+        jetV2 = await upgradeSubProxy(
+            jet,
             JetStakingV2
         );
     })
@@ -1480,7 +1482,7 @@ describe("JetStakingV2", function () {
     it('should only admin update the treasury address', async () => {
         // deploy new treasury contract
         const Treasury = await ethers.getContractFactory("Treasury")
-        const newTreasury = await upgrades.deployProxy(
+        const newTreasury = await deploySubProxy(
             Treasury,
             [
                 [
