@@ -27,11 +27,10 @@ export async function deploySubProxy(contractFactory: ContractFactory, initializ
     }
   );
 
-  await new Promise((f) => setTimeout(f, 3000));
   await proxy.deployed();
 
-  proxy = new ethers.Contract(proxy.address, contractFactory.interface, ethers.provider.getSigner());
-  console.log("Deploy Treasury Middleware Proxy done @ " + (await proxy.getSubImplementation()));
+  proxy = new ethers.Contract(proxy.address, contractFactory.interface, deployer);
+  console.log("Deploy Middleware Proxy done @ " + (await proxy.getSubImplementation()));
   console.log(`Deploy Proxy done @ ${proxy.address}`);
   return proxy;
 }
