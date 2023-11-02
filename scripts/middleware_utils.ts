@@ -84,6 +84,5 @@ export async function upgradeProxyToMiddleware(
   unsafeAllow: ["delegatecall"],
   unsafeSkipStorageCheck: true})
 
-  const middleware = await ethers.getContractAt("ProtectedUUPSUpgradeable", proxy.address)
   return contractFactory.attach(proxy.address);
 }
