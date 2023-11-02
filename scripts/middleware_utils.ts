@@ -55,3 +55,35 @@ export async function upgradeSubProxy(
 
   return contractFactory.attach(proxy.address);
 }
+
+export async function upgradeProxyToMiddleware(
+  proxy: Contract,
+  contractFactory: ContractFactory,
+  opts?: { call?: { fn: string; args: any[] }} ): Promise<Contract> {
+
+  const [ deployer ] = await ethers.getSigners()
+
+  let contract = await contractFactory.deploy();
+  await contract.deployed();
+  console.log(`Deploy Imp done @ ${contract.address}`);
+
+  let MiddlewareProxy = await ethers.getContractFactory("SphereXProtectedSubProxy");
+  let contract_init_data = '0x';
+  if (opts && opts.call) {
+    const { fn, args } = opts.call;
+    contract_init_data = contract.interface.encodeFunctionData(fn, args);
+  }
+
+  await upgrades.upgradeProxy(proxy, MiddlewareProxy, {call: {fn: 'initialize', args: [
+    deployer.address,
+    "0x0000000000000000000000000000000000000000",
+    "0x0000000000000000000000000000000000000000",
+    contract.address,
+    contract_init_data,
+  ]},
+  unsafeAllow: ["delegatecall"],
+  unsafeSkipStorageCheck: true})
+
+  const middleware = await ethers.getContractAt("ProtectedUUPSUpgradeable", proxy.address)
+  return contractFactory.attach(proxy.address);
+}
