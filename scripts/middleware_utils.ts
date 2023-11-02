@@ -86,3 +86,35 @@ export async function upgradeProxyToMiddleware(
 
   return contractFactory.attach(proxy.address);
 }
+
+export async function upgradeProxyToMiddlewareHexData(
+  contractFactory: ContractFactory,
+  opts?: { call?: { fn: string; args: any[] }} ): Promise<string> {
+
+  const [ deployer ] = await ethers.getSigners()
+
+  let contract = await contractFactory.deploy();
+  await contract.deployed();
+  console.log(`Deploy Imp done @ ${contract.address}`);
+
+  let MiddlewareProxy = await ethers.getContractFactory("SphereXProtectedSubProxy");
+  let middlewareProxy = await MiddlewareProxy.deploy();
+  await middlewareProxy.deployed();
+  console.log(`Deploy Middleware Proxy done @ ${middlewareProxy.address}`);
+
+
+  let contract_init_data = '0x';
+  if (opts && opts.call) {
+    const { fn, args } = opts.call;
+    contract_init_data = contract.interface.encodeFunctionData(fn, args);
+  }
+  const middleware_init_data = MiddlewareProxy.interface.encodeFunctionData("initialize", [
+    deployer.address,
+    "0x0000000000000000000000000000000000000000",
+    "0x0000000000000000000000000000000000000000",
+    contract.address,
+    contract_init_data,
+  ])
+
+  return contractFactory.interface.encodeFunctionData("upgradeToAndCall", [middlewareProxy.address, middleware_init_data])
+}

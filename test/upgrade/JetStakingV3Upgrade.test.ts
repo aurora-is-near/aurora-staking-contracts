@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers, network, deployments, upgrades } from "hardhat";
-import {deploySubProxy, upgradeProxyToMiddleware} from "../../scripts/middleware_utils"
+import {deploySubProxy, upgradeProxyToMiddleware, upgradeProxyToMiddlewareHexData} from "../../scripts/middleware_utils"
 
 
 describe("JetStakingV3UpgradeWithMultiSig", function () {
@@ -258,8 +258,18 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         const { deploy } = deployments;
         
         // deploy V2 implementation
-        const Jetv2 = await ethers.getContractFactory("JetStakingTestingV2")
-        jet = await upgradeProxyToMiddleware(jet, Jetv2)
+        const Jetv2 = await ethers.getContractFactory("JetStakingTestingV2");
+        const upgrade_data = await upgradeProxyToMiddlewareHexData(Jetv2);
+        
+        const tx = {
+            to: jet.address,
+            data: upgrade_data,
+        };
+
+        const signer = (await ethers.getSigners())[0];
+        const txResponse = await signer.sendTransaction(tx);
+        await txResponse.wait();
+        jet =  await ethers.getContractAt('JetStakingTestingV2', jet.address);
 
         // get contract with ABI and the proxy address
         const jetV2 = await ethers.getContractAt('JetStakingV2', jet.address);
