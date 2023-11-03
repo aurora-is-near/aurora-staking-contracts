@@ -10,5 +10,3 @@ cache/
 artifacts/
 # IDE
 .DS_Store
-# OpenZeppelin
-.openzeppelin/

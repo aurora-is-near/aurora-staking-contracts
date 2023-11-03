@@ -79,6 +79,16 @@ module.exports = {
     apiKey: {
       aurora: ETHERSCAN_API_KEY
     },
+    customChains: [
+      {
+        network: "aurora",
+        chainId: 1313161554,
+        urls: {
+          apiURL: "https://explorer.mainnet.aurora.dev/api",
+          browserURL: "https://explorer.aurora.dev",
+        },
+      }
+    ]
   },
   docgen: {
     path: './docs/contracts',
