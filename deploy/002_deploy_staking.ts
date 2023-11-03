@@ -22,7 +22,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         ONLY_DEPLOY_UPGRADE_V2,
         ONLY_DEPLOY_UPGRADE_V3
     } = process.env
-    if(!ONLY_DEPLOY_UPGRADE_V2 &&  !ONLY_DEPLOY_UPGRADE_V3) { 
+    if(!ONLY_DEPLOY_UPGRADE_V2 &&  !ONLY_DEPLOY_UPGRADE_V3) {
         const tri = "0xFa94348467f64D5A457F75F8bc40495D33c65aBB"
         const bastion = "0x9f1f933c660a1dc856f0e0fe058435879c5ccef0"
         const wnear = "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
@@ -32,7 +32,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         console.log(`AURORA staking contracts deployment @ ${new Date().toLocaleString()}`)
         const { save } = hre.deployments;
         const [ deployer ] = await hre.ethers.getSigners()
-        const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME as string) : Math.floor(Date.now()/ 1000) + 60 
+        const startTime = SCHEDULE_START_TIME ? parseInt(SCHEDULE_START_TIME as string) : Math.floor(Date.now()/ 1000) + 60
         console.log(`Main AURORA stream will start @ ${new Date(startTime * 1000).toLocaleString()}`)
         const flags = 0
         console.log(`Getting Aurora token address`);
@@ -46,7 +46,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         }
         console.log(`Aurora token address is: ${auroraAddress}`)
 
-        // Deploy JetStakingV1.
+        // Deploy JetStakingV3.
         // ====================
         let treasury: Contract
         try {
@@ -94,7 +94,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         console.log(
             'Contract: ',
             'Treasury, ',
-            'ADDRESS ', 
+            'ADDRESS ',
             TREASURY_MANAGER_ROLE_ADDRESS,
             `Has a role (Treasury manager role) ${treasuryManagerRole}? `,
             await treasury.hasRole(treasuryManagerRole, TREASURY_MANAGER_ROLE_ADDRESS)
@@ -105,9 +105,9 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'Treasury, ',
-            'ADDRESS: ', 
+            'ADDRESS: ',
             DEFAULT_ADMIN_ROLE_ADDRESS,
             `Has a role (Default admin role) ${treasuryDefaultAdminRole}? `,
             await treasury.hasRole(treasuryDefaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
@@ -119,15 +119,15 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'Treasury, ',
-            'ADDRESS: ', 
+            'ADDRESS: ',
             DEFAULT_ADMIN_ROLE_ADDRESS,
             `Has a role (Pause role) ${treasuryPauseRole}? `,
             await treasury.hasRole(treasuryPauseRole, DEFAULT_ADMIN_ROLE_ADDRESS)
         )
 
-        // Deploy JetStakingV1.
+        // Deploy JetStakingV3.
         // ====================
         // TODO: SCHEDULE_PERIOD=7890000 // 3 months
         const scheduleTimes = [
@@ -147,14 +147,14 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             hre.ethers.utils.parseUnits("0", 18), // 0M
         ]
 
-        let jetStakingV1: Contract
+        let jetStakingV3: Contract
         try {
-            jetStakingV1 = await hre.ethers.getContract("JetStakingV1")
-            console.log("Reusing deployed JetStakingV1 from ./deployments")
+            jetStakingV3 = await hre.ethers.getContract("JetStakingV3")
+            console.log("Reusing deployed JetStakingV3 from ./deployments")
         } catch(error) {
-            const JetStakingV1 = await ethers.getContractFactory("JetStakingV1")
-            jetStakingV1 = await upgrades.deployProxy(
-                JetStakingV1,
+            const JetStakingV3 = await ethers.getContractFactory("JetStakingV3")
+            jetStakingV3 = await upgrades.deployProxy(
+                JetStakingV3,
                 [
                     auroraAddress,
                     AURORA_STREAM_OWNER ? AURORA_STREAM_OWNER : deployer.address,
@@ -172,106 +172,108 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 }
             )
 
-            console.log('Deploy JetStakingV1 Proxy done @ ' + jetStakingV1.address)
+            console.log('Deploy JetStakingV3 Proxy done @ ' + jetStakingV3.address)
             await new Promise(f => setTimeout(f, 3000));
-            const jetStakingV1Impl = await upgrades.upgradeProxy(jetStakingV1, JetStakingV1)
-            console.log('Deploy JetStakingV1 Implementation  done @ ' + jetStakingV1Impl.address)
-            const jetStakingV1Artifact = await hre.deployments.getExtendedArtifact('JetStakingV1');
-            const jetStakingV1ProxyDeployments = {
-                address: jetStakingV1.address,
-                ...jetStakingV1Artifact
+            const jetStakingV3Impl = await upgrades.upgradeProxy(jetStakingV3, JetStakingV3)
+            console.log('Deploy JetStakingV3 Implementation  done @ ' + jetStakingV3Impl.address)
+            const jetStakingV3Artifact = await hre.deployments.getExtendedArtifact('JetStakingV3');
+            const jetStakingV3ProxyDeployments = {
+                address: jetStakingV3.address,
+                ...jetStakingV3Artifact
             }
-            await save('JetStakingV1', jetStakingV1ProxyDeployments)
+            await save('JetStakingV3', jetStakingV3ProxyDeployments)
             await new Promise(f => setTimeout(f, 3000));
         }
 
-        await jetStakingV1.deployed()
-        console.log(`JetStakingV1 address : ${jetStakingV1.address}`)
-        
-        const claimRole = await jetStakingV1.CLAIM_ROLE()
-        const airdropRole = await jetStakingV1.AIRDROP_ROLE()
-        const pauseRole = await jetStakingV1.PAUSE_ROLE()
-        const streamManagerRole = await jetStakingV1.STREAM_MANAGER_ROLE()
-        const defaultAdminRole = await jetStakingV1.DEFAULT_ADMIN_ROLE()
+        await jetStakingV3.deployed()
+        console.log(`JetStakingV3 address : ${jetStakingV3.address}`)
+
+        const claimRole = await jetStakingV3.CLAIM_ROLE()
+        const airdropRole = await jetStakingV3.AIRDROP_ROLE()
+        const pauseRole = await jetStakingV3.PAUSE_ROLE()
+        const streamManagerRole = await jetStakingV3.STREAM_MANAGER_ROLE()
+        const defaultAdminRole = await jetStakingV3.DEFAULT_ADMIN_ROLE()
         console.log(`CLAIM_ROLE: ${claimRole}`)
         console.log(`AIRDROP_ROLE: ${airdropRole}`)
         console.log(`PAUSE_ROLE: ${pauseRole}`)
         console.log(`STREAM_MANAGER_ROLE ${streamManagerRole}`)
         console.log(`DEFAULT ADMIN ROLE: ${defaultAdminRole}`)
 
-        if(!await jetStakingV1.hasRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)) {
-            await jetStakingV1.grantRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
+        if(!await jetStakingV3.hasRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)) {
+            await jetStakingV3.grantRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'JetStaking, ',
-            'ADDRESS: ', 
+            'ADDRESS: ',
             STREAM_MANAGER_ROLE_ADDRESS,
             `Has a role (Stream manager role) ${streamManagerRole}? `,
-            await jetStakingV1.hasRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
+            await jetStakingV3.hasRole(streamManagerRole, STREAM_MANAGER_ROLE_ADDRESS)
         )
-        if(!await jetStakingV1.hasRole(claimRole, CLAIM_ROLE_ADDRESS)) {
-            await jetStakingV1.grantRole(claimRole, CLAIM_ROLE_ADDRESS)
+        if(!await jetStakingV3.hasRole(claimRole, CLAIM_ROLE_ADDRESS)) {
+            await jetStakingV3.grantRole(claimRole, CLAIM_ROLE_ADDRESS)
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'JetStaking, ',
-            'ADDRESS: ', 
+            'ADDRESS: ',
             CLAIM_ROLE_ADDRESS,
             `Has a role (claim role) ${claimRole}? `,
-            await jetStakingV1.hasRole(claimRole, CLAIM_ROLE_ADDRESS)
+            await jetStakingV3.hasRole(claimRole, CLAIM_ROLE_ADDRESS)
         )
-        if(!await jetStakingV1.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)) {
-            await jetStakingV1.grantRole(airdropRole, AIRDROP_ROLE_ADDRESS)
+        if(!await jetStakingV3.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)) {
+            await jetStakingV3.grantRole(airdropRole, AIRDROP_ROLE_ADDRESS)
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'JetStaking, ',
-            'ADDRESS: ', 
+            'ADDRESS: ',
             AIRDROP_ROLE_ADDRESS,
             `Has a role (Airdrop role) ${airdropRole}? `,
-            await jetStakingV1.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)
+            await jetStakingV3.hasRole(airdropRole, AIRDROP_ROLE_ADDRESS)
         )
-        if(!await jetStakingV1.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)) {
-            await jetStakingV1.grantRole(pauseRole, PAUSER_ROLE_ADDRESS)
+        if(!await jetStakingV3.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)) {
+            await jetStakingV3.grantRole(pauseRole, PAUSER_ROLE_ADDRESS)
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'JetStaking, ',
-            'ADDRESS: ', 
+            'ADDRESS: ',
             PAUSER_ROLE_ADDRESS,
             `Has a role (Pauser role) ${pauseRole}? `,
-            await jetStakingV1.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)
+            await jetStakingV3.hasRole(pauseRole, PAUSER_ROLE_ADDRESS)
         )
-        if(!await jetStakingV1.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)) {
-            await jetStakingV1.grantRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+        if(!await jetStakingV3.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)) {
+            await jetStakingV3.grantRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'JetStaking, ',
-            'ADDRESS: ', 
+            'ADDRESS: ',
             DEFAULT_ADMIN_ROLE_ADDRESS,
             `Has a role (Default admin role) ${defaultAdminRole}? `,
-            await jetStakingV1.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
+            await jetStakingV3.hasRole(defaultAdminRole, DEFAULT_ADMIN_ROLE_ADDRESS)
         )
         // assign jet staking address an admin role in the treasury contract
-        if(!await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV1.address)) {
-            await treasury.connect(deployer).grantRole(treasuryDefaultAdminRole, jetStakingV1.address)
+        if(!await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV3.address)) {
+            await treasury.connect(deployer).grantRole(treasuryDefaultAdminRole, jetStakingV3.address)
             await new Promise(f => setTimeout(f, 1000));
         }
         console.log(
-            'Contract: ', 
+            'Contract: ',
             'Treasury, ',
-            'ADDRESS: ', 
-            jetStakingV1.address,
+            'ADDRESS: ',
+            jetStakingV3.address,
             `Has a role (Default admin role) ${treasuryDefaultAdminRole}? `,
-            await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV1.address)
+            await treasury.hasRole(treasuryDefaultAdminRole, jetStakingV3.address)
         )
+
+        return
 
         // AIRDROP_ROLE_ADDRESS and CLAIM_ROLE_ADDRESS are general purpose.
         // Other addresses used by airdrop script:
@@ -290,8 +292,8 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
         console.log("Grant CLAIM_ROLE and AIRDROP_ROLE to airdrop script addresses.")
         // airdropScriptAddresses.forEach(async (addr) => {
         for (const addr of airdropScriptAddresses) {
-            if(!await jetStakingV1.hasRole(claimRole, addr)) {
-                await jetStakingV1.grantRole(claimRole, addr)
+            if(!await jetStakingV3.hasRole(claimRole, addr)) {
+                await jetStakingV3.grantRole(claimRole, addr)
                 await new Promise(f => setTimeout(f, 1000));
             }
             console.log(
@@ -300,10 +302,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 'ADDRESS: ',
                 addr,
                 `Has a role (Claim role) ${claimRole}? `,
-                await jetStakingV1.hasRole(claimRole, addr)
+                await jetStakingV3.hasRole(claimRole, addr)
             )
-            if(!await jetStakingV1.hasRole(airdropRole, addr)) {
-                await jetStakingV1.grantRole(airdropRole, addr)
+            if(!await jetStakingV3.hasRole(airdropRole, addr)) {
+                await jetStakingV3.grantRole(airdropRole, addr)
                 await new Promise(f => setTimeout(f, 1000));
             }
             console.log(
@@ -312,11 +314,11 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                 'ADDRESS: ',
                 addr,
                 `Has a role (Airdrop role) ${airdropRole}? `,
-                await jetStakingV1.hasRole(airdropRole, addr)
+                await jetStakingV3.hasRole(airdropRole, addr)
             )
         }
     }
 }
 
 module.exports = func
-module.exports.tags = ["JetStakingV1"]
+module.exports.tags = ["JetStakingV3"]
