@@ -1,5 +1,7 @@
 import { expect } from "chai";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
+import {deploySubProxy} from "../../scripts/middleware_utils"
+
 
 describe("Treasury", function () {
     let admin: any
@@ -29,7 +31,7 @@ describe("Treasury", function () {
         streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
 
         const Treasury = await ethers.getContractFactory("Treasury")
-        treasury = await upgrades.deployProxy(
+        treasury = await deploySubProxy(
             Treasury, 
             [
                 [

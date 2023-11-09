@@ -1,7 +1,8 @@
 import { Contract } from "ethers";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import {deploySubProxy, upgradeSubProxy} from "../scripts/middleware_utils"
 
 const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     const {
@@ -54,7 +55,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             console.log("Reusing deployed Treasury from ./deployments")
         } catch(error) {
             const Treasury = await ethers.getContractFactory("Treasury")
-            treasury = await upgrades.deployProxy(
+            treasury = await deploySubProxy(
                 Treasury,
                 [
                     [
@@ -67,14 +68,10 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                     ],
                     flags
                 ],
-                {
-                    initializer: "initialize",
-                    kind : "uups",
-                },
             )
             console.log('Deploy Treasury Proxy done @ ' + treasury.address)
             await new Promise(f => setTimeout(f, 3000));
-            const treasuryImpl = await upgrades.upgradeProxy(treasury, Treasury)
+            const treasuryImpl = await upgradeSubProxy(treasury, Treasury)
             console.log('Deploy Treasury Implementation  done @ ' + treasuryImpl.address)
             const treasuryArtifact = await hre.deployments.getExtendedArtifact('Treasury');
             const treasuryProxyDeployments = {
@@ -153,7 +150,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
             console.log("Reusing deployed JetStakingV3 from ./deployments")
         } catch(error) {
             const JetStakingV3 = await ethers.getContractFactory("JetStakingV3")
-            jetStakingV3 = await upgrades.deployProxy(
+            jetStakingV3 = await deploySubProxy(
                 JetStakingV3,
                 [
                     auroraAddress,
@@ -165,16 +162,12 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
                     treasury.address,
                     parseInt(MAX_WEIGHT as string),
                     parseInt(MIN_WEIGHT as string)
-                ],
-                {
-                    initializer: "initialize",
-                    kind : "uups",
-                }
+                ]
             )
 
             console.log('Deploy JetStakingV3 Proxy done @ ' + jetStakingV3.address)
             await new Promise(f => setTimeout(f, 3000));
-            const jetStakingV3Impl = await upgrades.upgradeProxy(jetStakingV3, JetStakingV3)
+            const jetStakingV3Impl = await upgradeSubProxy(jetStakingV3, JetStakingV3)
             console.log('Deploy JetStakingV3 Implementation  done @ ' + jetStakingV3Impl.address)
             const jetStakingV3Artifact = await hre.deployments.getExtendedArtifact('JetStakingV3');
             const jetStakingV3ProxyDeployments = {

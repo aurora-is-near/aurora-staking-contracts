@@ -1,5 +1,7 @@
 import { expect } from "chai";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
+import {deploySubProxy, upgradeSubProxy} from "../../scripts/middleware_utils"
+
 
 describe("JetStakingV1Upgrade", function () {
     let auroraOwner: any
@@ -36,7 +38,7 @@ describe("JetStakingV1Upgrade", function () {
         streamToken2 = await Token.connect(user2).deploy(supply, "StreamToken2", "ST2")
         const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
-        treasury = await upgrades.deployProxy(
+        treasury = await deploySubProxy(
             Treasury, 
             [
                 [
@@ -45,11 +47,7 @@ describe("JetStakingV1Upgrade", function () {
                     streamToken2.address
                 ],
                 flags
-            ],
-            {
-                initializer: "initialize",
-                kind : "uups",
-            }
+            ]
         )
         await treasury.deployed();
 
@@ -75,7 +73,7 @@ describe("JetStakingV1Upgrade", function () {
             // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
             ethers.utils.parseUnits("0", 18),  // 0
         ]
-        jet = await upgrades.deployProxy(
+        jet = await deploySubProxy(
             JetStakingV1,
             [
                 auroraToken.address,
@@ -88,10 +86,6 @@ describe("JetStakingV1Upgrade", function () {
                 maxWeight,
                 minWeight
             ],
-            {
-                initializer: "initialize",
-                kind : "uups",
-            }
         )
         await jet.deployed();
         const defaultAdminRole = await jet.DEFAULT_ADMIN_ROLE()
@@ -114,8 +108,8 @@ describe("JetStakingV1Upgrade", function () {
 
     it('should test JetStakingV1 change function signature', async() => {
         const JetStakingV1ChangeFunctionSignature = await ethers.getContractFactory('JetStakingV1ChangeFunctionSignature')
-        jetv2 = await upgrades.upgradeProxy(
-            jet.address,
+        jetv2 = await upgradeSubProxy(
+            jet,
             JetStakingV1ChangeFunctionSignature
         )
         const amount = ethers.utils.parseUnits("5", 18)
@@ -143,16 +137,16 @@ describe("JetStakingV1Upgrade", function () {
     })
     it('should test JetStakingV1 change in storage', async() => {
         const JetStakingV1ChangeInStorage = await ethers.getContractFactory('JetStakingV1ChangeInStorage')
-        jetv2 = await upgrades.upgradeProxy(
-            jet.address,
+        jetv2 = await upgradeSubProxy(
+            jet,
             JetStakingV1ChangeInStorage
         )
         expect(await jetv2.storageVar()).to.be.eq(0)
     })
     it('should test JetStakingV1 change in storage and logic', async() => {
         const JetStakingV1ChangeInStorageAndLogic = await ethers.getContractFactory('JetStakingV1ChangeInStorageAndLogic')
-        jetv2 = await upgrades.upgradeProxy(
-            jet.address,
+        jetv2 = await upgradeSubProxy(
+            jet,
             JetStakingV1ChangeInStorageAndLogic,
             {
                 call:{ fn: "updateStorageVar(uint256)", args: [1] }
@@ -164,8 +158,8 @@ describe("JetStakingV1Upgrade", function () {
     })
     it('should test JetStakingV1 extra functionality', async() => {
         const JetStakingV1ExtraFunctionality = await ethers.getContractFactory('JetStakingV1ExtraFunctionality')
-        jetv2 = await upgrades.upgradeProxy(
-            jet.address,
+        jetv2 = await upgradeSubProxy(
+            jet,
             JetStakingV1ExtraFunctionality
         )
         expect(await jetv2.dummy()).to.be.eq(1)

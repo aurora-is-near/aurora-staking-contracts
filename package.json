@@ -100,5 +100,8 @@
     "typescript": "^4.3.2",
     "underscore": "^1.12.1",
     "web3": "^1.5.2"
+  },
+  "dependencies": {
+    "@spherex-xyz/contracts": "github:spherex-xyz/spherex-protect-contracts#feature/proxy-oz-4.4.2"
   }
 }

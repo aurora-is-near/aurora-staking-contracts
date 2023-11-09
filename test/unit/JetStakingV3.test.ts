@@ -1,7 +1,9 @@
 import { expect } from "chai";
-import { ethers, network, deployments, upgrades } from "hardhat";
+import { ethers, network, deployments } from "hardhat";
 import * as constants from './constants'
 import { getEventLogs } from "./testHelper";
+import {deploySubProxy, upgradeSubProxy} from "../../scripts/middleware_utils"
+
 
 describe("JetStakingV3", function () {
     let auroraOwner: any
@@ -62,7 +64,7 @@ describe("JetStakingV3", function () {
             ]
             const flags = 0
             const Treasury = await ethers.getContractFactory("Treasury")
-            treasury = await upgrades.deployProxy(
+            treasury = await deploySubProxy(
                 Treasury, 
                 [
                     [
@@ -101,7 +103,7 @@ describe("JetStakingV3", function () {
                 // Last amount should be 0 so scheduleTimes[4] marks the end of the stream schedule.
                 ethers.utils.parseUnits("0", 18),  // 0
             ]
-            jet = await upgrades.deployProxy(
+            jet = await deploySubProxy(
                 JetStakingV1,
                 [
                     auroraToken.address,
@@ -166,8 +168,8 @@ describe("JetStakingV3", function () {
             }
             // upgrade V1 to V3
             const JetStakingV3 = await ethers.getContractFactory('JetStakingTestingV3');
-            jetV3 = await upgrades.upgradeProxy(
-                jet.address,
+            jetV3 = await upgradeSubProxy(
+                jet,
                 JetStakingV3
             )
             // fund users wallet
@@ -1580,7 +1582,7 @@ describe("JetStakingV3", function () {
         await setupTest();
         // deploy new treasury contract
         const Treasury = await ethers.getContractFactory("Treasury")
-        const newTreasury = await upgrades.deployProxy(
+        const newTreasury = await deploySubProxy(
             Treasury,
             [
                 [

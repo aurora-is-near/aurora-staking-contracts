@@ -1,5 +1,7 @@
 import { expect } from "chai";
 import { ethers, network, deployments, upgrades } from "hardhat";
+import {deploySubProxy, upgradeProxyToMiddleware, upgradeProxyToMiddlewareHexData} from "../../scripts/middleware_utils"
+
 
 describe("JetStakingV3UpgradeWithMultiSig", function () {
     let auroraOwner: any
@@ -47,7 +49,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         ]
         const flags = 0
         const Treasury = await ethers.getContractFactory("Treasury")
-        treasury = await upgrades.deployProxy(
+        treasury = await deploySubProxy(
             Treasury, 
             [
                 [
@@ -68,7 +70,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         tauPerStream = 10
 
         startTime = (await ethers.provider.getBlock("latest")).timestamp + 10
-        const JetStakingV1 = await ethers.getContractFactory('JetStakingTestingV1')
+        const JetStakingV1 = await ethers.getContractFactory('JetStakingTestingV1Old')
         const minWeight = 256
         const maxWeight = 1024
         scheduleTimes = [
@@ -98,7 +100,10 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
                 treasury.address,
                 maxWeight,
                 minWeight
-            ]
+            ],
+            {
+                unsafeAllow: ["delegatecall"]
+            }
         )
         const claimRole = await jet.CLAIM_ROLE()
         const airdropRole = await jet.AIRDROP_ROLE()
@@ -251,16 +256,21 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
     it("should do upgrade from V1 to V2, then to V3, propose new stream and check rewards calculation", async() => {
         // upgrade V1 to V2 by deploying the implementation contract first.
         const { deploy } = deployments;
+        
         // deploy V2 implementation
-        const jetv2 = await deploy('JetStakingTestingV2', {
-            from: auroraOwner.address,
-            args: [],
-            log: true,
-        });
-        // upgrade the contract to V2
-        await jet.connect(auroraOwner).upgradeTo(
-            jetv2.address
-        );
+        const Jetv2 = await ethers.getContractFactory("JetStakingTestingV2");
+        const upgrade_data = await upgradeProxyToMiddlewareHexData(Jetv2);
+        
+        const tx = {
+            to: jet.address,
+            data: upgrade_data,
+        };
+
+        const signer = (await ethers.getSigners())[0];
+        const txResponse = await signer.sendTransaction(tx);
+        await txResponse.wait();
+        jet =  await ethers.getContractAt('JetStakingTestingV2', jet.address);
+
         // get contract with ABI and the proxy address
         const jetV2 = await ethers.getContractAt('JetStakingV2', jet.address);
         const schedule = await jetV2.getStreamSchedule(0);
@@ -306,7 +316,7 @@ describe("JetStakingV3UpgradeWithMultiSig", function () {
         // pause the contract
         await jet.connect(auroraOwner).adminPause(1);
         // upgrade the contract to V3
-        await jet.connect(auroraOwner).upgradeTo(
+        await jet.connect(auroraOwner).subUpgradeTo(
             jetv3.address
         );
         const jetV3 = await ethers.getContractAt('JetStakingV3', jet.address);

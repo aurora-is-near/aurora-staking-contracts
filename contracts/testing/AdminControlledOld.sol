@@ -2,7 +2,7 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {ProtectedUUPSUpgradeable} from "@spherex-xyz/contracts/src/ProtectedProxies/ProtectedUUPSUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SphereXProtectedSubProxy} from "@spherex-xyz/contracts/src/SphereXProtectedSubProxy.sol"; // For artifact creation
 
 /**
@@ -19,7 +19,7 @@ import {SphereXProtectedSubProxy} from "@spherex-xyz/contracts/src/SphereXProtec
  *      - Changing state variable value using its storage slot
  *      - Role management using AccessControlled ABIs
  */
-contract AdminControlled is ProtectedUUPSUpgradeable, AccessControlUpgradeable {
+contract AdminControlledOld is UUPSUpgradeable, AccessControlUpgradeable {
     uint256 public paused;
     bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
