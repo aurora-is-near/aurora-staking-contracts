@@ -157,7 +157,7 @@ yarn createStreamBSTN:auroraMainnet
 
 ## Verifying contracts
 
-Proxy contracts were already automatically verified because of the automatic bytecode matching in [Aurorascan](https://aurorascan.dev), however to verify the implementation contracts, you have to use the `hardhat verify` as follows:
+Proxy contracts were already automatically verified because of the automatic bytecode matching in [Aurora Blockscout](https://explorer.aurora.dev/), however to verify the implementation contracts, you have to use the `hardhat verify` as follows:
 
 - Verify `JetStakingV1` implementation contract @ `0x852F139Dd31D2cdc669470880700037Cb3790934`:
 ```bash
